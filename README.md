@@ -1,43 +1,55 @@
-# GENEVIEVE Budget Compass V2
+# Every Cent — Money Tracker
 
-A lightweight privacy-first monthly budget app built with React + Vite and ready for GitHub + Vercel.
+A beginner-friendly personal money tracker built as a static web app. It can be deployed directly from GitHub to Vercel with no build step.
 
-## Improvements in V2
+## What it does
 
-- Month-by-month budget history instead of a single rolling ledger.
-- Separate income, planned category amounts, recorded spending and cash remaining.
-- Per-month category overrides while keeping reusable default category plans.
-- Editable categories and transaction dates.
-- Clear green / amber / red early-warning signals.
-- Starter categories for fast setup.
-- Copy a previous month's plan forward.
-- JSON export/import backup.
-- Automatic migration from the original `genevieve-budget-data` localStorage format.
-- Mobile-first, accessible interface and reduced-motion support.
-- No account or backend required; budget data remains in the current browser/device.
+- Track money spent, received and moved between your own accounts.
+- Track bank accounts, savings, cash, credit cards and loans.
+- Mark spending as Essential, Worth it, Unsure or Waste.
+- Show monthly income, spending, cash flow and potential waste.
+- Track recurring bills and subscriptions.
+- Subscription Rescue for payments you do not recognise.
+- Annualise subscription costs so monthly costs are easier to judge.
+- Show items that need attention.
+- Export transactions to CSV.
+- Download and restore a JSON backup.
+- Works as an installable/offline-friendly web app after first load.
 
-## Local development
+## Important privacy/data note
 
-```bash
-npm install
-npm run dev
-```
+Version 1 stores data in `localStorage` in the browser on the device you use. It does not send your financial information to a server and it does not connect to your bank. Clearing browser/site data can erase local records, so use **Review → Download backup** regularly.
 
-## Production build
+## Files
 
-```bash
-npm run build
-```
+- `index.html` — app structure
+- `styles.css` — responsive phone/desktop design
+- `app.js` — all money tracker logic
+- `manifest.webmanifest` — installable web-app metadata
+- `service-worker.js` — offline caching
+- `vercel.json` — Vercel headers/configuration
 
-## Vercel
+## Put it on GitHub
 
-Import the GitHub repository into Vercel. Vercel will detect Vite automatically.
+1. Create a new GitHub repository, for example `every-cent-money-tracker`.
+2. Upload every file in this folder to the root of the repository.
+3. Commit the files.
 
-- Build command: `npm run build`
-- Output directory: `dist`
+## Deploy it with Vercel
 
-No environment variables are required for this local-only version.
+1. Sign in to Vercel.
+2. Choose **Add New → Project**.
+3. Import the GitHub repository you just created.
+4. Vercel should detect it as a static site. No framework or build command is required.
+5. Click **Deploy**.
 
-## Important data note
+If Vercel asks for settings, use:
 
-Budget data is stored in browser localStorage. Clearing browser/site data or changing devices will remove it unless the user first exports a JSON backup.
+- Framework Preset: **Other**
+- Build Command: leave blank
+- Output Directory: leave blank
+- Install Command: leave blank
+
+## Next production upgrade
+
+The safest next major upgrade is optional secure multi-device sync using authenticated accounts and a database. Do not add direct bank credentials to this static version.
