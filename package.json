@@ -6,16 +6,20 @@
   "scripts": {
     "dev": "vite",
     "test": "node --test",
+    "check:source": "node scripts/check-source.mjs",
     "build": "vite build",
+    "build:react-preservation": "vite build --config vite.react.config.mjs",
+    "audit:deps": "npm audit --audit-level=high",
+    "verify:phase2": "npm run check:source && npm test && npm run build && npm run build:react-preservation",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "lucide-react": "^0.383.0"
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "lucide-react": "0.383.0"
   },
   "devDependencies": {
-    "vite": "^5.4.0",
-    "@vitejs/plugin-react": "^4.3.1"
+    "vite": "5.4.0",
+    "@vitejs/plugin-react": "4.3.1"
   }
 }
