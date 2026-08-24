@@ -19,7 +19,10 @@ test("subscriptions and savings runtime is linked between Phase 2 data runtime a
 });
 
 test("subscription runtime contains every required stored field and decision", async () => {
-  const runtime = await text("./phase2-subscriptions-savings-runtime.js");
+  const [runtime, index] = await Promise.all([
+    text("./phase2-subscriptions-savings-runtime.js"),
+    text("./index.html"),
+  ]);
   for (const fragment of [
     "autoRenew",
     "usage",
@@ -27,8 +30,9 @@ test("subscription runtime contains every required stored field and decision", a
     "decision",
     "nextCharge",
     "frequency",
-    "subscriptionAccount",
+    "accountId",
   ]) assert.ok(runtime.includes(fragment), `missing subscription field: ${fragment}`);
+  assert.match(index, /id=["']subscriptionAccount["']/);
 
   for (const decision of ["keep", "cancel", "maybe", "another_month", "pause", "review_next_charge"]) {
     assert.ok(runtime.includes(decision), `missing subscription decision: ${decision}`);
