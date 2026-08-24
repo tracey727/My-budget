@@ -1,9 +1,60 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computedBalance, monthlyExpenseTotal, normalizeTransactionType } from "./transaction-model.mjs";
+import { computedBalance, monthlyExpenseTotal, normalizeTransactionRecord, normalizeTransactionType } from "./transaction-model.mjs";
 
 test("legacy React transactions remain expenses", () => {
   assert.equal(normalizeTransactionType({ amount: 25 }), "expense");
+});
+
+test("required transaction storage fields are normalized", () => {
+  const record = normalizeTransactionRecord({
+    transactionId: "txn-1",
+    accountId: "bank-1",
+    toAccountId: "save-1",
+    date: "2026-08-24",
+    amount: "23.456",
+    payee: "  Power Company  ",
+    type: "expense",
+    category: "Utilities",
+    worth: "essential",
+    userResponse: "yes",
+    recurringStatus: "recurring",
+    notes: "  Quarterly bill  ",
+    projectLink: "  project-42  ",
+    createdAt: "2026-08-24T12:00:00.000Z",
+  });
+
+  assert.deepEqual(record, {
+    id: "txn-1",
+    accountId: "bank-1",
+    toAccountId: "save-1",
+    date: "2026-08-24",
+    amount: 23.46,
+    merchant: "Power Company",
+    type: "expense",
+    category: "Utilities",
+    worth: "essential",
+    userResponse: "yes",
+    recurringStatus: "recurring",
+    notes: "Quarterly bill",
+    professionalProjectLink: "project-42",
+    createdAt: "2026-08-24T12:00:00.000Z",
+  });
+});
+
+test("legacy transaction records receive safe defaults for new fields", () => {
+  const record = normalizeTransactionRecord({ id: "old", amount: 10, merchant: "Cafe" });
+  assert.equal(record.type, "expense");
+  assert.equal(record.worth, "unsure");
+  assert.equal(record.userResponse, "");
+  assert.equal(record.recurringStatus, "one_off");
+  assert.equal(record.professionalProjectLink, "");
+});
+
+test("invalid user response and recurring status are rejected to safe defaults", () => {
+  const record = normalizeTransactionRecord({ type: "expense", userResponse: "sometimes", recurringStatus: "weekly" });
+  assert.equal(record.userResponse, "");
+  assert.equal(record.recurringStatus, "one_off");
 });
 
 test("income and expenses change an asset account balance", () => {
