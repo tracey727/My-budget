@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -37,3 +40,44 @@ jobs:
             echo "Phase 4 database configuration detected during Phase 3" >&2
             exit 1
           fi
+      - name: Verify Cloudflare Git deployment live
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BRANCH="${GITHUB_HEAD_REF//\//-}"
+            BASE_URL="https://${BRANCH}-my-budget.positivity864.workers.dev"
+          else
+            BASE_URL="https://my-budget.positivity864.workers.dev"
+          fi
+
+          echo "Verifying Cloudflare deployment at ${BASE_URL}"
+
+          verify_endpoint() {
+            local path="$1"
+            local expected="$2"
+            local body_file
+            body_file="$(mktemp)"
+            local code=""
+
+            for attempt in $(seq 1 24); do
+              code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}${path}" || true)"
+              if [ "$code" = "200" ] && grep -Fq "$expected" "$body_file"; then
+                echo "PASS ${path} on attempt ${attempt}"
+                rm -f "$body_file"
+                return 0
+              fi
+              echo "Waiting for Cloudflare deployment: ${path} returned ${code} on attempt ${attempt}"
+              sleep 10
+            done
+
+            echo "Cloudflare live verification failed for ${BASE_URL}${path}" >&2
+            echo "Last HTTP status: ${code}" >&2
+            cat "$body_file" >&2 || true
+            rm -f "$body_file"
+            return 1
+          }
+
+          verify_endpoint "/" "Every Cent"
+          verify_endpoint "/health" '"phase":3'
+          verify_endpoint "/ready" '"database":"not-configured-phase-4"'

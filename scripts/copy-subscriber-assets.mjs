@@ -95,8 +95,8 @@ for (const [from, to] of wordingChanges) {
 
 // Vite rewrites the source stylesheet and manifest links to hashed /assets/
 // paths before this script runs. Replace those links with the supported
-// subscriber assets and use a fresh cache-bust token for this runtime repair.
-const runtimeVersion = "phase3-navigation-runtime-v2";
+// subscriber assets and use a fresh cache-bust token for this seven-view re-seal.
+const runtimeVersion = "phase3-seven-view-runtime-v3";
 const builtStyleLinkPattern = /href="\/assets\/[^"]+\.css"/;
 const builtManifestLinkPattern = /href="\/assets\/manifest-[^"]+\.webmanifest"/;
 if (!builtStyleLinkPattern.test(deployedIndex)) throw new Error("Vite-built stylesheet link not found in dist/index.html");
@@ -105,13 +105,14 @@ deployedIndex = deployedIndex
   .replace(builtStyleLinkPattern, `href="/styles.css?v=${runtimeVersion}"`)
   .replace(builtManifestLinkPattern, 'href="/manifest.webmanifest"');
 
-// Keep bottom navigation usable even if the main application runtime fails to
-// initialise on a mobile browser. This is deliberately limited to switching
-// the five existing views; it does not alter any budget calculations or data.
+// Keep navigation usable even if the preserved app.js runtime fails to
+// initialise on a mobile browser. The staged Phase 2 runtimes inject Bills and
+// Savings before app.js initialises, and this fallback switches whichever
+// subscriber views are present without changing calculations or stored data.
 const navigationFallback = `  <script data-phase3-navigation-fallback>\n    (() => {\n      const activateView = (view) => {\n        if (!view) return;\n        document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.dataset.view === view));\n        document.querySelectorAll('.nav-button').forEach(el => el.classList.toggle('active', el.dataset.view === view));\n        document.documentElement.scrollLeft = 0;\n        document.body.scrollLeft = 0;\n        window.scrollTo(0, 0);\n      };\n      const activateFromEvent = (event) => {\n        const trigger = event.target && event.target.closest ? event.target.closest('.nav-button,[data-view-link]') : null;\n        if (!trigger) return;\n        const view = trigger.dataset.view || trigger.dataset.viewLink;\n        if (view) activateView(view);\n      };\n      document.addEventListener('pointerup', activateFromEvent, true);\n      document.addEventListener('click', activateFromEvent, true);\n    })();\n  </script>`;
 const sourceAppScript = '  <script src="/app.js" defer></script>';
 if (!deployedIndex.includes(sourceAppScript)) throw new Error("Subscriber app script tag not found in dist/index.html");
 deployedIndex = deployedIndex.replace(sourceAppScript, `${navigationFallback}\n  <script src="/app.js?v=${runtimeVersion}" defer></script>`);
 
 await writeFile(deployedIndexPath, deployedIndex, "utf8");
-console.log("linked deployed index to audited subscriber assets and navigation fallback");
+console.log("linked deployed index to audited seven-view subscriber assets and navigation fallback");

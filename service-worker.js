@@ -1,4 +1,4 @@
-const CACHE = 'every-cent-v2-phase3-navigation-runtime-v2';
+const CACHE = 'every-cent-v2-phase3-seven-view-runtime-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,8 +6,8 @@ const ASSETS = [
   '/app.js',
   '/phase2-data-runtime.js',
   '/phase2-subscriptions-savings-runtime.js',
-  '/styles.css?v=phase3-navigation-runtime-v2',
-  '/app.js?v=phase3-navigation-runtime-v2',
+  '/styles.css?v=phase3-seven-view-runtime-v3',
+  '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'
 ];
 self.addEventListener('install', event => {
