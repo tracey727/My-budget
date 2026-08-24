@@ -1,5 +1,6 @@
 import { access, readFile, readdir } from "node:fs/promises";
 import { constants } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
 const required = [
@@ -31,10 +32,19 @@ const [index, app, styles, worker] = await Promise.all([
   readFile(resolve(dist, "service-worker.js"), "utf8"),
 ]);
 
+const appSyntax = spawnSync(process.execPath, ["--check", resolve(dist, "app.js")], { encoding: "utf8" });
+if (appSyntax.status !== 0) {
+  throw new Error(`built app.js failed JavaScript syntax check:\n${appSyntax.stderr || appSyntax.stdout}`);
+}
+console.log("built app.js JavaScript syntax check passed");
+
 const requiredIndexFragments = [
-  "/app.js?v=phase3-full-code-audit",
-  "/styles.css?v=phase3-full-code-audit",
+  "/app.js?v=phase3-navigation-runtime-v2",
+  "/styles.css?v=phase3-navigation-runtime-v2",
   "href=\"/manifest.webmanifest\"",
+  "data-phase3-navigation-fallback",
+  "document.addEventListener('pointerup', activateFromEvent, true)",
+  "document.addEventListener('click', activateFromEvent, true)",
   "+ Add account",
   "Add a bank, savings, cash, card or loan account",
   "This creates the account itself.",
@@ -64,15 +74,24 @@ const requiredStyleFragments = [
   "overflow-x: clip",
   "grid-template-columns: repeat(5, minmax(0, 1fr))",
   "max-width: calc(100% - 20px)",
+  "touch-action: manipulation",
 ];
 for (const fragment of requiredStyleFragments) {
   if (!styles.includes(fragment)) throw new Error(`built styles.css missing mobile containment fragment: ${fragment}`);
 }
 
-for (const asset of ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"]) {
+for (const asset of ["/", "/index.html", "/manifest.webmanifest"]) {
   if (!worker.includes(`'${asset}'`) && !worker.includes(`\"${asset}\"`)) {
     throw new Error(`service worker no longer covers required subscriber asset: ${asset}`);
   }
 }
+for (const asset of ["/styles.css?v=phase3-navigation-runtime-v2", "/app.js?v=phase3-navigation-runtime-v2"]) {
+  if (!worker.includes(`'${asset}'`) && !worker.includes(`\"${asset}\"`)) {
+    throw new Error(`service worker missing versioned runtime asset: ${asset}`);
+  }
+}
+if (!worker.includes("every-cent-v2-phase3-navigation-runtime-v2")) {
+  throw new Error("service worker cache version was not advanced for the navigation runtime repair");
+}
 
-console.log("Subscriber production artifact verification passed, including Phase 3 runtime linkage and iPhone containment.");
+console.log("Subscriber production artifact verification passed, including executable app.js, navigation fallback, fresh cache and iPhone containment.");
