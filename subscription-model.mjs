@@ -14,12 +14,25 @@ export const SUBSCRIPTION_STATUSES = Object.freeze({
   cancelled: "Cancelled",
 });
 
+export const SUBSCRIPTION_DECISIONS = Object.freeze({
+  keep: "Keep",
+  cancel: "Cancel",
+  maybe: "Maybe",
+  another_month: "Another month",
+  pause: "Pause",
+  review_next_charge: "Review next charge",
+});
+
 export function normalizeSubscriptionCycle(value) {
   return Object.hasOwn(SUBSCRIPTION_CYCLES, value) ? value : "monthly";
 }
 
 export function normalizeSubscriptionStatus(value) {
   return Object.hasOwn(SUBSCRIPTION_STATUSES, value) ? value : "unknown";
+}
+
+export function normalizeSubscriptionDecision(value) {
+  return Object.hasOwn(SUBSCRIPTION_DECISIONS, value) ? value : "maybe";
 }
 
 export function annualSubscriptionCost(amount, cycle) {
@@ -47,7 +60,8 @@ export function subscriptionReviewItems(subscriptions = []) {
   return subscriptions.filter((subscription) => {
     const status = normalizeSubscriptionStatus(subscription.status);
     const worth = normalizeSubscriptionWorth(subscription);
-    return status === "unknown" || (status === "active" && (worth === "unsure" || worth === "waste"));
+    const decision = normalizeSubscriptionDecision(subscription.decision);
+    return status === "unknown" || ["maybe", "another_month", "review_next_charge"].includes(decision) || (status === "active" && (worth === "unsure" || worth === "waste"));
   });
 }
 
@@ -57,7 +71,8 @@ export function possibleAnnualSubscriptionSaving(subscriptions = []) {
       .filter((subscription) => {
         const status = normalizeSubscriptionStatus(subscription.status);
         const worth = normalizeSubscriptionWorth(subscription);
-        return status === "active" && (worth === "unsure" || worth === "waste");
+        const decision = normalizeSubscriptionDecision(subscription.decision);
+        return status === "active" && (worth === "unsure" || worth === "waste" || ["cancel", "pause"].includes(decision));
       })
       .reduce((sum, subscription) => sum + annualSubscriptionCost(subscription.amount, subscription.cycle), 0) * 100
   ) / 100;
