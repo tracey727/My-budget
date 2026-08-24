@@ -2,6 +2,8 @@ const CACHE = 'every-cent-v2-phase3-navigation-runtime-v2';
 const ASSETS = [
   '/',
   '/index.html',
+  '/styles.css',
+  '/app.js',
   '/styles.css?v=phase3-navigation-runtime-v2',
   '/app.js?v=phase3-navigation-runtime-v2',
   '/manifest.webmanifest'
