@@ -47,7 +47,28 @@ test("production build applies every Phase 3 subscriber patch before deployment"
   assert.match(copyScript, /setTimeout\(resetHorizontalViewport, 80\)/);
   assert.match(copyScript, /overflow-x: clip/);
   assert.match(copyScript, /repeat\(5, minmax\(0, 1fr\)\)/);
-  assert.match(copyScript, /phase3-full-code-audit/);
+  assert.match(copyScript, /touch-action: manipulation/);
+  assert.match(copyScript, /phase3-navigation-runtime-v2/);
+  assert.match(copyScript, /data-phase3-navigation-fallback/);
+  assert.match(copyScript, /document\.addEventListener\('pointerup', activateFromEvent, true\)/);
+  assert.match(copyScript, /document\.addEventListener\('click', activateFromEvent, true\)/);
+});
+
+test("Phase 2 and Phase 3 production artifact gates remain separate", async () => {
+  const [packageJson, phase2Verifier, phase3Verifier, worker] = await Promise.all([
+    text("./package.json"),
+    text("./scripts/verify-dist.mjs"),
+    text("./scripts/verify-phase3-dist.mjs"),
+    text("./service-worker.js"),
+  ]);
+  const pkg = JSON.parse(packageJson);
+  assert.match(pkg.scripts["verify:phase2"], /scripts\/verify-dist\.mjs/);
+  assert.doesNotMatch(pkg.scripts["verify:phase2"], /verify-phase3-dist/);
+  assert.match(pkg.scripts["cf:dry-run"], /scripts\/verify-phase3-dist\.mjs/);
+  assert.doesNotMatch(phase2Verifier, /phase3-navigation-runtime-v2/);
+  assert.match(phase3Verifier, /phase3-navigation-runtime-v2/);
+  assert.match(phase3Verifier, /--check/);
+  assert.match(worker, /every-cent-v2-phase3-navigation-runtime-v2/);
 });
 
 test("production backup, restore and CSV paths remain wired to visible controls", async () => {
