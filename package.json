@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "test": "node --test",
-    "test:phase2": "node --test expense-intelligence.test.mjs export-model.test.mjs phase2-baseline.test.mjs subscription-model.test.mjs subscription-record.test.mjs transaction-model.test.mjs",
+    "test:phase2": "node --test bill-model.test.mjs expense-intelligence.test.mjs export-model.test.mjs phase2-baseline.test.mjs subscription-model.test.mjs subscription-record.test.mjs transaction-model.test.mjs",
     "test:phase3": "node --test phase3-runtime-chain.test.mjs phase3-cloudflare.test.mjs",
     "check:source": "node scripts/check-source.mjs",
     "build": "vite build && node scripts/copy-subscriber-assets.mjs",
