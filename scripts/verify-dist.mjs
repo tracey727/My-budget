@@ -24,9 +24,51 @@ for (const file of required) {
   }
 }
 
-const index = await readFile(resolve(dist, "index.html"), "utf8");
-if (!index.includes("/app.js")) {
-  throw new Error("built index.html no longer references the supported /app.js subscriber entry");
+const [index, app, styles, worker] = await Promise.all([
+  readFile(resolve(dist, "index.html"), "utf8"),
+  readFile(resolve(dist, "app.js"), "utf8"),
+  readFile(resolve(dist, "styles.css"), "utf8"),
+  readFile(resolve(dist, "service-worker.js"), "utf8"),
+]);
+
+const requiredIndexFragments = [
+  "/app.js?v=phase3-full-code-audit",
+  "/styles.css?v=phase3-full-code-audit",
+  "+ Add account",
+  "Add a bank, savings, cash, card or loan account",
+  "This creates the account itself.",
+  "Starting balance — what is in this account now?",
+];
+for (const fragment of requiredIndexFragments) {
+  if (!index.includes(fragment)) throw new Error(`built index.html missing Phase 3 contract fragment: ${fragment}`);
 }
 
-console.log("Subscriber production artifact verification passed.");
+const requiredAppFragments = [
+  "state.accounts.length === 1 && !transactionAccount.value",
+  "Add a bank, savings, cash, card or loan account",
+  "if (event.detail > 0) btn.blur()",
+  "requestAnimationFrame(resetHorizontalViewport)",
+  "setTimeout(resetHorizontalViewport, 80)",
+  "Choose the account used.",
+  "Choose a different destination account.",
+];
+for (const fragment of requiredAppFragments) {
+  if (!app.includes(fragment)) throw new Error(`built app.js missing Phase 3 runtime fragment: ${fragment}`);
+}
+
+const requiredStyleFragments = [
+  "overflow-x: clip",
+  "grid-template-columns: repeat(5, minmax(0, 1fr))",
+  "max-width: calc(100% - 20px)",
+];
+for (const fragment of requiredStyleFragments) {
+  if (!styles.includes(fragment)) throw new Error(`built styles.css missing mobile containment fragment: ${fragment}`);
+}
+
+for (const asset of ["/", "/index.html", "/styles.css", "/app.js", "/manifest.webmanifest"]) {
+  if (!worker.includes(`'${asset}'`) && !worker.includes(`\"${asset}\"`)) {
+    throw new Error(`service worker no longer covers required subscriber asset: ${asset}`);
+  }
+}
+
+console.log("Subscriber production artifact verification passed, including Phase 3 runtime linkage and iPhone containment.");
