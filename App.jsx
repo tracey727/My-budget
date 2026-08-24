@@ -30,11 +30,22 @@ const STARTER_CATEGORIES = [
   ["Savings", 0],
 ];
 
+const ACCOUNT_TYPES = [
+  ["bank", "Bank / transaction"],
+  ["savings", "Savings"],
+  ["cash", "Cash"],
+  ["credit", "Credit card"],
+  ["loan", "Loan / debt"],
+  ["investment", "Investment"],
+  ["other", "Other"],
+];
+
 const emptyData = () => ({
   version: 2,
   months: {},
   categories: [],
   transactions: [],
+  accounts: [],
 });
 
 function uid(prefix = "id") {
@@ -77,16 +88,28 @@ function statusFor(spent, budget) {
   return "green";
 }
 
+function normalizeStoredData(value) {
+  return {
+    ...emptyData(),
+    ...value,
+    version: 2,
+    months: value?.months && typeof value.months === "object" ? value.months : {},
+    categories: Array.isArray(value?.categories) ? value.categories : [],
+    transactions: Array.isArray(value?.transactions) ? value.transactions : [],
+    accounts: Array.isArray(value?.accounts) ? value.accounts : [],
+  };
+}
+
 function loadStoredData() {
   try {
     const current = localStorage.getItem(STORAGE_KEY);
-    if (current) return JSON.parse(current);
+    if (current) return normalizeStoredData(JSON.parse(current));
 
     const legacy = localStorage.getItem(LEGACY_KEY);
     if (!legacy) return emptyData();
     const old = JSON.parse(legacy);
     const currentMonth = monthKey();
-    return {
+    return normalizeStoredData({
       version: 2,
       months: { [currentMonth]: { income: Number(old.income) || 0 } },
       categories: (old.categories || []).map((c) => ({
@@ -99,7 +122,8 @@ function loadStoredData() {
         id: t.id || uid("tx"),
         month: t.date?.slice(0, 7) || currentMonth,
       })),
-    };
+      accounts: Array.isArray(old.accounts) ? old.accounts : [],
+    });
   } catch {
     return emptyData();
   }
@@ -122,6 +146,10 @@ export default function App() {
   const [txAmount, setTxAmount] = useState("");
   const [txNote, setTxNote] = useState("");
   const [txDate, setTxDate] = useState(new Date().toISOString().slice(0, 10));
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [accountName, setAccountName] = useState("");
+  const [accountType, setAccountType] = useState("bank");
+  const [accountOpeningBalance, setAccountOpeningBalance] = useState("");
   const importRef = useRef(null);
 
   useEffect(() => {
@@ -266,6 +294,34 @@ export default function App() {
     }));
   }
 
+  function addAccount() {
+    const name = accountName.trim();
+    if (!name) return;
+    setData((prev) => ({
+      ...prev,
+      accounts: [
+        ...prev.accounts,
+        {
+          id: uid("acct"),
+          name,
+          type: accountType,
+          openingBalance: Number(accountOpeningBalance) || 0,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }));
+    setAccountName("");
+    setAccountType("bank");
+    setAccountOpeningBalance("");
+    setShowAddAccount(false);
+  }
+
+  function deleteAccount(accountId) {
+    const account = data.accounts.find((item) => item.id === accountId);
+    if (!window.confirm(`Delete ${account?.name || "this account"}? No transaction linkage exists yet in this migration step.`)) return;
+    setData((prev) => ({ ...prev, accounts: prev.accounts.filter((item) => item.id !== accountId) }));
+  }
+
   function addTransaction() {
     const amount = Number(txAmount);
     if (!txCategory || !amount || amount <= 0 || !txDate) return;
@@ -319,8 +375,9 @@ export default function App() {
     try {
       const parsed = JSON.parse(await file.text());
       if (!Array.isArray(parsed.categories) || !Array.isArray(parsed.transactions) || typeof parsed.months !== "object") throw new Error("Invalid backup");
+      if (parsed.accounts !== undefined && !Array.isArray(parsed.accounts)) throw new Error("Invalid account data");
       if (!window.confirm("Replace the current budget with this backup?")) return;
-      setData({ ...emptyData(), ...parsed, version: 2 });
+      setData(normalizeStoredData(parsed));
     } catch {
       window.alert("That file is not a valid GENEVIEVE Budget Compass backup.");
     } finally {
@@ -363,6 +420,39 @@ export default function App() {
           <article><span className="small-label">Spent</span><strong>{money(totalSpent)}</strong><small>{money(plannedRemaining)} vs plan</small></article>
           <article className="metric-focus"><span className="small-label">Cash remaining</span><strong className={cashRemaining < 0 ? "negative" : ""}>{money(cashRemaining)}</strong><small>Income minus recorded spending</small></article>
         </div>
+      </section>
+
+      <section className="section-block">
+        <div className="section-head"><div><p className="section-kicker">Accounts</p><h2>What you own or owe</h2></div><button className="text-button" onClick={() => setShowAddAccount((value) => !value)}><Plus size={15} /> Add</button></div>
+
+        {showAddAccount && (
+          <div className="panel form-grid">
+            <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account name" aria-label="Account name" />
+            <select value={accountType} onChange={(e) => setAccountType(e.target.value)} aria-label="Account type">{ACCOUNT_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>
+            <input type="number" inputMode="decimal" step="0.01" value={accountOpeningBalance} onChange={(e) => setAccountOpeningBalance(e.target.value)} placeholder="Opening balance ($)" aria-label="Opening balance" />
+            <button className="primary-button" onClick={addAccount}><Plus size={15} /> Add account</button>
+          </div>
+        )}
+
+        {!data.accounts.length ? (
+          <div className="empty-state"><Wallet size={28} /><strong>Add your accounts</strong><p>Bank, savings, cash, credit card, loan and investment records can now live in the React app. Transaction-linked balance calculations come in the next migration step.</p></div>
+        ) : (
+          <div className="category-list">
+            {data.accounts.map((account) => (
+              <article className="category-card" key={account.id}>
+                <div className="category-top">
+                  <span className="status-dot neutral" />
+                  <span className="category-name">{account.name}</span>
+                  <span className="category-amount"><b>{money(account.openingBalance)}</b> opening</span>
+                  <button className="trash-button" onClick={() => deleteAccount(account.id)} aria-label={`Delete ${account.name}`}><Trash2 size={13} /></button>
+                </div>
+                <div className="category-detail">
+                  <p className="muted-line">{ACCOUNT_TYPES.find(([value]) => value === account.type)?.[1] || "Other"}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="section-block">
