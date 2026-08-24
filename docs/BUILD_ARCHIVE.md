@@ -2,12 +2,37 @@
 
 ## Current checkpoint
 
-Date/time: 24 August 2026, 12:45 PM AEST (Queensland)
+Date: 24 August 2026, AEST (Queensland)
 Repository: tracey727/My-budget
 Branch: main
-Current phase: Phase 1 — Lock the Product Before Coding
+Current phase: **Phase 2 COMPLETE — Baseline technical audit and preservation**
+Final Phase 2 merged-main commit: `bf8d1a1ff742111e765177cf90c8b89f28d5145b`
+Final Phase 2 merged-main verification: `Phase 2 baseline verification` run `#39` — GREEN
+Next permitted phase: **Phase 3 — Cloudflare production foundation**
 
-### Completed in this checkpoint
+### Phase 2 completion state
+
+- Audited the actual subscriber entry path on `main` and confirmed `index.html → /app.js` is the supported subscriber runtime for this phase.
+- Preserved `main.jsx → App.jsx` as the React migration destination without prematurely replacing donor functionality.
+- Added a committed reproducible `package-lock.json` and changed CI to deterministic `npm ci`.
+- Added source syntax verification, automated preservation tests, subscriber production-build verification, production-artifact checks, independent React preservation build and dependency security audit.
+- Preserved fixed-path subscriber assets required by the supported runtime and service worker.
+- Preserved donor `app.js` functionality; no donor feature was deleted during the Phase 2 baseline repair.
+- Archived Phase 2 in `docs/PHASE2_COMPLETION_ARCHIVE.md`.
+- Verified the archive commit GREEN in Phase 2 baseline verification run `#38`.
+- Merged the completed Phase 2 repair to `main`.
+- Verified merged `main` commit `bf8d1a1ff742111e765177cf90c8b89f28d5145b` GREEN in Phase 2 baseline verification run `#39`.
+- No Cloudflare or Neon implementation was performed during Phase 2.
+
+### Phase 2 audit result
+
+Phase 2 baseline technical audit and preservation gate: **PASS / GREEN on merged `main`**.
+
+The Phase 2 history contains earlier failed repair runs. Those remain part of the GitHub audit trail. Advancement is authorised by the final stage-specific gate on the completed merged-main state, not by the absence of historical failures.
+
+### Historical Phase 1 checkpoint
+
+Phase 1 locked the product contract before coding:
 
 - Confirmed the active repository.
 - Confirmed the current app is a Vite/React project.
@@ -20,35 +45,28 @@ Current phase: Phase 1 — Lock the Product Before Coding
 - Added `docs/PRODUCT_CONTRACT.md` in commit `6e548d6381b81189548c4edfb3cb720fae83d2a8`.
 - Re-fetched the committed file from `main` and verified the content is present.
 
-### Audit result
-
 Phase 1 product-contract audit: PASS.
-
-Runtime impact: none. No application source, package, database schema or deployment configuration was modified during Phase 1, so this checkpoint does not alter subscriber-facing behaviour.
-
-Known infrastructure finding: no Neon project matching "budget" currently exists in the connected Neon account. Neon provisioning therefore remains future work and must occur only after the application architecture/schema phase is ready.
-
-Known deployment finding: the repository currently contains legacy `vercel.json`; Cloudflare is the locked production target but Cloudflare deployment configuration has not yet been added. This is intentionally not changed in Phase 1.
-
-Validation limitation: this environment could not clone GitHub over the container network, so no local `npm run build` was executed for this documentation-only checkpoint. The repository itself exposes only `dev`, `build`, and `preview` scripts at present and no automated test script.
 
 ## Remaining build — chronological order
 
 Do not start a later item until the immediately preceding item is verified.
 
-1. Phase 2 — Baseline technical audit and preservation
-   - Capture current file manifest and current runtime behaviour.
-   - Audit duplicate/legacy entry points (`App.jsx` and `app.js`) and determine the single supported application path without deleting functionality prematurely.
-   - Add reproducible install lockfile if missing.
-   - Add lint/type/test/build gates appropriate to the stack.
-   - Establish a subscriber-safe deployment verification gate.
+1. Phase 2 — Baseline technical audit and preservation — **COMPLETE / GREEN**
+   - Captured current file/runtime behaviour.
+   - Audited duplicate/legacy entry points (`App.jsx` and `app.js`) and preserved the supported subscriber path without deleting functionality.
+   - Added reproducible install lockfile.
+   - Added stage-specific source/test/build/security gates.
+   - Established subscriber-safe production artifact verification.
+   - Archived and verified merged `main` GREEN in run `#39`.
 
-2. Phase 3 — Cloudflare production foundation
+2. Phase 3 — Cloudflare production foundation — **NEXT PERMITTED PHASE**
    - Replace legacy deployment assumptions with Cloudflare-compatible build/deploy configuration.
    - Add Wrangler configuration using current Cloudflare best practices.
    - Generate binding types rather than hand-writing them.
    - Add health/readiness endpoints where appropriate.
-   - Verify a green Cloudflare deployment before any database-backed feature work.
+   - Make the Cloudflare deployment live.
+   - Verify the Cloudflare stage-specific deployment/runtime gate GREEN.
+   - Archive Phase 3 before Phase 4 begins.
 
 3. Phase 4 — Neon development and production data foundation
    - Create the GENEVIEVE Budget Neon project only when schema work begins.
@@ -56,6 +74,7 @@ Do not start a later item until the immediately preceding item is verified.
    - Establish connection method appropriate to Cloudflare; use Hyperdrive for external Postgres connectivity.
    - Add migration ledger and safe migration process.
    - Verify connectivity and readiness before advancing.
+   - Archive Phase 4 before later phases begin.
 
 4. Phase 5 — Identity, user scope and permissions
    - User identity.
@@ -178,6 +197,8 @@ Do not start a later item until the immediately preceding item is verified.
 
 ## Advancement rule
 
-Current permitted next action: Phase 2 only.
+Phase 2 is complete, archived and verified GREEN on merged `main` at commit `bf8d1a1ff742111e765177cf90c8b89f28d5145b` via Phase 2 baseline verification run `#39`.
 
-No Phase 3+ work is permitted until Phase 2 is complete and verified green.
+**Current permitted next action: Phase 3 — Cloudflare production foundation only.**
+
+Do not begin Phase 4 Neon until Phase 3 is built, live, stage-specifically GREEN and archived.
