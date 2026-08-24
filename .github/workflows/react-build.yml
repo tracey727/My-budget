@@ -31,13 +31,7 @@ jobs:
       - name: Build supported subscriber runtime
         run: npm run build
       - name: Verify subscriber artifact
-        run: |
-          test -f dist/index.html
-          test -f dist/app.js
-          test -f dist/styles.css
-          test -f dist/service-worker.js
-          test -f dist/manifest.webmanifest
-          grep -q '/app.js' dist/index.html
+        run: node scripts/verify-dist.mjs
       - name: Build preserved React migration destination
         run: npm run build:react-preservation
       - name: Dependency security gate
