@@ -61,7 +61,7 @@ main, .view, .panel, .stack-list, .list-row, .section-heading, .topbar, .hero-gr
 @media (max-width: 760px) {
   .app-shell { width: 100%; max-width: 100%; margin: 0; padding-left: 12px; padding-right: 12px; }
   .primary-nav { position: fixed; left: 10px; right: 10px; width: auto; max-width: calc(100% - 20px); grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: hidden; }
-  .nav-button { width: 100%; min-width: 0; max-width: 100%; padding-left: 1px; padding-right: 1px; font-size: clamp(.58rem, 2.75vw, .74rem); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-button { width: 100%; min-width: 0; max-width: 100%; padding-left: 1px; padding-right: 1px; font-size: clamp(.58rem, 2.75vw, .74rem); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; touch-action: manipulation; }
   .section-heading { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 8px; align-items: start; }
   .section-heading .primary-button { width: 92px; max-width: 92px; min-width: 0; padding-left: 8px; padding-right: 8px; justify-self: end; }
   .list-row { width: 100%; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; overflow: hidden; }
@@ -92,17 +92,24 @@ for (const [from, to] of wordingChanges) {
 }
 
 // Vite rewrites the source stylesheet and manifest links to hashed /assets/
-// paths before this script runs. The previous Phase 3 mobile CSS was copied to
-// /styles.css but the built page never loaded it. Replace Vite's hashed links
-// with the supported subscriber assets so the audited runtime and its cache use
-// one consistent file chain.
+// paths before this script runs. Replace those links with the supported
+// subscriber assets and use a fresh cache-bust token for this runtime repair.
+const runtimeVersion = "phase3-navigation-runtime-v2";
 const builtStyleLinkPattern = /href="\/assets\/[^"]+\.css"/;
 const builtManifestLinkPattern = /href="\/assets\/manifest-[^"]+\.webmanifest"/;
 if (!builtStyleLinkPattern.test(deployedIndex)) throw new Error("Vite-built stylesheet link not found in dist/index.html");
 if (!builtManifestLinkPattern.test(deployedIndex)) throw new Error("Vite-built manifest link not found in dist/index.html");
 deployedIndex = deployedIndex
-  .replace(builtStyleLinkPattern, 'href="/styles.css?v=phase3-full-code-audit"')
-  .replace(builtManifestLinkPattern, 'href="/manifest.webmanifest"')
-  .replace('src="/app.js"', 'src="/app.js?v=phase3-full-code-audit"');
+  .replace(builtStyleLinkPattern, `href="/styles.css?v=${runtimeVersion}"`)
+  .replace(builtManifestLinkPattern, 'href="/manifest.webmanifest"');
+
+// Keep bottom navigation usable even if the main application runtime fails to
+// initialise on a mobile browser. This is deliberately limited to switching
+// the five existing views; it does not alter any budget calculations or data.
+const navigationFallback = `  <script data-phase3-navigation-fallback>\n    (() => {\n      const activateView = (view) => {\n        if (!view) return;\n        document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.dataset.view === view));\n        document.querySelectorAll('.nav-button').forEach(el => el.classList.toggle('active', el.dataset.view === view));\n        document.documentElement.scrollLeft = 0;\n        document.body.scrollLeft = 0;\n        window.scrollTo(0, 0);\n      };\n      const activateFromEvent = (event) => {\n        const trigger = event.target && event.target.closest ? event.target.closest('.nav-button,[data-view-link]') : null;\n        if (!trigger) return;\n        const view = trigger.dataset.view || trigger.dataset.viewLink;\n        if (view) activateView(view);\n      };\n      document.addEventListener('pointerup', activateFromEvent, true);\n      document.addEventListener('click', activateFromEvent, true);\n    })();\n  </script>`;
+const sourceAppScript = '  <script src="/app.js" defer></script>';
+if (!deployedIndex.includes(sourceAppScript)) throw new Error("Subscriber app script tag not found in dist/index.html");
+deployedIndex = deployedIndex.replace(sourceAppScript, `${navigationFallback}\n  <script src="/app.js?v=${runtimeVersion}" defer></script>`);
+
 await writeFile(deployedIndexPath, deployedIndex, "utf8");
-console.log("linked deployed index to audited subscriber CSS, manifest and runtime");
+console.log("linked deployed index to audited subscriber assets and navigation fallback");
