@@ -90,8 +90,19 @@ for (const [from, to] of wordingChanges) {
   if (!deployedIndex.includes(from)) throw new Error(`Account wording patch target not found: ${from}`);
   deployedIndex = deployedIndex.replace(from, to);
 }
+
+// Vite rewrites the source stylesheet and manifest links to hashed /assets/
+// paths before this script runs. The previous Phase 3 mobile CSS was copied to
+// /styles.css but the built page never loaded it. Replace Vite's hashed links
+// with the supported subscriber assets so the audited runtime and its cache use
+// one consistent file chain.
+const builtStyleLinkPattern = /href="\/assets\/[^"]+\.css"/;
+const builtManifestLinkPattern = /href="\/assets\/manifest-[^"]+\.webmanifest"/;
+if (!builtStyleLinkPattern.test(deployedIndex)) throw new Error("Vite-built stylesheet link not found in dist/index.html");
+if (!builtManifestLinkPattern.test(deployedIndex)) throw new Error("Vite-built manifest link not found in dist/index.html");
 deployedIndex = deployedIndex
-  .replace('href="/styles.css"', 'href="/styles.css?v=phase3-full-code-audit"')
+  .replace(builtStyleLinkPattern, 'href="/styles.css?v=phase3-full-code-audit"')
+  .replace(builtManifestLinkPattern, 'href="/manifest.webmanifest"')
   .replace('src="/app.js"', 'src="/app.js?v=phase3-full-code-audit"');
 await writeFile(deployedIndexPath, deployedIndex, "utf8");
-console.log("patched deployed account wording without changing account logic");
+console.log("linked deployed index to audited subscriber CSS, manifest and runtime");
