@@ -6,13 +6,19 @@ Phase 2 repair branch: `phase2-baseline-repair`
 Base audited: `main` at `2946f7dd214faf18e3a7555d87ea119ac2481754`
 First complete green repair commit: `f74f67fc3943bc2563d9421bfba8db391fe2bd1b`
 First complete green workflow: `Phase 2 baseline verification` run `#37` / run id `32691183877`
-Status: PHASE 2 COMPLETE ON REPAIR BRANCH; archive commit must re-pass before merge.
+Archive verification commit: `262b1cbe91de1dc2f27a4647d9e0c8ce153df522`
+Archive verification workflow: `Phase 2 baseline verification` run `#38` — GREEN
+Final merged-main commit: `bf8d1a1ff742111e765177cf90c8b89f28d5145b`
+Final merged-main workflow: `Phase 2 baseline verification` run `#39` — GREEN
+Status: PHASE 2 COMPLETE, MERGED TO `main`, ARCHIVED AND VERIFIED GREEN.
 
 ## Chronology repaired
 
-The controlling order remains:
+The completed controlling order is:
 
-STOP → audit `main` → repair Phase 2 → verify complete Phase 2 green → archive Phase 2 → re-verify archive commit → merge → verify merged `main` → only then Phase 3 Cloudflare.
+STOP → audit `main` → repair Phase 2 → verify complete Phase 2 green → archive Phase 2 → re-verify archive commit → merge → verify merged `main` GREEN.
+
+That sequence is complete through merged-main verification run `#39`.
 
 No Cloudflare or Neon work was performed in Phase 2.
 
@@ -42,7 +48,7 @@ No Cloudflare or Neon work was performed in Phase 2.
 
 ## Complete Phase 2 green gate
 
-The first complete green run passed all of the following:
+The complete Phase 2 gate requires all of the following:
 
 1. Reproducible install with `npm ci`.
 2. JavaScript source syntax verification.
@@ -52,10 +58,16 @@ The first complete green run passed all of the following:
 6. Independent React preservation production build.
 7. Dependency audit with zero reported vulnerabilities and a high-severity failure threshold.
 
+The archive commit passed this gate in run `#38`. The merged `main` commit `bf8d1a1ff742111e765177cf90c8b89f28d5145b` then passed the same stage-specific gate in run `#39`.
+
 ## Preservation decision
 
 Phase 2 does not claim that the React UI has replaced the donor application. It explicitly prevents that false assumption. The donor runtime remains supported while React source and the already-migrated pure models are preserved and independently verified for later chronological work.
 
 ## Advancement gate
 
-This archive does not itself authorise Phase 3. The archive commit must pass the same Phase 2 workflow, then the PR must be merged, and the merged `main` commit must pass its push-triggered Phase 2 workflow. Only after that merged-main green is confirmed may Phase 3 Cloudflare begin.
+Phase 2 is complete and verified on merged `main`.
+
+Next permitted phase: **Phase 3 — Cloudflare production foundation**.
+
+Phase 3 must be built and verified live/green before Phase 4 Neon begins. No Neon provisioning or database connection is authorised by this Phase 2 archive.
