@@ -1,0 +1,40 @@
+name: Phase 3 Cloudflare verification
+
+on:
+  push:
+    branches:
+      - phase3-cloudflare-foundation
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  cloudflare-phase3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Preserve Phase 2 gate
+        run: npm run verify:phase2
+      - name: Generate Cloudflare binding types
+        run: npm run cf:types
+      - name: Verify generated types are current
+        run: git diff --exit-code -- worker-configuration.d.ts
+      - name: Cloudflare deploy dry run
+        run: npm run cf:dry-run
+      - name: Confirm no Phase 4 database bindings
+        run: |
+          if grep -E 'hyperdrive|d1_databases|database_id|DATABASE_URL|NEON' wrangler.jsonc; then
+            echo "Phase 4 database configuration detected during Phase 3" >&2
+            exit 1
+          fi
