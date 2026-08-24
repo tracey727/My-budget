@@ -6,6 +6,7 @@ const required = [
   "index.html",
   "app.js",
   "phase2-data-runtime.js",
+  "phase2-subscriptions-savings-runtime.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
@@ -25,23 +26,45 @@ for (const file of required) {
   }
 }
 
-const [index, runtime, worker] = await Promise.all([
+const [index, runtime, extendedRuntime, worker] = await Promise.all([
   readFile(resolve(dist, "index.html"), "utf8"),
   readFile(resolve(dist, "phase2-data-runtime.js"), "utf8"),
+  readFile(resolve(dist, "phase2-subscriptions-savings-runtime.js"), "utf8"),
   readFile(resolve(dist, "service-worker.js"), "utf8"),
 ]);
 
 const dataRuntime = index.indexOf("/phase2-data-runtime.js");
+const subscriptionsSavingsRuntime = index.indexOf("/phase2-subscriptions-savings-runtime.js");
 const appRuntime = index.indexOf("/app.js");
 if (dataRuntime < 0) throw new Error("built index.html no longer references /phase2-data-runtime.js");
+if (subscriptionsSavingsRuntime < 0) throw new Error("built index.html no longer references /phase2-subscriptions-savings-runtime.js");
 if (appRuntime < 0) throw new Error("built index.html no longer references the supported /app.js subscriber entry");
-if (dataRuntime > appRuntime) throw new Error("Phase 2 data runtime must load before app.js");
+if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime)) {
+  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js");
+}
 
 for (const fragment of ["transactionUserResponse", "transactionRecurringStatus", "transactionProfessionalProjectLink", "billDialog", "bnpl"]) {
   if (!runtime.includes(fragment)) throw new Error(`built Phase 2 data runtime missing contract fragment: ${fragment}`);
 }
-if (!worker.includes("/phase2-data-runtime.js")) {
-  throw new Error("service worker no longer covers /phase2-data-runtime.js");
+for (const fragment of [
+  "subscriptionAutoRenew",
+  "subscriptionUsage",
+  "subscriptionDecision",
+  "annualCost",
+  "review_next_charge",
+  "savingsGoals",
+  "requiredWeeklyAmount",
+  "requiredFortnightlyAmount",
+  "savingsGoalDialog",
+  "protected",
+  "fullBackup",
+  "restoreFullBackup",
+]) {
+  if (!extendedRuntime.includes(fragment)) throw new Error(`built subscriptions/savings runtime missing contract fragment: ${fragment}`);
 }
 
-console.log("Subscriber production artifact verification passed, including Phase 2 data runtime linkage.");
+for (const asset of ["/phase2-data-runtime.js", "/phase2-subscriptions-savings-runtime.js"]) {
+  if (!worker.includes(asset)) throw new Error(`service worker no longer covers required Phase 2 runtime asset: ${asset}`);
+}
+
+console.log("Subscriber production artifact verification passed, including accounts, transactions, bills, subscriptions and savings goals runtime linkage.");
