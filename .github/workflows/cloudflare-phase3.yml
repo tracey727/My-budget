@@ -1,9 +1,6 @@
 name: Phase 3 Cloudflare verification
 
 on:
-  push:
-    branches:
-      - phase3-cloudflare-foundation
   pull_request:
     branches:
       - main
@@ -26,6 +23,8 @@ jobs:
         run: npm ci
       - name: Preserve Phase 2 gate
         run: npm run verify:phase2
+      - name: Phase 3 runtime and configuration tests
+        run: npm run test:phase3
       - name: Generate Cloudflare binding types
         run: npm run cf:types
       - name: Verify generated types are current
