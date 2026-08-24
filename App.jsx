@@ -40,6 +40,8 @@ const ACCOUNT_TYPES = [
   ["other", "Other"],
 ];
 
+const LIABILITY_TYPES = new Set(["credit", "loan"]);
+
 const emptyData = () => ({
   version: 2,
   months: {},
@@ -78,6 +80,38 @@ function money(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(value) || 0);
+}
+
+function parseAmount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number * 100) / 100 : 0;
+}
+
+function computedBalance(account, transactions) {
+  if (!account) return 0;
+  let balance = parseAmount(account.openingBalance);
+  const liability = LIABILITY_TYPES.has(account.type);
+
+  for (const transaction of transactions) {
+    const amount = parseAmount(transaction.amount);
+    if (transaction.type === "income" && transaction.accountId === account.id) {
+      balance += liability ? -amount : amount;
+    }
+    if (transaction.type === "expense" && transaction.accountId === account.id) {
+      balance += liability ? amount : -amount;
+    }
+    if (transaction.type === "transfer") {
+      if (transaction.accountId === account.id) balance += liability ? amount : -amount;
+      if (transaction.toAccountId === account.id) balance += liability ? -amount : amount;
+    }
+  }
+
+  return Math.round(balance * 100) / 100;
+}
+
+function accountPosition(account, transactions) {
+  const balance = computedBalance(account, transactions);
+  return LIABILITY_TYPES.has(account.type) ? -balance : balance;
 }
 
 function statusFor(spent, budget) {
@@ -187,6 +221,25 @@ export default function App() {
       }),
     [data.categories, monthRecord.budgets, monthTransactions]
   );
+
+  const accountRows = useMemo(
+    () =>
+      data.accounts.map((account) => ({
+        ...account,
+        balance: computedBalance(account, data.transactions),
+        position: accountPosition(account, data.transactions),
+        isLiability: LIABILITY_TYPES.has(account.type),
+      })),
+    [data.accounts, data.transactions]
+  );
+
+  const assetsTotal = accountRows
+    .filter((account) => !account.isLiability)
+    .reduce((sum, account) => sum + account.balance, 0);
+  const debtsTotal = accountRows
+    .filter((account) => account.isLiability)
+    .reduce((sum, account) => sum + Math.abs(account.balance), 0);
+  const netPositionTotal = accountRows.reduce((sum, account) => sum + account.position, 0);
 
   const totalBudget = rows.reduce((sum, row) => sum + row.budget, 0);
   const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
@@ -318,7 +371,7 @@ export default function App() {
 
   function deleteAccount(accountId) {
     const account = data.accounts.find((item) => item.id === accountId);
-    if (!window.confirm(`Delete ${account?.name || "this account"}? No transaction linkage exists yet in this migration step.`)) return;
+    if (!window.confirm(`Delete ${account?.name || "this account"}? Transaction account linkage is not active yet in this migration step.`)) return;
     setData((prev) => ({ ...prev, accounts: prev.accounts.filter((item) => item.id !== accountId) }));
   }
 
@@ -425,6 +478,14 @@ export default function App() {
       <section className="section-block">
         <div className="section-head"><div><p className="section-kicker">Accounts</p><h2>What you own or owe</h2></div><button className="text-button" onClick={() => setShowAddAccount((value) => !value)}><Plus size={15} /> Add</button></div>
 
+        {!!data.accounts.length && (
+          <div className="metric-grid">
+            <article><span className="small-label">Assets</span><strong>{money(assetsTotal)}</strong><small>Bank, savings, cash and investments</small></article>
+            <article><span className="small-label">Debts</span><strong>{money(debtsTotal)}</strong><small>Credit cards and loans</small></article>
+            <article className="metric-focus"><span className="small-label">Net position</span><strong className={netPositionTotal < 0 ? "negative" : ""}>{money(netPositionTotal)}</strong><small>Assets minus debts</small></article>
+          </div>
+        )}
+
         {showAddAccount && (
           <div className="panel form-grid">
             <input value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account name" aria-label="Account name" />
@@ -435,19 +496,19 @@ export default function App() {
         )}
 
         {!data.accounts.length ? (
-          <div className="empty-state"><Wallet size={28} /><strong>Add your accounts</strong><p>Bank, savings, cash, credit card, loan and investment records can now live in the React app. Transaction-linked balance calculations come in the next migration step.</p></div>
+          <div className="empty-state"><Wallet size={28} /><strong>Add your accounts</strong><p>Bank, savings, cash, credit card, loan and investment records can live in the React app. Balances begin from each opening amount.</p></div>
         ) : (
           <div className="category-list">
-            {data.accounts.map((account) => (
+            {accountRows.map((account) => (
               <article className="category-card" key={account.id}>
                 <div className="category-top">
                   <span className="status-dot neutral" />
                   <span className="category-name">{account.name}</span>
-                  <span className="category-amount"><b>{money(account.openingBalance)}</b> opening</span>
+                  <span className="category-amount"><b>{account.isLiability ? `Owe ${money(Math.abs(account.balance))}` : money(account.balance)}</b></span>
                   <button className="trash-button" onClick={() => deleteAccount(account.id)} aria-label={`Delete ${account.name}`}><Trash2 size={13} /></button>
                 </div>
                 <div className="category-detail">
-                  <p className="muted-line">{ACCOUNT_TYPES.find(([value]) => value === account.type)?.[1] || "Other"}</p>
+                  <p className="muted-line">{ACCOUNT_TYPES.find(([value]) => value === account.type)?.[1] || "Other"} · Opening {money(account.openingBalance)}</p>
                 </div>
               </article>
             ))}
