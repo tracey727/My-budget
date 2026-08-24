@@ -34,6 +34,7 @@ const [index, app, styles, worker] = await Promise.all([
 const requiredIndexFragments = [
   "/app.js?v=phase3-full-code-audit",
   "/styles.css?v=phase3-full-code-audit",
+  "href=\"/manifest.webmanifest\"",
   "+ Add account",
   "Add a bank, savings, cash, card or loan account",
   "This creates the account itself.",
@@ -41,6 +42,9 @@ const requiredIndexFragments = [
 ];
 for (const fragment of requiredIndexFragments) {
   if (!index.includes(fragment)) throw new Error(`built index.html missing Phase 3 contract fragment: ${fragment}`);
+}
+if (/href="\/assets\/[^"]+\.css"/.test(index)) {
+  throw new Error("built index.html still points at Vite's hashed CSS instead of the audited subscriber stylesheet");
 }
 
 const requiredAppFragments = [
