@@ -15,10 +15,6 @@ for (const asset of assets) {
   console.log(`copied subscriber asset: ${asset}`);
 }
 
-// Phase 3 Cloudflare repair: keep the locked source app.js untouched, but make
-// the deployed build select the only available account automatically. This
-// prevents iPhone Safari from leaving "Paid from" on the placeholder when the
-// user has exactly one saved account.
 const deployedAppPath = resolve(dist, "app.js");
 let deployedApp = await readFile(deployedAppPath, "utf8");
 const accountRefreshNeedle = "    ['#transactionAccount', '#transactionToAccount', '#subscriptionAccount'].forEach(sel => setSelectOptions($(sel), options, 'Choose account'));\n";
@@ -27,49 +23,42 @@ const accountRefreshReplacement = `${accountRefreshNeedle}    const transactionA
 if (!deployedApp.includes(accountRefreshNeedle)) {
   throw new Error("Cloudflare account-selector patch target not found in app.js");
 }
-
 deployedApp = deployedApp.replace(accountRefreshNeedle, accountRefreshReplacement);
 
-// iPhone Safari can preserve a previous horizontal scroll offset after an
-// over-wide build has been replaced. Force navigation back to the left edge so
-// the corrected layout is actually shown from x=0.
+// Phase 3 navigation repair: do not use smooth window scrolling on iPhone Safari.
+// It was allowing focus/scroll anchoring on the fixed bottom nav to shift the
+// visual viewport when Accounts was pressed. Reset only the document scroll
+// positions synchronously after the view swap.
 const navigateNeedle = "    window.scrollTo({ top: 0, behavior: 'smooth' });\n";
-const navigateReplacement = "    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });\n";
+const navigateReplacement = "    document.documentElement.scrollLeft = 0; document.body.scrollLeft = 0; window.scrollTo(0, 0);\n";
 if (!deployedApp.includes(navigateNeedle)) {
-  throw new Error("Cloudflare horizontal-scroll reset target not found in app.js");
+  throw new Error("Cloudflare navigation patch target not found in app.js");
 }
 deployedApp = deployedApp.replace(navigateNeedle, navigateReplacement);
 
-const initNeedle = "    renderAll();\n    navigate(activeView);\n";
-const initReplacement = `    renderAll();\n    navigate(activeView);\n    window.scrollTo(0, 0);\n    window.addEventListener('resize', () => window.scrollTo(0, window.scrollY));\n`;
-if (!deployedApp.includes(initNeedle)) {
-  throw new Error("Cloudflare mobile init patch target not found in app.js");
-}
-deployedApp = deployedApp.replace(initNeedle, initReplacement);
-
 await writeFile(deployedAppPath, deployedApp, "utf8");
-console.log("patched deployed account selector and horizontal scroll reset");
+console.log("patched deployed account selector and stable mobile navigation");
 
-// Phase 3 mobile-layout gate: hard-contain every top-level surface to the
-// visual viewport and make intrinsic grid/flex children shrink on iPhone.
 const deployedStylesPath = resolve(dist, "styles.css");
 const deployedStyles = await readFile(deployedStylesPath, "utf8");
 const mobileOverflowPatch = `
 
-/* Phase 3 Cloudflare mobile overflow repair — final containment */
+/* Phase 3 Cloudflare iPhone layout final */
 html, body {
+  margin: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  overscroll-behavior-x: none;
+  overflow-x: clip;
   -webkit-text-size-adjust: 100%;
 }
-body { position: relative; }
+body { min-width: 0; }
 .app-shell {
   width: 100%;
   max-width: 1080px;
   min-width: 0;
-  overflow-x: hidden;
+  margin-left: auto;
+  margin-right: auto;
+  overflow-x: clip;
 }
 main, .view, .panel, .stack-list, .list-row, .section-heading, .topbar,
 .hero-grid, .stats-grid, .filters-panel, .form-grid, .quick-actions {
@@ -80,19 +69,19 @@ main, .view, .panel, .stack-list, .list-row, .section-heading, .topbar,
 .row-title, .row-meta, .eyebrow, h1, h2, h3, p { overflow-wrap: anywhere; }
 
 @media (max-width: 760px) {
-  html, body { width: 100vw; max-width: 100vw; }
   .app-shell {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     margin: 0;
     padding-left: 12px;
     padding-right: 12px;
   }
   .primary-nav {
+    position: fixed;
     left: 10px;
     right: 10px;
     width: auto;
-    max-width: none;
+    max-width: calc(100% - 20px);
     grid-template-columns: repeat(5, minmax(0, 1fr));
     overflow: hidden;
   }
@@ -100,9 +89,10 @@ main, .view, .panel, .stack-list, .list-row, .section-heading, .topbar,
     width: 100%;
     min-width: 0;
     max-width: 100%;
-    padding-left: 2px;
-    padding-right: 2px;
-    font-size: clamp(.64rem, 3vw, .78rem);
+    padding-left: 1px;
+    padding-right: 1px;
+    font-size: clamp(.58rem, 2.75vw, .74rem);
+    line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -110,28 +100,50 @@ main, .view, .panel, .stack-list, .list-row, .section-heading, .topbar,
   .section-heading {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 92px;
+    gap: 8px;
     align-items: start;
   }
   .section-heading .primary-button {
-    width: auto;
-    max-width: 112px;
-    min-width: 74px;
+    width: 92px;
+    max-width: 92px;
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
     justify-self: end;
   }
   .list-row {
     width: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
     overflow: hidden;
   }
   .row-amount {
-    max-width: 34vw;
+    max-width: 30vw;
     min-width: 0;
+    font-size: clamp(.9rem, 4.8vw, 1.15rem);
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: clip;
   }
 }
-`;
 
+@media (max-width: 390px) {
+  .section-heading { grid-template-columns: minmax(0, 1fr) 82px; }
+  .section-heading .primary-button { width: 82px; max-width: 82px; }
+  .nav-button { font-size: .6rem; }
+  .list-row { grid-template-columns: minmax(0, 1fr) minmax(70px, auto); }
+  .row-amount { max-width: 27vw; font-size: .95rem; }
+}
+`;
 await writeFile(deployedStylesPath, `${deployedStyles}${mobileOverflowPatch}`, "utf8");
-console.log("patched deployed mobile layout: viewport containment and shrink rules applied");
+console.log("patched deployed mobile layout: fixed-width action column and stable nav");
+
+// Force the rebuilt mobile assets to bypass any currently-controlled service
+// worker response in an already-open Safari tab.
+const deployedIndexPath = resolve(dist, "index.html");
+let deployedIndex = await readFile(deployedIndexPath, "utf8");
+deployedIndex = deployedIndex
+  .replace('href="/styles.css"', 'href="/styles.css?v=phase3-nav-final"')
+  .replace('src="/app.js"', 'src="/app.js?v=phase3-nav-final"');
+await writeFile(deployedIndexPath, deployedIndex, "utf8");
+console.log("versioned deployed mobile assets for cache-safe reload");
