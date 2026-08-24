@@ -6,14 +6,16 @@
   "scripts": {
     "dev": "vite",
     "test": "node --test",
+    "test:phase2": "node --test expense-intelligence.test.mjs export-model.test.mjs phase2-baseline.test.mjs subscription-model.test.mjs subscription-record.test.mjs transaction-model.test.mjs",
+    "test:phase3": "node --test phase3-runtime-chain.test.mjs phase3-cloudflare.test.mjs",
     "check:source": "node scripts/check-source.mjs",
     "build": "vite build && node scripts/copy-subscriber-assets.mjs",
     "build:react-preservation": "vite build --config vite.react.config.mjs",
     "audit:deps": "npm audit --audit-level=high",
-    "verify:phase2": "npm run check:source && npm test && npm run build && node scripts/verify-dist.mjs && npm run build:react-preservation && npm run audit:deps",
+    "verify:phase2": "npm run check:source && npm run test:phase2 && npm run build && node scripts/verify-dist.mjs && npm run build:react-preservation && npm run audit:deps",
     "cf:types": "wrangler types ./worker-configuration.d.ts",
     "cf:dry-run": "npm run build && wrangler deploy --dry-run --outdir .wrangler-dry-run",
-    "verify:phase3": "npm run verify:phase2 && npm run cf:types && npm run cf:dry-run",
+    "verify:phase3": "npm run verify:phase2 && npm run test:phase3 && npm run cf:types && npm run cf:dry-run",
     "preview": "vite preview"
   },
   "dependencies": {
