@@ -1,4 +1,4 @@
-name: React build verification
+name: Phase 2 baseline verification
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  phase2:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,9 +21,24 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install
-      - name: Test transaction model
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Source syntax gate
+        run: npm run check:source
+      - name: Automated model and preservation tests
         run: npm test
-      - name: Build React app
+      - name: Build supported subscriber runtime
         run: npm run build
+      - name: Verify subscriber artifact
+        run: |
+          test -f dist/index.html
+          test -f dist/app.js
+          test -f dist/styles.css
+          test -f dist/service-worker.js
+          test -f dist/manifest.webmanifest
+          grep -q '/app.js' dist/index.html
+      - name: Build preserved React migration destination
+        run: npm run build:react-preservation
+      - name: Dependency security gate
+        run: npm run audit:deps
