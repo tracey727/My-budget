@@ -38,6 +38,17 @@ test("transfer payment to a credit card reduces debt and is not spending twice",
   assert.equal(monthlyExpenseTotal(transactions, "2026-08"), 0);
 });
 
+test("BNPL is treated as a liability account", () => {
+  const bank = { id: "bank", type: "bank", openingBalance: 500 };
+  const bnpl = { id: "afterpay", type: "bnpl", openingBalance: 300 };
+  const transactions = [
+    { type: "transfer", accountId: "bank", toAccountId: "afterpay", amount: 80, date: "2026-08-24", month: "2026-08" },
+    { type: "expense", accountId: "afterpay", amount: 50, date: "2026-08-24", month: "2026-08" },
+  ];
+  assert.equal(computedBalance(bank, transactions), 420);
+  assert.equal(computedBalance(bnpl, transactions), 270);
+});
+
 test("monthly spending includes expenses only", () => {
   const transactions = [
     { type: "expense", amount: 80, date: "2026-08-02", month: "2026-08" },
