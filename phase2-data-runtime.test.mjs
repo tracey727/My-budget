@@ -70,6 +70,12 @@ test("Bills runtime stores every required bill field", async () => {
   assert.match(runtime, /id = 'billDialog'/);
 });
 
+test("dynamic labels escape normal double quotes and apostrophes", async () => {
+  const runtime = await text("./phase2-data-runtime.js");
+  assert.ok(runtime.includes("'\"': '&quot;'"), "double quotes must map directly to &quot;");
+  assert.ok(runtime.includes("\"'\": '&#039;'"), "apostrophes must map directly to &#039;");
+});
+
 test("backup restore CSV and offline asset chain include the expanded data contract", async () => {
   const [runtime, worker, copyScript] = await Promise.all([
     text("./phase2-data-runtime.js"),
