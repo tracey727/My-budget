@@ -1,4 +1,7 @@
 export const LIABILITY_TYPES = new Set(["credit", "loan", "bnpl"]);
+export const USER_RESPONSES = new Set(["yes", "no", "maybe"]);
+export const RECURRING_STATUSES = new Set(["one_off", "recurring", "unknown"]);
+export const WORTH_STATUSES = new Set(["essential", "worth", "unsure", "waste"]);
 
 export function parseAmount(value) {
   const number = Number(value);
@@ -10,6 +13,30 @@ export function normalizeTransactionType(transaction) {
     return transaction.type;
   }
   return "expense";
+}
+
+export function normalizeTransactionRecord(transaction = {}) {
+  const type = normalizeTransactionType(transaction);
+  const worth = type === "expense" && WORTH_STATUSES.has(transaction.worth) ? transaction.worth : type === "expense" ? "unsure" : "";
+  const userResponse = USER_RESPONSES.has(transaction.userResponse) ? transaction.userResponse : "";
+  const recurringStatus = RECURRING_STATUSES.has(transaction.recurringStatus) ? transaction.recurringStatus : "one_off";
+
+  return {
+    id: String(transaction.id || transaction.transactionId || ""),
+    accountId: String(transaction.accountId || ""),
+    toAccountId: String(transaction.toAccountId || ""),
+    date: String(transaction.date || ""),
+    amount: parseAmount(transaction.amount),
+    merchant: String(transaction.merchant || transaction.payee || "").trim(),
+    type,
+    category: String(transaction.category || "Other").trim() || "Other",
+    worth,
+    userResponse,
+    recurringStatus,
+    notes: String(transaction.notes || "").trim(),
+    professionalProjectLink: String(transaction.professionalProjectLink || transaction.projectLink || "").trim(),
+    createdAt: String(transaction.createdAt || ""),
+  };
 }
 
 export function computedBalance(account, transactions = []) {
