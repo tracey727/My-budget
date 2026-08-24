@@ -23,5 +23,7 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Test transaction model
+        run: npm test
       - name: Build React app
         run: npm run build
