@@ -15,6 +15,14 @@ import {
   Wallet,
 } from "lucide-react";
 import "./styles.css";
+import {
+  LIABILITY_TYPES,
+  accountPosition,
+  computedBalance,
+  monthlyExpenseTotal,
+  normalizeTransactionType,
+  parseAmount,
+} from "./transaction-model.mjs";
 
 const STORAGE_KEY = "genevieve-budget-compass-v2";
 const LEGACY_KEY = "genevieve-budget-data";
@@ -39,8 +47,6 @@ const ACCOUNT_TYPES = [
   ["investment", "Investment"],
   ["other", "Other"],
 ];
-
-const LIABILITY_TYPES = new Set(["credit", "loan"]);
 
 const emptyData = () => ({
   version: 2,
@@ -82,38 +88,6 @@ function money(value) {
   }).format(Number(value) || 0);
 }
 
-function parseAmount(value) {
-  const number = Number(value);
-  return Number.isFinite(number) ? Math.round(number * 100) / 100 : 0;
-}
-
-function computedBalance(account, transactions) {
-  if (!account) return 0;
-  let balance = parseAmount(account.openingBalance);
-  const liability = LIABILITY_TYPES.has(account.type);
-
-  for (const transaction of transactions) {
-    const amount = parseAmount(transaction.amount);
-    if (transaction.type === "income" && transaction.accountId === account.id) {
-      balance += liability ? -amount : amount;
-    }
-    if (transaction.type === "expense" && transaction.accountId === account.id) {
-      balance += liability ? amount : -amount;
-    }
-    if (transaction.type === "transfer") {
-      if (transaction.accountId === account.id) balance += liability ? amount : -amount;
-      if (transaction.toAccountId === account.id) balance += liability ? -amount : amount;
-    }
-  }
-
-  return Math.round(balance * 100) / 100;
-}
-
-function accountPosition(account, transactions) {
-  const balance = computedBalance(account, transactions);
-  return LIABILITY_TYPES.has(account.type) ? -balance : balance;
-}
-
 function statusFor(spent, budget) {
   if (!budget || budget <= 0) return "neutral";
   const ratio = spent / budget;
@@ -129,7 +103,13 @@ function normalizeStoredData(value) {
     version: 2,
     months: value?.months && typeof value.months === "object" ? value.months : {},
     categories: Array.isArray(value?.categories) ? value.categories : [],
-    transactions: Array.isArray(value?.transactions) ? value.transactions : [],
+    transactions: Array.isArray(value?.transactions)
+      ? value.transactions.map((transaction) => ({
+          ...transaction,
+          type: normalizeTransactionType(transaction),
+          month: transaction.month || transaction.date?.slice(0, 7),
+        }))
+      : [],
     accounts: Array.isArray(value?.accounts) ? value.accounts : [],
   };
 }
@@ -154,6 +134,7 @@ function loadStoredData() {
       transactions: (old.transactions || []).map((t) => ({
         ...t,
         id: t.id || uid("tx"),
+        type: normalizeTransactionType(t),
         month: t.date?.slice(0, 7) || currentMonth,
       })),
       accounts: Array.isArray(old.accounts) ? old.accounts : [],
@@ -176,6 +157,9 @@ export default function App() {
   const [newCategoryBudget, setNewCategoryBudget] = useState("");
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [txType, setTxType] = useState("expense");
+  const [txAccount, setTxAccount] = useState("");
+  const [txToAccount, setTxToAccount] = useState("");
   const [txCategory, setTxCategory] = useState("");
   const [txAmount, setTxAmount] = useState("");
   const [txNote, setTxNote] = useState("");
@@ -215,8 +199,8 @@ export default function App() {
         const budgetOverride = monthRecord.budgets?.[category.id];
         const budget = budgetOverride === undefined ? Number(category.defaultBudget) || 0 : Number(budgetOverride) || 0;
         const spent = monthTransactions
-          .filter((t) => t.categoryId === category.id)
-          .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+          .filter((t) => normalizeTransactionType(t) === "expense" && t.categoryId === category.id)
+          .reduce((sum, t) => sum + parseAmount(t.amount), 0);
         return { ...category, budget, spent, status: statusFor(spent, budget) };
       }),
     [data.categories, monthRecord.budgets, monthTransactions]
@@ -242,7 +226,10 @@ export default function App() {
   const netPositionTotal = accountRows.reduce((sum, account) => sum + account.position, 0);
 
   const totalBudget = rows.reduce((sum, row) => sum + row.budget, 0);
-  const totalSpent = rows.reduce((sum, row) => sum + row.spent, 0);
+  const totalSpent = monthlyExpenseTotal(data.transactions, selectedMonth);
+  const recordedIncome = monthTransactions
+    .filter((transaction) => normalizeTransactionType(transaction) === "income")
+    .reduce((sum, transaction) => sum + parseAmount(transaction.amount), 0);
   const cashRemaining = income - totalSpent;
   const unallocated = income - totalBudget;
   const plannedRemaining = totalBudget - totalSpent;
@@ -339,7 +326,7 @@ export default function App() {
 
   function deleteCategory(categoryId) {
     const category = data.categories.find((c) => c.id === categoryId);
-    if (!window.confirm(`Delete ${category?.name || "this category"} and all of its recorded transactions?`)) return;
+    if (!window.confirm(`Delete ${category?.name || "this category"} and all of its recorded expense transactions?`)) return;
     setData((prev) => ({
       ...prev,
       categories: prev.categories.filter((c) => c.id !== categoryId),
@@ -371,13 +358,21 @@ export default function App() {
 
   function deleteAccount(accountId) {
     const account = data.accounts.find((item) => item.id === accountId);
-    if (!window.confirm(`Delete ${account?.name || "this account"}? Transaction account linkage is not active yet in this migration step.`)) return;
+    const linked = data.transactions.some((transaction) => transaction.accountId === accountId || transaction.toAccountId === accountId);
+    if (linked) {
+      window.alert("This account has linked transactions. Remove or move those transactions before deleting the account.");
+      return;
+    }
+    if (!window.confirm(`Delete ${account?.name || "this account"}?`)) return;
     setData((prev) => ({ ...prev, accounts: prev.accounts.filter((item) => item.id !== accountId) }));
   }
 
   function addTransaction() {
-    const amount = Number(txAmount);
-    if (!txCategory || !amount || amount <= 0 || !txDate) return;
+    const amount = parseAmount(txAmount);
+    if (!amount || amount <= 0 || !txDate) return;
+    if (txType === "expense" && !txCategory) return;
+    if (txType === "transfer" && (!txAccount || !txToAccount || txAccount === txToAccount)) return;
+
     const txMonth = txDate.slice(0, 7);
     setData((prev) => ({
       ...prev,
@@ -385,7 +380,10 @@ export default function App() {
         ...prev.transactions,
         {
           id: uid("tx"),
-          categoryId: txCategory,
+          type: txType,
+          accountId: txAccount || null,
+          toAccountId: txType === "transfer" ? txToAccount : null,
+          categoryId: txType === "expense" ? txCategory : null,
           amount,
           note: txNote.trim(),
           date: txDate,
@@ -396,6 +394,7 @@ export default function App() {
     }));
     setTxAmount("");
     setTxNote("");
+    setTxToAccount("");
     if (txMonth !== selectedMonth) setSelectedMonth(txMonth);
   }
 
@@ -444,6 +443,18 @@ export default function App() {
     localStorage.removeItem(LEGACY_KEY);
   }
 
+  function accountNameFor(id) {
+    return data.accounts.find((account) => account.id === id)?.name || "Untracked account";
+  }
+
+  function transactionLabel(transaction) {
+    const type = normalizeTransactionType(transaction);
+    if (transaction.note) return transaction.note;
+    if (type === "income") return "Income";
+    if (type === "transfer") return "Internal transfer";
+    return data.categories.find((category) => category.id === transaction.categoryId)?.name || "Expense";
+  }
+
   if (!loaded) return null;
 
   return (
@@ -465,13 +476,13 @@ export default function App() {
 
       <section className={`summary-card status-${overallStatus}`}>
         <div className="summary-row income-row">
-          <span><span className="small-label">Income</span><small>for {formatMonth(selectedMonth)}</small></span>
-          <label className="money-input-wrap"><span>$</span><input type="number" inputMode="decimal" min="0" step="0.01" value={income || ""} onChange={(e) => setIncome(e.target.value)} placeholder="0.00" aria-label="Monthly income" /></label>
+          <span><span className="small-label">Planned income</span><small>for {formatMonth(selectedMonth)}</small></span>
+          <label className="money-input-wrap"><span>$</span><input type="number" inputMode="decimal" min="0" step="0.01" value={income || ""} onChange={(e) => setIncome(e.target.value)} placeholder="0.00" aria-label="Monthly planned income" /></label>
         </div>
         <div className="metric-grid">
           <article><span className="small-label">Planned</span><strong>{money(totalBudget)}</strong><small>{income > 0 ? `${money(unallocated)} unallocated` : "Across categories"}</small></article>
           <article><span className="small-label">Spent</span><strong>{money(totalSpent)}</strong><small>{money(plannedRemaining)} vs plan</small></article>
-          <article className="metric-focus"><span className="small-label">Cash remaining</span><strong className={cashRemaining < 0 ? "negative" : ""}>{money(cashRemaining)}</strong><small>Income minus recorded spending</small></article>
+          <article className="metric-focus"><span className="small-label">Cash remaining</span><strong className={cashRemaining < 0 ? "negative" : ""}>{money(cashRemaining)}</strong><small>Planned income minus expense transactions</small></article>
         </div>
       </section>
 
@@ -534,7 +545,9 @@ export default function App() {
             {rows.map((category) => {
               const percent = category.budget > 0 ? Math.min(100, (category.spent / category.budget) * 100) : 0;
               const open = expandedCategory === category.id;
-              const categoryTransactions = monthTransactions.filter((t) => t.categoryId === category.id).sort((a, b) => b.date.localeCompare(a.date));
+              const categoryTransactions = monthTransactions
+                .filter((t) => normalizeTransactionType(t) === "expense" && t.categoryId === category.id)
+                .sort((a, b) => b.date.localeCompare(a.date));
               const overridden = monthRecord.budgets?.[category.id] !== undefined;
               return (
                 <article className="category-card" key={category.id}>
@@ -556,7 +569,7 @@ export default function App() {
                       {editingCategory?.id === category.id && <CategoryEditor category={editingCategory} onSave={updateCategory} onCancel={() => setEditingCategory(null)} />}
                       <div className="transaction-list">
                         {!categoryTransactions.length && <p className="muted-line">No spending recorded here for {formatMonth(selectedMonth)}.</p>}
-                        {categoryTransactions.map((tx) => <div className="transaction-row" key={tx.id}><span><b>{tx.note || category.name}</b><small>{new Date(`${tx.date}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</small></span><span className="transaction-amount">{money(tx.amount)}<button className="trash-button" onClick={() => deleteTransaction(tx.id)} aria-label="Delete transaction"><Trash2 size={13} /></button></span></div>)}
+                        {categoryTransactions.map((tx) => <div className="transaction-row" key={tx.id}><span><b>{transactionLabel(tx)}</b><small>{new Date(`${tx.date}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</small></span><span className="transaction-amount">{money(tx.amount)}<button className="trash-button" onClick={() => deleteTransaction(tx.id)} aria-label="Delete transaction"><Trash2 size={13} /></button></span></div>)}
                       </div>
                     </div>
                   )}
@@ -567,18 +580,52 @@ export default function App() {
         )}
       </section>
 
-      {!!data.categories.length && (
-        <section className="section-block">
-          <div className="section-head"><div><p className="section-kicker">Record</p><h2>Add spending</h2></div></div>
-          <div className="panel spend-form">
+      <section className="section-block">
+        <div className="section-head"><div><p className="section-kicker">Record</p><h2>Add transaction</h2></div></div>
+        <div className="panel spend-form">
+          <select value={txType} onChange={(e) => setTxType(e.target.value)} aria-label="Transaction type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+            <option value="transfer">Transfer between my accounts</option>
+          </select>
+          <select value={txAccount} onChange={(e) => setTxAccount(e.target.value)} aria-label={txType === "transfer" ? "From account" : "Account"}>
+            <option value="">{txType === "transfer" ? "Choose from account" : "No account / untracked"}</option>
+            {accountRows.map((account) => <option key={account.id} value={account.id}>{account.name} — {money(account.balance)}</option>)}
+          </select>
+          {txType === "transfer" && (
+            <select value={txToAccount} onChange={(e) => setTxToAccount(e.target.value)} aria-label="To account">
+              <option value="">Choose to account</option>
+              {accountRows.filter((account) => account.id !== txAccount).map((account) => <option key={account.id} value={account.id}>{account.name} — {money(account.balance)}</option>)}
+            </select>
+          )}
+          {txType === "expense" && (
             <select value={txCategory} onChange={(e) => setTxCategory(e.target.value)}><option value="">Choose category</option>{data.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            <input type="number" inputMode="decimal" min="0" step="0.01" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} placeholder="Amount ($)" />
-            <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
-            <input value={txNote} onChange={(e) => setTxNote(e.target.value)} placeholder="What was it? (optional)" />
-            <button className="primary-button" onClick={addTransaction}><Wallet size={15} /> Record spend</button>
-          </div>
-        </section>
-      )}
+          )}
+          <input type="number" inputMode="decimal" min="0" step="0.01" value={txAmount} onChange={(e) => setTxAmount(e.target.value)} placeholder="Amount ($)" />
+          <input type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
+          <input value={txNote} onChange={(e) => setTxNote(e.target.value)} placeholder={txType === "transfer" ? "Transfer note (optional)" : "What was it? (optional)"} />
+          <button className="primary-button" onClick={addTransaction}><Wallet size={15} /> Record {txType}</button>
+        </div>
+        <p className="storage-note">Transfers move money between your own accounts and are excluded from spending. Recorded income updates linked account balances; the planned-income field above remains separate until the payday engine is built.</p>
+
+        <div className="transaction-list">
+          <p className="muted-line">Recorded income this month: {money(recordedIncome)} · Spending: {money(totalSpent)}</p>
+          {!monthTransactions.length && <p className="muted-line">No transactions recorded for {formatMonth(selectedMonth)}.</p>}
+          {[...monthTransactions].sort((a, b) => `${b.date}${b.createdAt || ""}`.localeCompare(`${a.date}${a.createdAt || ""}`)).map((transaction) => {
+            const type = normalizeTransactionType(transaction);
+            const categoryName = data.categories.find((category) => category.id === transaction.categoryId)?.name;
+            const meta = type === "transfer"
+              ? `${accountNameFor(transaction.accountId)} → ${accountNameFor(transaction.toAccountId)}`
+              : `${categoryName || (type === "income" ? "Income" : "Uncategorised")} · ${accountNameFor(transaction.accountId)}`;
+            return (
+              <div className="transaction-row" key={transaction.id}>
+                <span><b>{transactionLabel(transaction)}</b><small>{type[0].toUpperCase() + type.slice(1)} · {meta} · {new Date(`${transaction.date}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</small></span>
+                <span className="transaction-amount">{type === "expense" ? "−" : type === "income" ? "+" : "⇄ "}{money(transaction.amount)}<button className="trash-button" onClick={() => deleteTransaction(transaction.id)} aria-label="Delete transaction"><Trash2 size={13} /></button></span>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="section-block">
         <div className="section-head"><div><p className="section-kicker">Notice early</p><h2>Budget signals</h2></div></div>
