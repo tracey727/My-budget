@@ -1,7 +1,7 @@
 # GENEVIEVE Budget — Product Contract
 
 Locked: 24 August 2026, 12:45 PM AEST (Queensland)
-Status: Phase 1 product rules locked
+Status: Phase 1 product rules locked; later user-directed data-contract clarifications recorded without changing the core rules
 
 ## Product doors
 
@@ -71,18 +71,45 @@ The user-facing review is conversational:
 
 The underlying analytical classification may retain Essential, Worth It, Unsure and Waste where useful.
 
-## Subscription decisions
+## Subscription storage and decisions
 
-Supported decisions include:
+A subscription record stores:
+
+- Subscription
+- Amount
+- Frequency
+- Next charge
+- Account
+- Auto-renew
+- Usage
+- Annual cost
+- Decision
+
+Supported decision values are exactly:
 
 - Keep
 - Cancel
 - Maybe
-- Give it another month
-- Pause if possible
-- Review after next charge
+- Another month
+- Pause
+- Review next charge
 
-No subscription may be cancelled or altered without explicit user-authorised action.
+A decision is a planning record and does not itself perform an external cancellation, pause or account change. No subscription may be cancelled or altered without explicit user-authorised action.
+
+## Savings goals
+
+A savings-goal record stores:
+
+- Goal
+- Target
+- Current amount
+- Deadline
+- Required weekly amount
+- Required fortnightly amount
+- Progress
+- Protected Yes/No
+
+Progress is derived from current amount versus target. Required weekly and fortnightly amounts are derived from the amount still required and the remaining time to the deadline. Protected savings must not be represented as free cash.
 
 ## Professional money rules
 

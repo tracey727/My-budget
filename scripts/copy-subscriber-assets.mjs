@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 const assets = [
   "app.js",
   "phase2-data-runtime.js",
+  "phase2-subscriptions-savings-runtime.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
