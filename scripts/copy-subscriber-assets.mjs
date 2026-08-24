@@ -36,8 +36,16 @@ const navClickReplacement = `    $$('.nav-button').forEach(btn => btn.addEventLi
 if (!deployedApp.includes(navClickNeedle)) throw new Error("Cloudflare iPhone nav-focus patch target not found in app.js");
 deployedApp = deployedApp.replace(navClickNeedle, navClickReplacement);
 
+// Keep the previously approved account-creation wording intact after the
+// dialog is opened. The source runtime resets this heading dynamically, so the
+// deployed runtime must use the same clarified wording as the built HTML.
+const accountDialogTitleNeedle = "    $('#accountDialogTitle').textContent = 'Add what you own or owe';\n";
+const accountDialogTitleReplacement = "    $('#accountDialogTitle').textContent = 'Add a bank, savings, cash, card or loan account';\n";
+if (!deployedApp.includes(accountDialogTitleNeedle)) throw new Error("Cloudflare account-dialog wording patch target not found in app.js");
+deployedApp = deployedApp.replace(accountDialogTitleNeedle, accountDialogTitleReplacement);
+
 await writeFile(deployedAppPath, deployedApp, "utf8");
-console.log("patched deployed account selector and stable mobile navigation");
+console.log("patched deployed account selector, wording and stable mobile navigation");
 
 const deployedStylesPath = resolve(dist, "styles.css");
 const deployedStyles = await readFile(deployedStylesPath, "utf8");
@@ -82,8 +90,19 @@ for (const [from, to] of wordingChanges) {
   if (!deployedIndex.includes(from)) throw new Error(`Account wording patch target not found: ${from}`);
   deployedIndex = deployedIndex.replace(from, to);
 }
+
+// Vite rewrites the source stylesheet and manifest links to hashed /assets/
+// paths before this script runs. The previous Phase 3 mobile CSS was copied to
+// /styles.css but the built page never loaded it. Replace Vite's hashed links
+// with the supported subscriber assets so the audited runtime and its cache use
+// one consistent file chain.
+const builtStyleLinkPattern = /href="\/assets\/[^"]+\.css"/;
+const builtManifestLinkPattern = /href="\/assets\/manifest-[^"]+\.webmanifest"/;
+if (!builtStyleLinkPattern.test(deployedIndex)) throw new Error("Vite-built stylesheet link not found in dist/index.html");
+if (!builtManifestLinkPattern.test(deployedIndex)) throw new Error("Vite-built manifest link not found in dist/index.html");
 deployedIndex = deployedIndex
-  .replace('href="/styles.css"', 'href="/styles.css?v=phase3-ios-focus-overflow"')
-  .replace('src="/app.js"', 'src="/app.js?v=phase3-ios-focus-overflow"');
+  .replace(builtStyleLinkPattern, 'href="/styles.css?v=phase3-full-code-audit"')
+  .replace(builtManifestLinkPattern, 'href="/manifest.webmanifest"')
+  .replace('src="/app.js"', 'src="/app.js?v=phase3-full-code-audit"');
 await writeFile(deployedIndexPath, deployedIndex, "utf8");
-console.log("patched deployed account wording without changing account logic");
+console.log("linked deployed index to audited subscriber CSS, manifest and runtime");
