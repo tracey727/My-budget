@@ -1,4 +1,4 @@
-const CACHE = 'every-cent-v1';
+const CACHE = 'every-cent-v2-phase3-mobile';
 const ASSETS = ['/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
