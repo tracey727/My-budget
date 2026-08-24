@@ -26,6 +26,16 @@ const navigateNeedle = "    window.scrollTo({ top: 0, behavior: 'smooth' });\n";
 const navigateReplacement = "    document.documentElement.scrollLeft = 0; document.body.scrollLeft = 0; window.scrollTo(0, 0);\n";
 if (!deployedApp.includes(navigateNeedle)) throw new Error("Cloudflare navigation patch target not found in app.js");
 deployedApp = deployedApp.replace(navigateNeedle, navigateReplacement);
+
+// Phase 3 iPhone-only overflow repair: Safari may horizontally pan the visual
+// viewport to keep a focused fixed-nav button visible after a tap. Keep keyboard
+// focus behaviour intact, but blur pointer-tapped nav buttons and reassert x=0
+// after Safari completes its focus/scroll anchoring.
+const navClickNeedle = "    $$('.nav-button').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.view)));\n";
+const navClickReplacement = `    $$('.nav-button').forEach(btn => btn.addEventListener('click', event => {\n      navigate(btn.dataset.view);\n      if (event.detail > 0) btn.blur();\n      const resetHorizontalViewport = () => {\n        document.documentElement.scrollLeft = 0;\n        document.body.scrollLeft = 0;\n        window.scrollTo(0, window.scrollY);\n      };\n      resetHorizontalViewport();\n      requestAnimationFrame(resetHorizontalViewport);\n      setTimeout(resetHorizontalViewport, 80);\n    }));\n`;
+if (!deployedApp.includes(navClickNeedle)) throw new Error("Cloudflare iPhone nav-focus patch target not found in app.js");
+deployedApp = deployedApp.replace(navClickNeedle, navClickReplacement);
+
 await writeFile(deployedAppPath, deployedApp, "utf8");
 console.log("patched deployed account selector and stable mobile navigation");
 
@@ -73,7 +83,7 @@ for (const [from, to] of wordingChanges) {
   deployedIndex = deployedIndex.replace(from, to);
 }
 deployedIndex = deployedIndex
-  .replace('href="/styles.css"', 'href="/styles.css?v=phase3-account-wording"')
-  .replace('src="/app.js"', 'src="/app.js?v=phase3-account-wording"');
+  .replace('href="/styles.css"', 'href="/styles.css?v=phase3-ios-focus-overflow"')
+  .replace('src="/app.js"', 'src="/app.js?v=phase3-ios-focus-overflow"');
 await writeFile(deployedIndexPath, deployedIndex, "utf8");
 console.log("patched deployed account wording without changing account logic");
