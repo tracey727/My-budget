@@ -1,4 +1,4 @@
-export const LIABILITY_TYPES = new Set(["credit", "loan"]);
+export const LIABILITY_TYPES = new Set(["credit", "loan", "bnpl"]);
 
 export function parseAmount(value) {
   const number = Number(value);
