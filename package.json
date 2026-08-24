@@ -11,6 +11,9 @@
     "build:react-preservation": "vite build --config vite.react.config.mjs",
     "audit:deps": "npm audit --audit-level=high",
     "verify:phase2": "npm run check:source && npm test && npm run build && node scripts/verify-dist.mjs && npm run build:react-preservation && npm run audit:deps",
+    "cf:types": "wrangler types ./worker-configuration.d.ts",
+    "cf:dry-run": "npm run build && wrangler deploy --dry-run --outdir .wrangler-dry-run",
+    "verify:phase3": "npm run verify:phase2 && npm run cf:types && npm run cf:dry-run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,6 +23,7 @@
   },
   "devDependencies": {
     "vite": "8.2.2",
-    "@vitejs/plugin-react": "6.1.0"
+    "@vitejs/plugin-react": "6.1.0",
+    "wrangler": "4.125.0"
   }
 }
