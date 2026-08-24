@@ -5,9 +5,9 @@ Repository: `tracey727/My-budget`
 Branch: `phase3-cloudflare-reseal-seven-view`
 Pull request: `#20`
 Base: merged Phase 2 subscriptions/savings baseline `e539bb6ea1ab61550a100389315f3c94483f37db`
-Implementation head before archive: `8ace98c677c3711afdee3cc6093d575ee424d3ef`
-Phase 2 preservation verification on implementation head: run `#104` — GREEN
-Phase 3 Cloudflare verification on implementation head: run `#38` — GREEN
+Final implementation head before archive evidence update: `cb745cd888f1f44d1a1eefebbac7c615a760e1bb`
+Phase 2 preservation verification: run `#106` — GREEN
+Phase 3 Cloudflare verification: run `#40` — GREEN
 Phase 4 Neon: **NOT STARTED / NOT AUTHORISED BY THIS RE-SEAL**
 
 ## Purpose
@@ -16,11 +16,11 @@ Re-seal Cloudflare Phase 3 after the Phase 2 runtime expanded from the original 
 
 `Home → Money → Bills → Subs → Accounts → Savings → Review`
 
-The re-seal must preserve the current Phase 2 data/runtime contract and must not introduce Neon or any Phase 4 database binding.
+The re-seal preserves the current Phase 2 data/runtime contract and does not introduce Neon or any Phase 4 database binding.
 
 ## Runtime chain re-verified
 
-The source and production execution order is:
+The source and Cloudflare production execution order is:
 
 `index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → app.js`
 
@@ -34,8 +34,8 @@ The first Phase 2 runtime injects Bills and advances navigation to six destinati
 - Advanced the service-worker cache to `every-cent-v2-phase3-seven-view-runtime-v3`.
 - Preserved the existing iPhone horizontal-containment and pointer-focus repair.
 - Preserved the account-selector and account-dialog deployment patches.
-- Preserved the navigation fallback, but documented it against the staged Bills/Savings runtime rather than the historical five-view description.
-- Kept both Phase 2 runtime assets in the build copy and service-worker cache.
+- Preserved the navigation fallback and re-described it against the staged Bills/Savings runtime.
+- Kept both Phase 2 runtime assets in the production build copy and service-worker cache.
 
 ## Strengthened Phase 3 gate
 
@@ -44,8 +44,8 @@ The first Phase 2 runtime injects Bills and advances navigation to six destinati
 1. the five base HTML destinations remain one button + one view each;
 2. Bills is injected by `phase2-data-runtime.js`;
 3. Savings is injected by `phase2-subscriptions-savings-runtime.js`;
-4. the staged navigation advances through six then seven columns;
-5. the production copy includes the subscriptions/savings runtime;
+4. staged navigation advances through six then seven columns;
+5. production copy includes the subscriptions/savings runtime;
 6. the Phase 3 cache token is the seven-view v3 token;
 7. backup/restore remains present across the staged runtime chain.
 
@@ -69,11 +69,11 @@ It also verifies runtime order, Bills injection, Savings injection, subscription
 
 No Hyperdrive, D1, `DATABASE_URL`, Neon or other Phase 4 database binding is introduced by this re-seal.
 
-The worker continues to expose `/health` and `/ready` while explicitly reporting the database as not configured until Phase 4.
+The worker continues to expose `/health` and `/ready` while explicitly reporting the database as `not-configured-phase-4` until Phase 4.
 
 ## Automated gate evidence
 
-### Phase 2 preservation — run #104
+### Phase 2 preservation — run #106
 
 GREEN:
 
@@ -85,7 +85,7 @@ GREEN:
 6. preserved React migration build
 7. dependency security audit
 
-### Phase 3 Cloudflare — run #38
+### Phase 3 Cloudflare — run #40
 
 GREEN:
 
@@ -96,25 +96,41 @@ GREEN:
 5. generated type drift check
 6. Cloudflare deploy dry-run
 7. explicit no-Phase-4-database-binding check
+8. live Cloudflare Git deployment verification
 
-## Cloudflare Git deployment gate
+The dry-run confirmed the Worker has only the `ASSETS` binding and no database binding.
 
-This repository is connected to Cloudflare Workers Git integration for the `my-budget` project under the `positivity864.workers.dev` account subdomain.
+## Live Cloudflare branch gate
 
-Before PR #20 may be merged, the Cloudflare Git-integrated branch deployment for the archive head must report successful. After merge, the `main` production deployment must report successful before the re-seal can be treated as production-complete.
+The Cloudflare Git-integrated branch deployment was verified directly by GitHub Actions at:
 
-The final live gate is:
+`https://phase3-cloudflare-reseal-seven-view-my-budget.positivity864.workers.dev`
 
-1. Cloudflare Git deployment successful for the sealed commit;
-2. production `main` deployment successful after merge;
-3. live root application available;
-4. `/health` available;
-5. `/ready` available;
-6. no Phase 4 database claim or binding;
-7. archive preserved on `main`.
+Run #40 verified on the first attempt:
 
-## Stop/advancement rule
+- `/` — HTTP 200 and contains `Every Cent`
+- `/health` — HTTP 200 and contains `"phase":3`
+- `/ready` — HTTP 200 and contains `"database":"not-configured-phase-4"`
 
-Do not start Neon Phase 4 from this archive alone.
+This proves the re-sealed seven-view build reached Cloudflare and the Phase 3 health/readiness boundary is live before merge.
 
-Phase 4 is permitted only after PR #20 is GREEN, the archive commit is GREEN, the re-seal is merged to `main`, Cloudflare production reports the merged deployment successful, and the Phase 3 live gate is verified.
+## Production-main live gate added
+
+`.github/workflows/cloudflare-phase3.yml` now runs on both:
+
+- pull requests targeting `main`; and
+- pushes to `main`.
+
+For pull requests it verifies the Cloudflare branch preview. After merge it verifies the production endpoint:
+
+`https://my-budget.positivity864.workers.dev`
+
+The workflow retries while Cloudflare Git deployment catches up, then requires the root app, `/health`, and `/ready` to pass before the pushed `main` Phase 3 gate can be GREEN.
+
+## Final advancement rule
+
+PR #20 may be merged only after this archive commit is GREEN under both Phase 2 and Phase 3 gates.
+
+After merge, the `push` Phase 3 workflow must verify the production `main` Cloudflare endpoint GREEN. Only then is this Phase 3 re-seal production-complete and archived.
+
+Do not start Neon Phase 4 before that merged-main production gate passes.
