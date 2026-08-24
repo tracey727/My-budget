@@ -26,8 +26,8 @@ jobs:
         run: npm ci
       - name: Source syntax gate
         run: npm run check:source
-      - name: Automated model and preservation tests
-        run: npm test
+      - name: Phase 2 model and preservation tests
+        run: npm run test:phase2
       - name: Build supported subscriber runtime
         run: npm run build
       - name: Verify subscriber artifact
