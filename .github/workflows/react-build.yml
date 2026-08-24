@@ -3,7 +3,7 @@ name: React build verification
 on:
   push:
     branches:
-      - phase2-react-accounts
+      - main
   pull_request:
     branches:
       - main
