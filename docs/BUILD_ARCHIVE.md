@@ -1,259 +1,351 @@
 # GENEVIEVE Budget — Build Archive
 
-## Current checkpoint — Phase 2 data-contract amendment
+## Current authoritative checkpoint
 
-Date: 24 August 2026, AEST (Queensland)
+Date: 25 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
-Working branch: `phase2-data-contract-amendment`
-Pull request: `#18`
-Base before amendment: `main` at `57e97fe9d95b3469b799c5074d798bd06568f048`
-Current implementation commit before archive: `e029cadb02c18a4037f6e28dd985f1cbce85df8b`
-Latest full Phase 2 verification before archive: run `#85` — GREEN
-Current state: **PHASE 2 AMENDMENT IMPLEMENTED AND GREEN; ARCHIVE/RE-MERGE GATE IN PROGRESS**
-Phase 3 status: **BLOCKED from final sealing until amended Phase 2 is merged and re-verified on `main`**
-Phase 4 Neon: **NOT STARTED / NOT AUTHORISED**
+Current `main` Phase 3 merge commit: `09b773801e0d219ef248181de9e48bf906d72217`
+Production Phase 3 run: `32787405772` — **SUCCESS / GREEN**
+Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
-### Why the chronology was repaired again
+**Phase 2 — COMPLETE / GREEN / ARCHIVED**
 
-The user supplied explicit account, transaction and Bills storage requirements after the original Phase 2 archive. Those requirements are application/data-contract responsibilities and therefore must exist before Cloudflare Phase 3 can be treated as final. The original Phase 2 archive remains preserved as historical evidence; this is an additive amendment, not a rewrite of history.
+**Phase 3 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-### Phase 2 amendment now implemented
+**Next permitted phase: Phase 4 — Neon development and production data foundation**
 
-- Account support now includes Bank, Savings, Cash, Credit card, Loan, **BNPL**, Investment and Other. BNPL is treated as a liability alongside credit cards and loans.
-- Transaction storage now explicitly supports transaction ID, account ID, date, amount, merchant/payee, income/expense/transfer type, category, Essential/Worth It/Unsure/Waste, Yes/No/Maybe, recurring status, notes and optional Professional project link.
-- A dedicated Bills model now stores bill name, amount, frequency, next due date, linked account, essential status, budgeting method, amount already reserved, required contribution, target amount, Green/Yellow/Red/Recovery status and paid/unpaid status.
-- `phase2-data-runtime.js` extends the preserved donor application without replacing `app.js`.
-- Runtime order is now `index.html → /phase2-data-runtime.js → /app.js`.
-- Production build copies the extension to `dist`, and the service worker includes it in the offline/runtime chain.
-- Backup/restore now preserves Bills and the expanded transaction fields; transaction CSV output includes the expanded transaction contract.
-- Account deletion is protected when an account is referenced by a Bill.
-- Production verification fails if the extension is absent, is not cached, or is loaded after `app.js`.
-- Regression tests cover BNPL debt behaviour, transaction fields, Bills fields, runtime linkage, backup/restore/CSV linkage and dynamic HTML escaping.
-
-### What this amendment does not claim
-
-Some later-roadmap concepts now have an earlier **storage/runtime foundation** because the user explicitly required those fields before Phase 3. This does not mean the later full phases are complete. In particular:
-
-- later account/balance work may still add protected/spendable balances and database-backed scope;
-- later transaction work may still add imports, duplicate detection and additional intelligence;
-- later obligation/bill work may still add calendar automation and forecasting;
-- later Smooth My Bills / Hold My Money phases may still calculate contributions automatically;
-- no Neon persistence, identity, payment processing or later infrastructure has been started.
-
-### Current advancement rule
-
-1. Verify the amendment archive commit GREEN under the Phase 2 gate.
-2. Merge PR #18 only if GREEN.
-3. Verify the merged `main` state GREEN under Phase 2 again.
-4. Then re-audit/re-link Phase 3 against the amended six-view/data-runtime baseline.
-5. Deploy Phase 3 to Cloudflare production and verify live app, `/health`, `/ready`, and subscriber navigation.
-6. Archive Phase 3 only after that live gate passes.
-7. Do not begin Neon Phase 4 before Phase 3 is live, GREEN and archived.
-
-Detailed amendment evidence: `docs/PHASE2_DATA_CONTRACT_AMENDMENT.md`.
+No Phase 4 Neon implementation is part of this checkpoint.
 
 ---
 
-## Historical checkpoint — original Phase 2 completion
+## Phase 3 — final production closure
 
-Date: 24 August 2026, AEST (Queensland)
-Repository: tracey727/My-budget
-Branch: main
-Current phase at that historical point: **Phase 2 COMPLETE — Baseline technical audit and preservation**
-Final Phase 2 merged-main commit: `bf8d1a1ff742111e765177cf90c8b89f28d5145b`
-Final Phase 2 merged-main verification: `Phase 2 baseline verification` run `#39` — GREEN
-Next permitted phase at that historical point: **Phase 3 — Cloudflare production foundation**
+Phase 3 Cloudflare was re-sealed after the Phase 2 runtime expanded to the seven-view subscriber chain:
 
-### Phase 2 completion state
+`Home → Money → Bills → Subs → Accounts → Savings → Review`
 
-- Audited the actual subscriber entry path on `main` and confirmed `index.html → /app.js` is the supported subscriber runtime for this phase.
-- Preserved `main.jsx → App.jsx` as the React migration destination without prematurely replacing donor functionality.
-- Added a committed reproducible `package-lock.json` and changed CI to deterministic `npm ci`.
-- Added source syntax verification, automated preservation tests, subscriber production-build verification, production-artifact checks, independent React preservation build and dependency security audit.
-- Preserved fixed-path subscriber assets required by the supported runtime and service worker.
-- Preserved donor `app.js` functionality; no donor feature was deleted during the Phase 2 baseline repair.
-- Archived Phase 2 in `docs/PHASE2_COMPLETION_ARCHIVE.md`.
-- Verified the archive commit GREEN in Phase 2 baseline verification run `#38`.
-- Merged the completed Phase 2 repair to `main`.
-- Verified merged `main` commit `bf8d1a1ff742111e765177cf90c8b89f28d5145b` GREEN in Phase 2 baseline verification run `#39`.
-- No Cloudflare or Neon implementation was performed during Phase 2.
+The sealed production runtime chain is:
 
-### Phase 2 audit result
+`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → app.js`
 
-Phase 2 baseline technical audit and preservation gate: **PASS / GREEN on merged `main`**.
+The existing donor `app.js` remains preserved.
 
-The Phase 2 history contains earlier failed repair runs. Those remain part of the GitHub audit trail. Advancement is authorised by the final stage-specific gate on the completed merged-main state, not by the absence of historical failures.
+### Final Phase 3 evidence
 
-### Historical Phase 1 checkpoint
+PR #20, **Phase 3 — Cloudflare re-seal for seven-view runtime**, merged to `main` as:
 
-Phase 1 locked the product contract before coding:
+`09b773801e0d219ef248181de9e48bf906d72217`
 
-- Confirmed the active repository.
-- Confirmed the current app is a Vite/React project.
-- Locked two product doors: Personal and Professional.
-- Locked one shared financial engine.
-- Locked the rule that bank balance is not safe-to-spend.
-- Locked both personal budgeting methods.
-- Locked Green → Yellow → Red → Recovery alerts across both personal methods and professional monitoring.
-- Locked the safe-to-spend model, conversational expense review, subscription review choices, professional budget controls, verified-savings separation, privacy/authority rules and GitHub + Neon + Cloudflare production target.
-- Added `docs/PRODUCT_CONTRACT.md` in commit `6e548d6381b81189548c4edfb3cb720fae83d2a8`.
-- Re-fetched the committed file from `main` and verified the content is present.
+The post-merge Phase 3 production workflow run `32787405772` completed **SUCCESS / GREEN**.
 
-Phase 1 product-contract audit: PASS.
+It verified:
 
-## Remaining build — chronological order
+- full Phase 2 preservation gate — PASS;
+- Phase 3 runtime/configuration tests — PASS;
+- Wrangler generated binding types and drift check — PASS;
+- Cloudflare deploy dry-run — PASS;
+- only the expected `ASSETS` binding — PASS;
+- no Hyperdrive binding — PASS;
+- no D1 binding — PASS;
+- no `DATABASE_URL` — PASS;
+- no Neon binding — PASS;
+- live production application — PASS;
+- live `/health` — PASS;
+- live `/ready` — PASS.
 
-Do not start a later item until the immediately preceding item is verified.
+The live production checks at `https://my-budget.positivity864.workers.dev` all passed on the first attempt.
 
-1. Phase 2 — Baseline technical audit and preservation — **ORIGINAL BASELINE COMPLETE; DATA-CONTRACT AMENDMENT CURRENTLY BEING RE-SEALED**
-   - Original baseline remains archived/green at `bf8d1a1…` / run `#39`.
-   - Current amendment adds the explicitly required BNPL, expanded transaction and Bills storage/runtime foundation.
-   - Amendment must be merged and green on `main` before Phase 3 is finalised.
+Cloudflare Workers reported the merged production build successful with:
 
-2. Phase 3 — Cloudflare production foundation — **RE-AUDIT/RE-SEAL AFTER PHASE 2 AMENDMENT**
-   - Preserve the amended Phase 2 runtime/data chain.
-   - Verify Wrangler configuration using current Cloudflare practices.
-   - Verify generated binding types.
-   - Verify health/readiness endpoints.
-   - Verify the six-view subscriber navigation/runtime chain.
-   - Make the amended build live on Cloudflare production.
-   - Verify the Cloudflare stage-specific deployment/runtime gate GREEN.
-   - Archive Phase 3 before Phase 4 begins.
+- build ID `ec9dee1b-4542-4146-9b13-a556a02a2088`;
+- version ID `f2a70637-b897-4dc8-835c-f368f682c8c0`.
 
-3. Phase 4 — Neon development and production data foundation
-   - Create the GENEVIEVE Budget Neon project only when schema work begins.
-   - Create isolated development/migration branch workflow.
-   - Establish connection method appropriate to Cloudflare; use Hyperdrive for external Postgres connectivity.
-   - Add migration ledger and safe migration process.
-   - Verify connectivity and readiness before advancing.
-   - Archive Phase 4 before later phases begin.
+The readiness endpoint correctly continues to report the database as `not-configured-phase-4`.
 
-4. Phase 5 — Identity, user scope and permissions
-   - User identity.
-   - Personal vs Professional product entitlement.
-   - Trusted-support permission model.
-   - Read authority separated from financial action authority.
+Detailed Phase 3 archive: `docs/PHASE3_CLOUDFLARE_RESEAL.md`.
 
-5. Phase 6 — Core accounts and balances
-   - Multiple assets/accounts.
-   - Credit cards, loans, BNPL and debts.
-   - Internal transfer handling that does not count transfers as spending.
-   - Spendable vs protected/reserved balances.
-   - Note: basic account-type/BNPL storage/runtime support was moved earlier by the explicit Phase 2 amendment; later protected-balance/database work remains.
+### Phase 3 result
 
-6. Phase 7 — Transactions and expense intelligence
-   - Transaction storage/import/manual entry.
-   - Categories.
-   - Yes / No / Maybe review.
-   - Underlying Essential / Worth It / Unsure / Waste intelligence.
-   - Unknown/duplicate/forgotten-charge review foundations.
-   - Note: the explicitly required transaction storage fields were moved earlier into the Phase 2 amendment; later import/intelligence work remains.
+**COMPLETE / LIVE / GREEN / ARCHIVED.**
 
-7. Phase 8 — Income and payday engine
-   - Weekly, fortnightly, monthly and irregular income.
-   - Next-income calculation.
-   - Income-cycle normalization.
+There are no remaining Phase 3 Cloudflare implementation steps.
 
-8. Phase 9 — Obligations and bill calendar
-   - Recurring and irregular bills.
-   - Due dates.
-   - Bill calendar.
-   - Upcoming obligation protection.
-   - Note: Bills storage/runtime fields were moved earlier into the Phase 2 amendment; later calendar/automation work remains.
+---
 
-9. Phase 10 — Option 1: Smooth My Bills / Pay Ahead
-   - Annual/quarterly/irregular obligation conversion to income-cycle contribution.
-   - Physical bills-account or virtual-reserve mode.
-   - Green / Yellow / Red / Recovery alerting.
+## Phase 2 — sealed foundation
 
-10. Phase 11 — Option 2: Hold My Money / Bill Target
-    - Target amount, due date, amount reserved, remaining required and required contribution.
-    - Green / Yellow / Red / Recovery alerting.
+Phase 2 is the preserved application/data-contract baseline on which Phase 3 was sealed.
 
-11. Phase 12 — Safe-to-spend engine
-    - Income minus bills, provisions/targets, debts, emergency buffer and savings commitments.
-    - Safe this income cycle, safe this week and safe today.
-    - Protected money excluded from free cash.
+The Phase 2 history is additive. Earlier completed archives remain historical evidence and are not rewritten by the Phase 3 closure.
 
-12. Phase 13 — Forecast and cash-flow warning
-    - Budget vs actual.
-    - Projected end-of-month spending.
-    - Shortfall prediction.
-    - Recovery actions.
+### Phase 2 baseline archive
 
-13. Phase 14 — Savings and emergency funds
-    - Savings goals.
-    - Emergency fund.
-    - Separate potential savings from verified realised savings.
+`docs/PHASE2_COMPLETION_ARCHIVE.md`
 
-14. Phase 15 — Debt planning
-    - Debt commitments.
-    - Interest scenarios.
-    - Repayment planning without misrepresenting future savings as realised.
+Original completed baseline included:
 
-15. Phase 16 — Subscription and recurring-cost manager
-    - Keep / Cancel / Maybe / Give it another month / Pause if possible / Review after next charge.
-    - Price increases.
-    - Duplicate services.
-    - Forgotten charges.
-    - Explicit authority before any external action.
+- subscriber runtime preservation;
+- deterministic npm install/build path;
+- source syntax verification;
+- production build verification;
+- production artifact verification;
+- React preservation build;
+- dependency security audit;
+- preservation of donor `app.js`.
 
-16. Phase 17 — Household continuity and financial-change controls
-    - Direct-debit/account-change checklist.
-    - Fees and interest monitoring.
-    - Backup/export.
+### Phase 2 account / transaction / Bills amendment
 
-17. Phase 18 — Personal accessibility modes
-    - Simple / low-cognitive-load mode.
-    - Trusted-support access with restricted permissions.
+`docs/PHASE2_DATA_CONTRACT_AMENDMENT.md`
 
-18. Phase 19 — Professional entities and project accounting
-    - Businesses, divisions, projects, workstreams, cost centres, funding pools and accounts.
-    - Transaction allocation across the hierarchy.
+Added and sealed:
 
-19. Phase 20 — Professional commitments, invoices and revenue
-    - Committed vs paid vs owing.
-    - Revenue expected/received.
-    - Available uncommitted cash.
+- Bank, Savings, Cash, Credit card, Loan, BNPL, Investment and Other account support;
+- BNPL liability handling;
+- expanded transaction storage fields;
+- Yes / No / Maybe response storage;
+- recurring-status and professional-project linkage;
+- Bills model and runtime;
+- Green / Yellow / Red / Recovery bill status;
+- production/runtime/offline linkage;
+- backup/restore continuity.
 
-20. Phase 21 — Professional project forecasting
-    - Approved budget, actual, committed, forecast, variance, cost-to-complete and projected final cost.
-    - Green / Yellow / Red / Recovery monitoring.
+### Phase 2 subscriptions / Savings Goals amendment
 
-21. Phase 22 — Professional cash-flow forecasting
-    - 7-day, 30-day, 90-day and 12-month forecasts.
-    - Wages, contractors, tax, project commitments, rent, insurance, debt and reserved funds.
+`docs/PHASE2_SUBSCRIPTIONS_SAVINGS_AMENDMENT.md`
 
-22. Phase 23 — Professional contracts and recurring costs
-    - SaaS, licences, hosting, insurance, rent, vehicles, phones, memberships, suppliers, contractors and leases.
-    - Keep / Renegotiate / Cancel / Review decisions with explicit authority.
+Added and sealed:
 
-23. Phase 24 — Verified Savings Ledger
-    - Baseline → Proposed action → Action completed → Evidence → Later result → Verified saving.
+- subscription Amount, Frequency, Next charge, Account, Auto-renew, Usage, Annual cost and Decision;
+- decision options Keep / Cancel / Maybe / Another month / Pause / Review next charge;
+- Savings Goals with Goal, Target, Current amount, Deadline, Required weekly amount, Required fortnightly amount, Progress and Protected Yes/No;
+- production/runtime/offline linkage;
+- backup/restore continuity.
 
-24. Phase 25 — Reporting, backup and export
-    - Personal reports.
-    - Professional project/business reports.
-    - Data export and continuity.
+Phase 2 remained GREEN through the Phase 3 production re-seal.
 
-25. Phase 26 — Security, privacy and abuse-resistance audit
-    - Access controls.
-    - Secrets handling.
-    - Data minimisation.
-    - Financial action authorisation.
-    - Auditability.
+---
 
-26. Phase 27 — Subscriber readiness
-    - Full automated test/build/audit gates.
-    - Database migration verification.
-    - Cloudflare production health/readiness.
-    - Failure/recovery testing.
-    - Final release checklist and production archive.
+## Historical Phase 1 checkpoint
 
-## Advancement rule
+Phase 1 locked the product contract before coding.
 
-The original Phase 2 archive remains valid historical evidence. The current Phase 2 data-contract amendment must now complete its archive → green → merge → merged-main-green sequence.
+Locked principles include:
 
-**Current permitted action: finish and seal the Phase 2 amendment, then re-audit/re-seal Phase 3 only.**
+- Personal and Professional product doors;
+- one shared financial engine;
+- bank balance is not safe-to-spend;
+- Smooth My Bills / Pay Ahead;
+- Hold My Money / Bill Target;
+- Green → Yellow → Red → Recovery alerts;
+- safe-to-spend model;
+- conversational expense review;
+- subscription decision model;
+- professional budget controls;
+- verified-savings separation;
+- privacy and authority rules;
+- GitHub + Cloudflare + Neon production architecture target.
 
-Do not begin Phase 4 Neon until Phase 3 is built against the amended Phase 2 baseline, live, stage-specifically GREEN and archived.
+Authoritative product contract: `docs/PRODUCT_CONTRACT.md`.
+
+---
+
+# Remaining build — chronological order
+
+Do not start a later phase until the immediately preceding phase is built, linked, verified, archived and GREEN.
+
+## Phase 4 — Neon development and production data foundation — NEXT PERMITTED
+
+- Create the GENEVIEVE Budget Neon project only when Phase 4 begins.
+- Establish isolated development/migration workflow.
+- Design the persistent schema from the sealed Phase 2 data contracts.
+- Establish the Cloudflare-to-Neon connection method appropriate to Workers.
+- Use Hyperdrive where appropriate for external Postgres connectivity.
+- Add migration ledger and safe migration process.
+- Verify development connectivity.
+- Verify production connectivity.
+- Verify `/ready` only changes its database state after the real Phase 4 connection is proven.
+- Archive Phase 4 before Phase 5 begins.
+
+## Phase 5 — Identity, user scope and permissions
+
+- User identity.
+- Personal vs Professional entitlement.
+- Trusted-support permission model.
+- Separate read authority from financial action authority.
+
+## Phase 6 — Core accounts and balances
+
+- Persistent multiple accounts/assets.
+- Credit cards, loans, BNPL and debts.
+- Internal transfers not counted as spending.
+- Spendable vs protected/reserved balances.
+
+## Phase 7 — Transactions and expense intelligence
+
+- Persistent transaction storage/import/manual entry.
+- Categories.
+- Yes / No / Maybe review.
+- Essential / Worth It / Unsure / Waste intelligence.
+- Unknown/duplicate/forgotten-charge foundations.
+
+## Phase 8 — Income and payday engine
+
+- Weekly, fortnightly, monthly and irregular income.
+- Next-income calculation.
+- Income-cycle normalisation.
+
+## Phase 9 — Obligations and bill calendar
+
+- Recurring and irregular bills.
+- Due dates.
+- Bill calendar.
+- Upcoming-obligation protection.
+
+## Phase 10 — Smooth My Bills / Pay Ahead
+
+- Convert annual/quarterly/irregular obligations into income-cycle contributions.
+- Physical bills-account or virtual-reserve mode.
+- Green / Yellow / Red / Recovery alerting.
+
+## Phase 11 — Hold My Money / Bill Target
+
+- Target amount.
+- Due date.
+- Amount reserved.
+- Remaining required.
+- Required contribution.
+- Green / Yellow / Red / Recovery alerting.
+
+## Phase 12 — Safe-to-spend engine
+
+- Income minus bills, provisions/targets, debts, emergency buffer and savings commitments.
+- Safe this income cycle.
+- Safe this week.
+- Safe today.
+- Protected money excluded from free cash.
+
+## Phase 13 — Forecast and cash-flow warning
+
+- Budget vs actual.
+- Projected end-of-month spending.
+- Shortfall prediction.
+- Recovery actions.
+
+## Phase 14 — Savings and emergency funds
+
+- Savings goals.
+- Emergency fund.
+- Separate potential savings from verified realised savings.
+
+## Phase 15 — Debt planning
+
+- Debt commitments.
+- Interest scenarios.
+- Repayment planning.
+- Do not misrepresent future savings as realised savings.
+
+## Phase 16 — Subscription and recurring-cost manager
+
+- Keep / Cancel / Maybe / Another month / Pause / Review next charge.
+- Price increases.
+- Duplicate services.
+- Forgotten charges.
+- Explicit authority before external action.
+
+## Phase 17 — Household continuity and financial-change controls
+
+- Direct-debit/account-change checklist.
+- Fees and interest monitoring.
+- Backup/export.
+
+## Phase 18 — Personal accessibility modes
+
+- Simple / low-cognitive-load mode.
+- Trusted-support access with restricted permissions.
+
+## Phase 19 — Professional entities and project accounting
+
+- Businesses.
+- Divisions.
+- Projects.
+- Workstreams.
+- Cost centres.
+- Funding pools.
+- Accounts.
+- Transaction allocation across the hierarchy.
+
+## Phase 20 — Professional commitments, invoices and revenue
+
+- Committed vs paid vs owing.
+- Revenue expected/received.
+- Available uncommitted cash.
+
+## Phase 21 — Professional project forecasting
+
+- Approved budget.
+- Actual.
+- Committed.
+- Forecast.
+- Variance.
+- Cost-to-complete.
+- Projected final cost.
+- Green / Yellow / Red / Recovery monitoring.
+
+## Phase 22 — Professional cash-flow forecasting
+
+- 7-day forecast.
+- 30-day forecast.
+- 90-day forecast.
+- 12-month forecast.
+- Wages, contractors, tax, commitments, rent, insurance, debt and reserved funds.
+
+## Phase 23 — Professional contracts and recurring costs
+
+- SaaS.
+- Licences.
+- Hosting.
+- Insurance.
+- Rent.
+- Vehicles.
+- Phones.
+- Memberships.
+- Suppliers.
+- Contractors.
+- Leases.
+- Keep / Renegotiate / Cancel / Review decisions with explicit authority.
+
+## Phase 24 — Verified Savings Ledger
+
+Baseline → Proposed action → Action completed → Evidence → Later result → Verified saving.
+
+## Phase 25 — Reporting, backup and export
+
+- Personal reports.
+- Professional project/business reports.
+- Data export and continuity.
+
+## Phase 26 — Security, privacy and abuse-resistance audit
+
+- Access controls.
+- Secrets handling.
+- Data minimisation.
+- Financial-action authorisation.
+- Auditability.
+
+## Phase 27 — Subscriber readiness
+
+- Full automated test/build/audit gates.
+- Database migration verification.
+- Cloudflare production health/readiness.
+- Failure/recovery testing.
+- Final release checklist and production archive.
+
+---
+
+# Advancement rule
+
+**Current permitted action: Phase 4 — Neon development and production data foundation.**
+
+Phase 3 is complete and must not be reopened unless a Phase 3 regression is discovered.
+
+Do not begin Phase 5 or any later phase until Phase 4 is fully built, linked, verified, GREEN and archived.
