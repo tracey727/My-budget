@@ -2,13 +2,13 @@
 
 Date: 25 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
-GitHub branch: `phase4-neon-database`
 Pull request: `#22`
 Base: sealed Phase 3 closure `bb63194af60a4dd7e8be00119f64c6e0ae39a4e3`
+Phase 4 database-foundation merge commit: `4b7de179ebd180b4dfefd91bf1c253a486aed46a`
 
 ## Status
 
-**DATABASE FOUNDATION BUILT / PRODUCTION MIGRATED / GREEN**
+**DATABASE FOUNDATION BUILT / PRODUCTION MIGRATED / GREEN / MERGED**
 
 This checkpoint completes the PostgreSQL schema-build portion of Phase 4. It does not claim that the Cloudflare Worker is connected to Neon yet.
 
@@ -107,7 +107,7 @@ Final development audit:
 
 ## Production audit
 
-The exact tested migrations were then applied to Neon production `main`, one at a time, with an audit after each migration.
+The exact tested migrations were applied to Neon production `main`, one at a time, with an audit after each migration.
 
 Final production schema audit:
 
@@ -122,7 +122,7 @@ The development branch was compared against production after promotion. Neon ret
 
 ## Repository gate
 
-A new Phase 4 repository gate was added:
+Phase 4 added:
 
 - `phase4-database-contract.test.mjs`
 - `npm run test:phase4`
@@ -131,11 +131,19 @@ A new Phase 4 repository gate was added:
 
 `verify:phase4` preserves the complete Phase 2 and Phase 3 gates before running the Phase 4 migration-contract tests.
 
-Pre-archive PR head `b83cca3835418729a4e056345b455681affc6ca8` passed:
+Pre-merge archive head `420041138b43467eb0e0c71efef0e00ae6c34510` passed:
 
-- Phase 2 baseline verification run #111 — GREEN
-- Phase 3 Cloudflare verification run #45 — GREEN
-- Phase 4 Neon database verification run #1 — GREEN
+- Phase 2 baseline verification run #114 — GREEN
+- Phase 3 Cloudflare verification run #48 — GREEN
+- Phase 4 Neon database verification run #4 — GREEN
+
+Post-merge `main` commit `4b7de179ebd180b4dfefd91bf1c253a486aed46a` passed:
+
+- Phase 2 baseline verification run #115 (`32841639057`) — GREEN
+- Phase 3 Cloudflare verification run #49 (`32841638984`) — GREEN, including live Cloudflare verification
+- Phase 4 Neon database verification run #5 (`32841638986`) — GREEN
+
+A final read-only production Neon audit again returned 15 required tables, 0 professional tables, migrations `000,001,002,003,004`, 22 foreign keys, 15 triggers and 40 indexes. A final development-to-production schema comparison again returned an empty diff.
 
 ## Linkage before and after
 
