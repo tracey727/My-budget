@@ -1,0 +1,28 @@
+name: Phase 4 Neon database verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  phase4-neon:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Preserve Phase 2 and Phase 3 and verify Phase 4 migration contract
+        run: npm run verify:phase4
