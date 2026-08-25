@@ -8,6 +8,7 @@
     "test": "node --test",
     "test:phase2": "node --test bill-model.test.mjs expense-intelligence.test.mjs export-model.test.mjs phase2-baseline.test.mjs phase2-data-runtime.test.mjs phase2-subscriptions-savings-runtime.test.mjs savings-goal-model.test.mjs subscription-model.test.mjs subscription-record.test.mjs transaction-model.test.mjs",
     "test:phase3": "node --test phase3-runtime-chain.test.mjs phase3-cloudflare.test.mjs",
+    "test:phase4": "node --test phase4-database-contract.test.mjs",
     "check:source": "node scripts/check-source.mjs",
     "build": "vite build && node scripts/copy-subscriber-assets.mjs",
     "build:react-preservation": "vite build --config vite.react.config.mjs",
@@ -16,6 +17,7 @@
     "cf:types": "wrangler types ./worker-configuration.d.ts",
     "cf:dry-run": "npm run build && node scripts/verify-phase3-dist.mjs && wrangler deploy --dry-run --outdir .wrangler-dry-run",
     "verify:phase3": "npm run verify:phase2 && npm run test:phase3 && npm run cf:types && npm run cf:dry-run",
+    "verify:phase4": "npm run verify:phase3 && npm run test:phase4",
     "preview": "vite preview"
   },
   "dependencies": {
