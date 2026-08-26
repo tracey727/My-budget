@@ -5,10 +5,10 @@ const JSON_HEADERS = {
   "cache-control": "no-store",
 };
 
-// Keep readiness at the last fully promoted stage until all of Phase 6 is complete.
-const CURRENT_PHASE = 5;
+// Phase 6 is promoted in production; readiness now seals the live Phase 6 boundary.
+const CURRENT_PHASE = 6;
 const EXPECTED_DATABASE = "neondb";
-const EXPECTED_MIGRATION = "007";
+const EXPECTED_MIGRATION = "014";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const OWNER_CAPABILITIES = new Set(["read", "financial_action"]);
 const PROFESSIONAL_CAPABILITIES = new Set(["read", "financial_action", "manage_members", "manage_workspace"]);
