@@ -73,6 +73,8 @@ jobs:
           grep -q 'Spendable balance' phase7-core-balances-bridge.js
           grep -q 'Protected / reserved' phase7-core-balances-bridge.js
           grep -q 'Internal transfers move money between your own accounts and are not counted as spending.' phase7-core-balances-bridge.js
+          grep -q 'Finish first-time setup before cloud account synchronisation begins.' phase7-core-balances-bridge.js
+          grep -q 'protected emergency amount from Neon' phase7-core-balances-bridge.js
           grep -q '/api/phase7/accounts/sync' phase7-core-balances-bridge.js
           grep -q '/api/phase7/accounts' src/phase7-account-routes.mjs
           grep -q 'public.current_app_user_id()' src/phase7-account-routes.mjs
@@ -84,8 +86,8 @@ jobs:
       - name: Confirm Phase 7 reuses the sealed schema boundary
         run: |
           test "$(find database/migrations -maxdepth 1 -type f -name '015_*.sql' | wc -l)" -eq 0
-          grep -q 'const CURRENT_PHASE = 6' src/worker.mjs
-          grep -q 'const EXPECTED_MIGRATION = "014"' src/worker.mjs
+          grep -q 'const CURRENT_PHASE = 6' src/worker-phase6-sealed.mjs
+          grep -q 'const EXPECTED_MIGRATION = "014"' src/worker-phase6-sealed.mjs
 
       - name: Verify Phase 7 setup, balances, fail-closed API and preserved readiness live
         shell: bash
