@@ -11,6 +11,7 @@ import {
 } from './phase7-first-time-setup-model.mjs';
 
 const runtime = await readFile(new URL('./phase7-first-time-setup.js', import.meta.url), 'utf8');
+const backupBridge = await readFile(new URL('./phase7-backup-bridge.js', import.meta.url), 'utf8');
 const index = await readFile(new URL('./index.html', import.meta.url), 'utf8');
 const linker = await readFile(new URL('./scripts/link-phase7-first-time-setup.mjs', import.meta.url), 'utf8');
 
@@ -103,12 +104,24 @@ test('Target mode has live Green Yellow Red Recovery warning refresh logic', () 
   assert.match(runtime, /refreshCompletedBillPlans/);
 });
 
-test('Production linker preserves the Phase 2 source order and inserts Phase 7 immediately before app.js', () => {
+test('Backup and restore preserve Phase 7 setup settings and remain compatible with legacy backups', () => {
+  assert.match(backupBridge, /const SETUP_STORAGE_KEY = 'genevieve-first-time-setup-v1'/);
+  assert.match(backupBridge, /const phase7Setup = readSetupState\(\)/);
+  assert.match(backupBridge, /phase7Setup,/);
+  assert.match(backupBridge, /Object\.prototype\.hasOwnProperty\.call\(parsed, 'phase7Setup'\)/);
+  assert.match(backupBridge, /sanitizeSetupState\(parsed\.phase7Setup\)/);
+  assert.match(backupBridge, /localStorage\.setItem\(SETUP_STORAGE_KEY/);
+  assert.match(backupBridge, /localStorage\.removeItem\(SETUP_STORAGE_KEY\)/);
+  assert.match(backupBridge, /Legacy backups pre-date Phase 7/);
+});
+
+test('Production linker preserves source lineage and inserts both Phase 7 runtimes before app.js', () => {
   const data = index.indexOf('/phase2-data-runtime.js');
   const extended = index.indexOf('/phase2-subscriptions-savings-runtime.js');
   const app = index.indexOf('/app.js');
   assert.ok(data >= 0 && extended > data && app > extended);
   assert.match(linker, /phase7-first-time-setup\.js/);
+  assert.match(linker, /phase7-backup-bridge\.js/);
   assert.match(linker, /protectedAppPattern/);
-  assert.match(linker, /linked Phase 7 after Phase 2 runtimes and immediately before protected app\.js/);
+  assert.match(linker, /linked Phase 7 setup and backup runtimes after Phase 2 and immediately before protected app\.js/);
 });
