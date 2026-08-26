@@ -52,6 +52,14 @@ jobs:
           grep -q "'yellow'" phase7-first-time-setup.js
           grep -q "'red'" phase7-first-time-setup.js
 
+      - name: Confirm due-date-aware plan integrity is wired
+        run: |
+          grep -q 'function paysAvailableByDueDate' phase7-plan-integrity-bridge.js
+          grep -q 'function rollNextPayDate' phase7-plan-integrity-bridge.js
+          grep -q 'function refreshCommittedPlan' phase7-plan-integrity-bridge.js
+          grep -q 'Choose today or a future date for your next pay.' phase7-plan-integrity-bridge.js
+          grep -q 'adjusted to have each dated bill ready by its next due date.' phase7-plan-integrity-bridge.js
+
       - name: Confirm Phase 7 setup survives backup and restore
         run: |
           grep -q 'phase7Setup' phase7-backup-bridge.js
@@ -70,7 +78,7 @@ jobs:
         run: |
           test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
 
-      - name: Verify Phase 7 setup, backup bridge and preserved readiness live
+      - name: Verify Phase 7 setup, plan integrity, backup bridge and preserved readiness live
         shell: bash
         run: |
           set -euo pipefail
@@ -83,44 +91,52 @@ jobs:
 
           echo "Verifying Phase 7 subscriber runtimes at ${BASE_URL}"
           setup_file="$(mktemp)"
-          bridge_file="$(mktemp)"
+          plan_file="$(mktemp)"
+          backup_file="$(mktemp)"
           ready_file="$(mktemp)"
           index_file="$(mktemp)"
           setup_code=""
-          bridge_code=""
+          plan_code=""
+          backup_code=""
           ready_code=""
           index_code=""
 
           for attempt in $(seq 1 30); do
             index_code="$(curl --location --silent --show-error --output "$index_file" --write-out '%{http_code}' "${BASE_URL}/" || true)"
             setup_code="$(curl --location --silent --show-error --output "$setup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-first-time-setup.js?v=phase7-first-time-setup-v1" || true)"
-            bridge_code="$(curl --location --silent --show-error --output "$bridge_file" --write-out '%{http_code}' "${BASE_URL}/phase7-backup-bridge.js?v=phase7-first-time-setup-v1" || true)"
+            plan_code="$(curl --location --silent --show-error --output "$plan_file" --write-out '%{http_code}' "${BASE_URL}/phase7-plan-integrity-bridge.js?v=phase7-first-time-setup-v1" || true)"
+            backup_code="$(curl --location --silent --show-error --output "$backup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-backup-bridge.js?v=phase7-first-time-setup-v1" || true)"
             ready_code="$(curl --location --silent --show-error --output "$ready_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
 
             if [ "$index_code" = "200" ] \
               && grep -Fq '/phase7-first-time-setup.js' "$index_file" \
+              && grep -Fq '/phase7-plan-integrity-bridge.js' "$index_file" \
               && grep -Fq '/phase7-backup-bridge.js' "$index_file" \
               && [ "$setup_code" = "200" ] \
               && grep -Fq 'How often do you get paid?' "$setup_file" \
               && grep -Fq 'YOUR FIRST MONEY PLAN' "$setup_file" \
-              && [ "$bridge_code" = "200" ] \
-              && grep -Fq 'phase7Setup' "$bridge_file" \
-              && grep -Fq 'Legacy backups pre-date Phase 7' "$bridge_file" \
+              && [ "$plan_code" = "200" ] \
+              && grep -Fq 'paysAvailableByDueDate' "$plan_file" \
+              && grep -Fq 'rollNextPayDate' "$plan_file" \
+              && grep -Fq 'Choose today or a future date for your next pay.' "$plan_file" \
+              && [ "$backup_code" = "200" ] \
+              && grep -Fq 'phase7Setup' "$backup_file" \
+              && grep -Fq 'Legacy backups pre-date Phase 7' "$backup_file" \
               && [ "$ready_code" = "200" ] \
               && grep -Fq '"phase":6' "$ready_file" \
               && grep -Fq '"database":"ready"' "$ready_file" \
               && grep -Fq '"migration":"014"' "$ready_file"; then
-              echo "PASS Phase 7 live setup, backup continuity and preserved Phase 6/014 readiness on attempt ${attempt}"
-              rm -f "$setup_file" "$bridge_file" "$ready_file" "$index_file"
+              echo "PASS Phase 7 live setup, plan integrity, backup continuity and preserved Phase 6/014 readiness on attempt ${attempt}"
+              rm -f "$setup_file" "$plan_file" "$backup_file" "$ready_file" "$index_file"
               exit 0
             fi
 
-            echo "Waiting for Phase 7 deployment: index=${index_code} setup=${setup_code} bridge=${bridge_code} ready=${ready_code} attempt=${attempt}"
+            echo "Waiting for Phase 7 deployment: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} ready=${ready_code} attempt=${attempt}"
             sleep 10
           done
 
           echo "Phase 7 live verification failed at ${BASE_URL}" >&2
-          echo "Last HTTP status: index=${index_code} setup=${setup_code} bridge=${bridge_code} ready=${ready_code}" >&2
+          echo "Last HTTP status: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} ready=${ready_code}" >&2
           cat "$ready_file" >&2 || true
-          rm -f "$setup_file" "$bridge_file" "$ready_file" "$index_file"
+          rm -f "$setup_file" "$plan_file" "$backup_file" "$ready_file" "$index_file"
           exit 1
