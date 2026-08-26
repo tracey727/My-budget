@@ -132,17 +132,21 @@ The subscriber bridge displays:
 - **Assets**;
 - **Debts owed**.
 
-The displayed Phase 7 spendable balance is intentionally a bounded account-balance responsibility. It is **not** labelled as the later full safe-to-spend engine, which will incorporate the complete income/obligation/debt/savings-commitment forecast in its later chronological phase.
+The displayed Phase 7 spendable balance is intentionally a bounded account-balance responsibility. The UI now says explicitly that the full safe-to-spend forecast belongs to a later chronological phase, which will incorporate the complete income/obligation/debt/savings-commitment forecast.
 
-### 6. Authenticated cloud recovery behavior
+### 6. Authenticated cloud recovery and incomplete-setup protection
 
 If there is no authenticated managed session, the Phase 7 account API fails closed and the browser keeps the current device data intact.
 
-When an authenticated session exists:
+Cloud account snapshot synchronisation is disabled while first-time setup exists but is incomplete. A partial onboarding account list therefore cannot be mistaken for a complete snapshot and cannot soft-archive previously persisted accounts.
+
+When an authenticated established session exists:
 
 - the device account balance snapshot is persisted through Cloudflare → Hyperdrive → Neon;
 - server IDs are mapped separately from protected local account IDs, so editing the preserved app does not break persistence identity;
-- if a new device has no local accounts or transaction history and Neon has active account snapshots, Phase 7 can restore those account balances into the established money store;
+- if a new device has no local accounts or transaction history and Neon has active account snapshots, Phase 7 restores those account balances into the established money store;
+- the persisted emergency-buffer amount is restored into Phase 7 setup state before any local snapshot sync can overwrite it;
+- restored cloud accounts are marked as an established completed setup so the user is not forced back through onboarding;
 - transaction history is not fabricated during account-only recovery and remains Phase 8 scope.
 
 ## Preserved First-Time Setup scope
@@ -206,6 +210,8 @@ The final Phase 7 gate now verifies:
 - authenticated account persistence routes;
 - RLS-scoped database queries;
 - soft archive behavior;
+- incomplete first-time setup cannot trigger a full-snapshot cloud sync;
+- authenticated cloud recovery restores the protected emergency amount;
 - unauthenticated Phase 7 API requests fail closed with HTTP 401;
 - no migration `015` exists;
 - protected `app.js` hash is unchanged;
@@ -217,7 +223,7 @@ The final Phase 7 gate now verifies:
 
 ## Implementation-history note
 
-During the sealed-worker copy step, two transient connector placeholder commits were created and immediately superseded before any verification gate. No force push was used. The final branch file is independently verified to be the exact original Phase 6 Worker blob `670159e8...`, and no green/merge claim is based on either transient head.
+During the sealed-worker copy step, three transient connector placeholder commits were created and immediately superseded before any verification gate. No force push was used. The final branch file is independently verified to be the exact original Phase 6 Worker blob `670159e8...`, and no green/merge claim is based on any transient head.
 
 ## Final pre-merge gate still required
 
