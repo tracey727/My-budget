@@ -68,6 +68,14 @@ test('professional role migration defines exactly the six authorised roles and s
   assert.doesNotMatch(migration, /CREATE TABLE public\.(projects|cost_centres|invoices|commitments)/i);
 });
 
+test('professional permission failures remain explicit 403 outcomes instead of database outages', async () => {
+  const worker = await read('./src/worker.mjs');
+  assert.match(worker, /EXPLICIT_PERMISSION_FAILURES/);
+  assert.match(worker, /professional_authority_required/);
+  assert.match(worker, /professional_entitlement_required/);
+  assert.match(worker, /return failure\(403, error\.code\)/);
+});
+
 test('professional roles remain fail-closed and non-destructive', async () => {
   const migration = await read('./database/migrations/010_phase6_professional_roles.sql');
   assert.match(migration, /ENABLE ROW LEVEL SECURITY/g);
