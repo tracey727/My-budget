@@ -28,9 +28,9 @@ jobs:
       - name: Preserve Phases 2 through 5 and verify complete Phase 6 chronologically
         run: npm run verify:phase6
 
-      - name: Confirm Phase 6 migrations are chronological through 013
+      - name: Confirm Phase 6 migrations are chronological through 014
         run: |
-          for version in 008 009 010 011 012 013; do
+          for version in 008 009 010 011 012 013 014; do
             test "$(find database/migrations -maxdepth 1 -type f -name "${version}_*.sql" | wc -l)" -eq 1
           done
           grep -q "VALUES ('008'" database/migrations/008_phase6_auth_identity_entitlement.sql
@@ -39,6 +39,8 @@ jobs:
           grep -q "VALUES ('011'" database/migrations/011_phase6_account_lifecycle_sessions_export.sql
           grep -q "VALUES ('012'" database/migrations/012_phase6_export_audit_id_type.sql
           grep -q "VALUES ('013'" database/migrations/013_phase6_account_deletion_authority.sql
+          grep -q "VALUES ('014'" database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q "version = '014'" database/rollbacks/phase6_lifecycle_audit_hardening_to_account_deletion_authority.sql
 
       - name: Confirm trusted support keeps read and financial action separate
         run: |
@@ -71,6 +73,11 @@ jobs:
           grep -q 'RETURNS bigint' database/migrations/012_phase6_export_audit_id_type.sql
           grep -q 'SECURITY DEFINER' database/migrations/013_phase6_account_deletion_authority.sql
           grep -q 'REVOKE ALL ON FUNCTION public.delete_current_account() FROM PUBLIC' database/migrations/013_phase6_account_deletion_authority.sql
+          grep -q 'revoked_at = public.user_sessions.revoked_at' database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q "SET status = 'archived'" database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q 'session_revoked' src/worker.mjs
+          grep -q 'SELECT \* FROM public.audit_events' src/worker.mjs
+          grep -q 'trusted_support_grants' src/worker.mjs
 
       - name: Confirm managed Auth endpoint is configuration-driven
         run: |
