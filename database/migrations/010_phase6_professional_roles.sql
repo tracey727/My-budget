@@ -162,9 +162,41 @@ CREATE TRIGGER professional_workspace_create_owner_membership
 AFTER INSERT ON public.professional_workspaces
 FOR EACH ROW EXECUTE FUNCTION public.ensure_professional_owner_membership();
 
-CREATE TRIGGER professional_workspaces_audit_owned_change
+CREATE OR REPLACE FUNCTION public.audit_professional_workspace_change()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  row_data jsonb;
+  actor text;
+BEGIN
+  row_data := CASE WHEN TG_OP = 'DELETE' THEN to_jsonb(OLD) ELSE to_jsonb(NEW) END;
+  actor := current_setting('app.actor_type', true);
+  IF actor IS NULL OR actor NOT IN ('user', 'system', 'support') THEN actor := 'system'; END IF;
+
+  INSERT INTO public.audit_events (
+    user_id, actor_type, event_type, entity_type, entity_id, action, metadata
+  ) VALUES (
+    NULLIF(row_data ->> 'owner_user_id', '')::uuid,
+    actor,
+    'professional_workspace_change',
+    'professional_workspaces',
+    NULLIF(row_data ->> 'id', '')::uuid,
+    lower(TG_OP),
+    jsonb_build_object(
+      'name', row_data -> 'name',
+      'status', row_data -> 'status',
+      'archived_at', row_data -> 'archived_at'
+    )
+  );
+
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$;
+
+CREATE TRIGGER professional_workspaces_audit_change
 AFTER INSERT OR UPDATE OR DELETE ON public.professional_workspaces
-FOR EACH ROW EXECUTE FUNCTION public.audit_owned_record_change();
+FOR EACH ROW EXECUTE FUNCTION public.audit_professional_workspace_change();
 
 CREATE OR REPLACE FUNCTION public.audit_professional_membership_change()
 RETURNS trigger
