@@ -1,221 +1,182 @@
-# GENEVIEVE Budget — Phase 6 Current Checkpoint — Identity, Permissions & Lifecycle
+# GENEVIEVE Budget — Phase 6 Final Checkpoint — Identity, Permissions & Lifecycle
 
-Date: 26 August 2026, AEST (Queensland)
+Date: 27 August 2026, AEST (Queensland)
 
-## Status
+## Finalization rule
 
-**PHASE 6 — PRODUCTION DATABASE PROMOTED / FEATURE BRANCH LIVE-GREEN / FULL AUDIT AND ROLLBACK GREEN / NOT YET MERGED / NOT YET ARCHIVED.**
+This checkpoint is part of the Phase 6 completion/archive PR.
 
-This checkpoint records the final state immediately before PR #34 is made ready for protected merge.
+While it exists only on `archive-phase6-completion`, Phase 6 is merged and post-merge GREEN but is not yet archived.
 
-## Authoritative state
+When this exact checkpoint and `docs/PHASE6_COMPLETION_ARCHIVE.md` are present on protected `main` after the archive PR passes every required check and merges, the authoritative Phase 6 status is:
+
+**COMPLETE / PRODUCTION-LIVE / AUDITED / ROLLBACK-PROVEN / POST-MERGE GREEN / ARCHIVED.**
+
+Phase 7 remains excluded and must not be treated as started by this checkpoint.
+
+## Authoritative implementation
 
 - repository: `tracey727/My-budget`
-- protected base branch: `main`
-- protected base commit before Phase 6 merge: `e1fab0e183c5eb2903c10fb5d8fefed0e2fdc16e`
-- Phase 6 branch: `phase6-auth-identity-entitlement`
-- pull request: `#34` — `Phase 6 — identity, permissions and lifecycle completion`
-- final promoted runtime head before this documentation-only sync: `17e78ab36d296a665ab663965a4fe91002282ba8`
-- production Neon project: `genevieve-budget` (`icy-morning-93993343`)
-- production Neon branch: `main` (`br-old-boat-axqvorbe`)
-- production database: `neondb`
-- production migration: `014`
-- production users: `0`
-- pre-promotion recovery branch: `phase6-production-prepromotion-007` (`br-nameless-mode-ax72ghlu`), verified at migration `007`
-- isolated full rollback branch: `phase6-identity-entitlement-clean-test` (`br-super-mouse-axqrxqeb`)
+- implementation PR: `#34`
+- final implementation head: `59df52be1edf7b1b499c58e561e56282770eb267`
+- protected implementation merge: `e3bd3af42138cc403f212847baefa2a890452e9d`
+- previous protected `main`: `e1fab0e183c5eb2903c10fb5d8fefed0e2fdc16e`
+- implementation-head tree: `ea79ba859cd846b572a84ff6206ec32704ca691f`
+- merged-main tree: `ea79ba859cd846b572a84ff6206ec32704ca691f`
 
-## Chronological chain
+The identical trees prove the merge added no conflict-resolution or accidental code changes.
 
-The verified build chain is:
+## Sealed chronological chain
 
-`Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare deployment → Phase 4 Hyperdrive/Neon → Phase 5 database safety at migration 007 → Phase 6 identity, permissions and lifecycle at migration 014`
+`Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare → Phase 4 Hyperdrive/Neon → Phase 5 database safety → Phase 6 managed identity, permissions and lifecycle`
 
-The Phase 6 request path is:
+Current Phase 6 authority chain:
 
-`Managed Neon Auth → Cloudflare Worker /auth + /api → independent server-side session validation → Hyperdrive → BEGIN → transaction-local app.user_id + app.owner_user_id + app.actor_type → active-user check → hashed application-session revocation check → exact trusted-support / Professional authority check → RLS → user-owned operation → append-only audit → COMMIT`
+`Managed Neon Auth → Cloudflare Worker → server-side session validation → Hyperdrive → transaction-local user/owner/actor scope → active-user + local session-revocation checks → trusted-support / Professional authority → PostgreSQL RLS → owned operation → append-only audit`
 
-The browser is never trusted to establish database identity by itself. Transaction-local PostgreSQL settings prevent pooled Hyperdrive connections from carrying another user's authority across requests.
+## Phase 6 scope completed
 
-## Completed Phase 6 scope
+Phase 6 includes:
 
-Phase 6 implements:
-
-- individual managed authenticated identity;
-- transaction-local PostgreSQL user, owner and actor scope;
-- fail-closed missing, malformed, expired, inactive or unverifiable identity handling;
-- Personal vs Professional entitlement;
-- trusted-support permissions with read authority separate from financial-action authority;
-- cross-user isolation and explicit capability checks;
+- individual managed accounts;
+- server-side authentication validation;
+- Personal and Professional entitlement;
+- transaction-local database identity and owner scope;
+- trusted-support read vs financial-action separation;
+- cross-user isolation;
 - Professional workspaces;
-- six Professional roles: Owner, Administrator, Manager, Accountant/bookkeeper, Project manager and Read-only user;
-- separate Professional read, financial-action, member-management and workspace-management capabilities;
-- same-origin managed Auth proxy routes for sign-up, sign-in, passwordless sign-in, sign-out, password reset and managed session actions;
-- hashed application session/device registry, never raw session-token storage;
-- application-level revoked-session enforcement before user-owned work;
-- explicit soft account deletion preserving financial records;
-- deletion revocation of trusted support, sessions, entitlement and Professional memberships;
-- automatic archive of Professional workspaces owned by a deleted account so no active ownerless workspace remains;
-- self-scoped JSON account export including user, financial/application, trusted-support, Professional and audit-ledger records;
-- export and deletion audit evidence;
-- full Phase 6 GitHub Actions gate nested after the Phase 2→5 gates;
-- protected `app.js` remains byte-for-byte unchanged.
+- six roles: Owner, Administrator, Manager, Accountant/bookkeeper, Project manager, Read-only user;
+- separate Professional read, financial, member-management and workspace-management authority;
+- sign-up, sign-in, passwordless sign-in, sign-out and password-reset/session proxy paths;
+- hashed application session/device registry;
+- application session revocation enforcement;
+- soft account deletion preserving financial records;
+- trusted-support, session, entitlement and Professional membership revocation during deletion;
+- owned Professional-workspace archive during owner deletion;
+- self-scoped JSON account export including application, financial, trusted-support, Professional and audit records;
+- export/deletion audit evidence;
+- complete Phase 6 CI gate nested after Phase 2→5;
+- protected `app.js` unchanged.
 
-Phase 7 is excluded.
+## Database seal
 
-## Migration chronology
+Production:
 
-Production Phase 6 migrations were promoted in strict order:
+- Neon project: `genevieve-budget` (`icy-morning-93993343`)
+- branch: `main` (`br-old-boat-axqvorbe`)
+- database: `neondb`
+- latest migration: `014`
+- production users: `0`
 
-`007 → 008 → 009 → 010 → 011 → 012 → 013 → 014`
-
-Files:
-
-- `008_phase6_auth_identity_entitlement.sql`
-- `009_phase6_trusted_support_permissions.sql`
-- `010_phase6_professional_roles.sql`
-- `011_phase6_account_lifecycle_sessions_export.sql`
-- `012_phase6_export_audit_id_type.sql`
-- `013_phase6_account_deletion_authority.sql`
-- `014_phase6_lifecycle_audit_hardening.sql`
-
-The production promotion was executed as one atomic transaction after the full pre-promotion source/CI gate and isolated rollback proof were green. No partial Phase 6 production schema was exposed.
-
-## Migration 014 final audit hardening
-
-The full Phase 1→6 audit found and fixed four material lifecycle issues before production promotion:
-
-1. a locally revoked application session was not enforced on the next owned API request;
-2. session registration could clear a previous local revocation;
-3. account export omitted the application user row, trusted-support relationship data and the user's audit ledger;
-4. deleting a Professional owner could leave an active workspace without an owner able to administer it.
-
-Migration 014 and the final Worker changes close those issues:
-
-- the same session hash cannot silently reactivate after revocation;
-- a revoked session returns `401 session_revoked` before user-owned work;
-- owned Professional workspaces are archived when their owner account is deleted;
-- memberships in those workspaces are revoked while historical rows and audits are retained;
-- the account export includes the complete Phase 6 user/support/Professional/audit lifecycle record.
-
-## Full rollback proof
-
-On isolated branch `br-super-mouse-axqrxqeb`, the complete forward chain was applied:
+Phase 6 migration chronology:
 
 `007 → 008 → 009 → 010 → 011 → 012 → 013 → 014`
 
-At migration 014, verification confirmed:
+Phase 6 tables verified present in production include:
 
-- `record_data_export(text)` returns `bigint`;
-- `delete_current_account()` is `SECURITY DEFINER`;
-- session/device and Professional tables exist;
-- `register_current_session` preserves an existing `revoked_at` value;
-- deletion includes owned-workspace archive and membership revocation cleanup.
+- `user_entitlements`
+- `trusted_support_grants`
+- `professional_workspaces`
+- `professional_memberships`
+- `user_sessions`
 
-The exact reverse chain then executed with no SQL errors:
+Worker readiness is sealed to:
+
+- `CURRENT_PHASE = 6`
+- `EXPECTED_MIGRATION = "014"`
+
+## Recovery and rollback seal
+
+Pre-promotion recovery branch:
+
+- `phase6-production-prepromotion-007`
+- `br-nameless-mode-ax72ghlu`
+- verified at migration `007`
+
+Full isolated proof branch:
+
+- `phase6-identity-entitlement-clean-test`
+- `br-super-mouse-axqrxqeb`
+
+Forward:
+
+`007 → 008 → 009 → 010 → 011 → 012 → 013 → 014`
+
+Reverse:
 
 `014 → 013 → 012 → 011 → 010 → 009 → 008 → 007`
 
-Final rollback verification showed:
+The final reverse schema comparison returned an empty diff against the Phase 5 parent.
 
-- latest migration `007`;
-- no Phase 6 entitlement, support, Professional or session tables;
-- no Phase 6 functions;
-- Neon parent-schema comparison: `diff: ""`.
+## Audit defects fixed before production
 
-Therefore Phase 6 is fully reversible to the sealed Phase 5 boundary.
+Material issues identified during the final Phase 1→6 audit were corrected before production promotion:
 
-## Production promotion verification
+- Professional workspace audit linkage;
+- export audit identifier type mismatch;
+- insufficient account-deletion cleanup authority;
+- Worker permission error that could return 503 instead of the correct 403;
+- missing enforcement of locally revoked sessions;
+- session registration reactivation of revoked hashes;
+- incomplete account export lifecycle coverage;
+- owner deletion leaving an active ownerless Professional workspace.
 
-Production `br-old-boat-axqvorbe` now verifies:
+No unresolved audit defect was knowingly promoted.
 
-- latest migration: `014`;
-- migrations `008,009,010,011,012,013,014`: all present;
-- production users: `0`;
-- `user_entitlements`: present;
-- `trusted_support_grants`: present;
-- `professional_workspaces`: present;
-- `professional_memberships`: present;
-- `user_sessions`: present;
-- export audit result type: `bigint`;
-- account deletion function: `SECURITY DEFINER`;
-- one-way application-session revocation: present;
-- Professional-owner archive cleanup: present.
+## Protected merge and post-merge gate
 
-Recovery branch `br-nameless-mode-ax72ghlu` preserves the exact production migration-007 boundary that existed immediately before promotion.
+PR #34 was merged using exact expected head SHA `59df52be1edf7b1b499c58e561e56282770eb267`.
 
-## Worker readiness seal
+Protected merge commit:
 
-After production migration 014 was verified, the feature-branch Worker readiness seal was advanced to:
+`e3bd3af42138cc403f212847baefa2a890452e9d`
 
-- `CURRENT_PHASE = 6`;
-- `EXPECTED_MIGRATION = "014"`.
+All five workflows then passed on that exact merged `main` commit:
 
-The preserved Phase 4 and Phase 5 live-path gates were updated to continue proving their responsibilities through the current Phase 6/014 boundary; they were not removed or bypassed.
+- Phase 2 baseline verification #192 — `33014343891` — SUCCESS
+- Phase 3 Cloudflare verification #126 — `33014343955` — SUCCESS
+- Phase 4 Neon database verification #82 — `33014343908` — SUCCESS
+- Phase 5 database safety verification #66 — `33014343919` — SUCCESS
+- Phase 6 verification #48 — `33014343930` — SUCCESS
 
-The Phase 6 required check now also contains a live branch-preview `/ready` test and cannot pass unless it receives:
+The Phase 6 job passed live readiness and the protected-engine check. Phase 4 passed the Cloudflare → Hyperdrive → Neon path. Phase 5 passed database safety under the Phase 6 boundary.
 
-- HTTP 200;
-- `phase: 6`;
-- `assets: "ready"`;
-- `database: "ready"`;
-- `migration: "014"`.
+## Governance seal
 
-## Final promoted runtime gate
+`Protect main` ruleset `21530843` is active and requires:
 
-On runtime head `17e78ab36d296a665ab663965a4fe91002282ba8`, all five required workflows completed successfully:
+- `phase2`
+- `cloudflare-phase3`
+- `phase4-neon`
+- `phase5-database-safety`
+- `phase6`
 
-- Phase 2 baseline verification #190 — run `32978827959` — SUCCESS;
-- Phase 3 Cloudflare verification #124 — run `32978827871` — SUCCESS;
-- Phase 4 Neon database verification #80 — run `32978828055` — SUCCESS;
-- Phase 5 database safety verification #64 — run `32978828050` — SUCCESS;
-- Phase 6 verification #46 — run `32978828047` — SUCCESS, including live Phase 6/014 readiness.
+The ruleset also requires a pull request and up-to-date required checks, blocks deletion and force pushes, and has no bypass actors.
 
-## GitHub governance
+## Completion archive
 
-`Protect main` ruleset ID `21530843` is active for `refs/heads/main` and requires:
+The full immutable completion narrative is in:
 
-- `phase2`;
-- `cloudflare-phase3`;
-- `phase4-neon`;
-- `phase5-database-safety`;
-- `phase6`.
+`docs/PHASE6_COMPLETION_ARCHIVE.md`
 
-It also requires a pull request, requires the branch to be up to date, blocks branch deletion and force pushes, has no bypass actors, and the current user cannot bypass it.
+The archive PR is allowed to change documentation only. It must not change:
 
-## Final Phase 1 → 6 audit result
+- runtime code;
+- `app.js`;
+- migrations or rollbacks;
+- Worker behavior;
+- Cloudflare routes/bindings;
+- Hyperdrive configuration;
+- Neon schema/data.
 
-**GREEN — no remaining material break found before protected merge.**
+Before archive merge, the exact archive head must be zero commits behind `main`, all five required checks must pass, and the merge must use the exact expected archive-head SHA.
 
-Verified:
+After archive merge, protected `main`, all five workflows, production migration 014, and the presence of the archive file on `main` must be verified again.
 
-- Phase 1 contract preserved;
-- Phase 2 sealed and preserved;
-- Phase 3 Cloudflare surface preserved;
-- Phase 4 Hyperdrive→Neon path preserved;
-- Phase 5 RLS/ownership/archive/audit protections preserved;
-- Phase 6 identity and permission boundaries linked server-side;
-- migration chronology 008→014 complete;
-- full 014→007 rollback empty-diff proof complete;
-- production database promoted and verified at 014;
-- recovery branch exists at the pre-promotion 007 state;
-- feature-branch Cloudflare readiness is live and green at Phase 6/014;
-- `app.js` remains protected and unchanged;
-- `main` remains protected by all five required checks.
+Only when those conditions are true is Phase 6 formally **COMPLETE / LIVE / GREEN / ARCHIVED**.
 
-## Chronology lock / immediate next action
+## Chronology after Phase 6
 
-This documentation-only checkpoint synchronization is the final change before protected merge. It must itself pass all five required status checks.
+Do not begin Phase 7 during this archive operation.
 
-Only after those checks are GREEN:
-
-1. mark PR #34 ready for review;
-2. re-read protected `main` and PR head to ensure neither moved unexpectedly;
-3. merge PR #34 using the exact expected head SHA;
-4. verify all five required checks on merged `main`;
-5. verify live production Cloudflare `/health` and `/ready` and production Neon migration 014;
-6. create the Phase 6 completion archive on a new archive branch;
-7. pass all five checks and merge the archive PR;
-8. verify the archive merge on `main`;
-9. only then mark Phase 6 COMPLETE / LIVE / GREEN / ARCHIVED and identify the next chronological phase.
-
-Do not start Phase 7 before the archive is complete.
+After the archive is fully merged and post-archive GREEN, the next chronological phase may be identified and scoped as a separate operation.
