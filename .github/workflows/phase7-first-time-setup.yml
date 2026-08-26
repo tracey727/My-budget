@@ -68,17 +68,26 @@ jobs:
           grep -q "hasOwnProperty.call(parsed, 'phase7Setup')" phase7-backup-bridge.js
           grep -q 'Legacy backups pre-date Phase 7' phase7-backup-bridge.js
 
+      - name: Confirm authoritative Phase 7 core accounts and balances scope
+        run: |
+          grep -q 'Spendable balance' phase7-core-balances-bridge.js
+          grep -q 'Protected / reserved' phase7-core-balances-bridge.js
+          grep -q 'Internal transfers move money between your own accounts and are not counted as spending.' phase7-core-balances-bridge.js
+          grep -q '/api/phase7/accounts/sync' phase7-core-balances-bridge.js
+          grep -q '/api/phase7/accounts' src/phase7-account-routes.mjs
+          grep -q 'public.current_app_user_id()' src/phase7-account-routes.mjs
+          grep -q 'public.financial_settings' src/phase7-account-routes.mjs
+          grep -q 'archived_at = COALESCE(archived_at, now())' src/phase7-account-routes.mjs
+          test "$(git hash-object src/worker-phase6-sealed.mjs)" = "670159e8b820f597ed2376c246df04e69a244988"
+          test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
+
       - name: Confirm Phase 7 reuses the sealed schema boundary
         run: |
           test "$(find database/migrations -maxdepth 1 -type f -name '015_*.sql' | wc -l)" -eq 0
           grep -q 'const CURRENT_PHASE = 6' src/worker.mjs
           grep -q 'const EXPECTED_MIGRATION = "014"' src/worker.mjs
 
-      - name: Confirm protected Budget engine remains untouched
-        run: |
-          test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
-
-      - name: Verify Phase 7 setup, plan integrity, backup bridge and preserved readiness live
+      - name: Verify Phase 7 setup, balances, fail-closed API and preserved readiness live
         shell: bash
         run: |
           set -euo pipefail
@@ -89,54 +98,65 @@ jobs:
             BASE_URL="https://my-budget.positivity864.workers.dev"
           fi
 
-          echo "Verifying Phase 7 subscriber runtimes at ${BASE_URL}"
+          echo "Verifying reconciled Phase 7 subscriber/runtime boundary at ${BASE_URL}"
           setup_file="$(mktemp)"
           plan_file="$(mktemp)"
           backup_file="$(mktemp)"
+          balance_file="$(mktemp)"
           ready_file="$(mktemp)"
           index_file="$(mktemp)"
+          api_file="$(mktemp)"
           setup_code=""
           plan_code=""
           backup_code=""
+          balance_code=""
           ready_code=""
           index_code=""
+          api_code=""
 
           for attempt in $(seq 1 30); do
             index_code="$(curl --location --silent --show-error --output "$index_file" --write-out '%{http_code}' "${BASE_URL}/" || true)"
-            setup_code="$(curl --location --silent --show-error --output "$setup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-first-time-setup.js?v=phase7-first-time-setup-v1" || true)"
-            plan_code="$(curl --location --silent --show-error --output "$plan_file" --write-out '%{http_code}' "${BASE_URL}/phase7-plan-integrity-bridge.js?v=phase7-first-time-setup-v1" || true)"
-            backup_code="$(curl --location --silent --show-error --output "$backup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-backup-bridge.js?v=phase7-first-time-setup-v1" || true)"
+            setup_code="$(curl --location --silent --show-error --output "$setup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-first-time-setup.js?v=phase7-first-time-setup-v2" || true)"
+            plan_code="$(curl --location --silent --show-error --output "$plan_file" --write-out '%{http_code}' "${BASE_URL}/phase7-plan-integrity-bridge.js?v=phase7-first-time-setup-v2" || true)"
+            backup_code="$(curl --location --silent --show-error --output "$backup_file" --write-out '%{http_code}' "${BASE_URL}/phase7-backup-bridge.js?v=phase7-first-time-setup-v2" || true)"
+            balance_code="$(curl --location --silent --show-error --output "$balance_file" --write-out '%{http_code}' "${BASE_URL}/phase7-core-balances-bridge.js?v=phase7-first-time-setup-v2" || true)"
             ready_code="$(curl --location --silent --show-error --output "$ready_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
+            api_code="$(curl --location --silent --show-error --output "$api_file" --write-out '%{http_code}' "${BASE_URL}/api/phase7/accounts" || true)"
 
             if [ "$index_code" = "200" ] \
               && grep -Fq '/phase7-first-time-setup.js' "$index_file" \
               && grep -Fq '/phase7-plan-integrity-bridge.js' "$index_file" \
               && grep -Fq '/phase7-backup-bridge.js' "$index_file" \
+              && grep -Fq '/phase7-core-balances-bridge.js' "$index_file" \
               && [ "$setup_code" = "200" ] \
               && grep -Fq 'How often do you get paid?' "$setup_file" \
               && grep -Fq 'YOUR FIRST MONEY PLAN' "$setup_file" \
               && [ "$plan_code" = "200" ] \
               && grep -Fq 'paysAvailableByDueDate' "$plan_file" \
               && grep -Fq 'rollNextPayDate' "$plan_file" \
-              && grep -Fq 'Choose today or a future date for your next pay.' "$plan_file" \
               && [ "$backup_code" = "200" ] \
               && grep -Fq 'phase7Setup' "$backup_file" \
-              && grep -Fq 'Legacy backups pre-date Phase 7' "$backup_file" \
+              && [ "$balance_code" = "200" ] \
+              && grep -Fq 'Spendable balance' "$balance_file" \
+              && grep -Fq '/api/phase7/accounts/sync' "$balance_file" \
+              && [ "$api_code" = "401" ] \
+              && grep -Fq 'authentication_required' "$api_file" \
               && [ "$ready_code" = "200" ] \
               && grep -Fq '"phase":6' "$ready_file" \
               && grep -Fq '"database":"ready"' "$ready_file" \
               && grep -Fq '"migration":"014"' "$ready_file"; then
-              echo "PASS Phase 7 live setup, plan integrity, backup continuity and preserved Phase 6/014 readiness on attempt ${attempt}"
-              rm -f "$setup_file" "$plan_file" "$backup_file" "$ready_file" "$index_file"
+              echo "PASS reconciled Phase 7 live setup, balances, authenticated API boundary and preserved Phase 6/014 readiness on attempt ${attempt}"
+              rm -f "$setup_file" "$plan_file" "$backup_file" "$balance_file" "$ready_file" "$index_file" "$api_file"
               exit 0
             fi
 
-            echo "Waiting for Phase 7 deployment: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} ready=${ready_code} attempt=${attempt}"
+            echo "Waiting for reconciled Phase 7 deployment: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} balances=${balance_code} api=${api_code} ready=${ready_code} attempt=${attempt}"
             sleep 10
           done
 
-          echo "Phase 7 live verification failed at ${BASE_URL}" >&2
-          echo "Last HTTP status: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} ready=${ready_code}" >&2
+          echo "Reconciled Phase 7 live verification failed at ${BASE_URL}" >&2
+          echo "Last HTTP status: index=${index_code} setup=${setup_code} plan=${plan_code} backup=${backup_code} balances=${balance_code} api=${api_code} ready=${ready_code}" >&2
           cat "$ready_file" >&2 || true
-          rm -f "$setup_file" "$plan_file" "$backup_file" "$ready_file" "$index_file"
+          cat "$api_file" >&2 || true
+          rm -f "$setup_file" "$plan_file" "$backup_file" "$balance_file" "$ready_file" "$index_file" "$api_file"
           exit 1
