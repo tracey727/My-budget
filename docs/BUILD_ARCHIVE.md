@@ -2,7 +2,7 @@
 
 ## Current authoritative checkpoint
 
-Date: 26 August 2026, AEST (Queensland)
+Date: 27 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
 Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
@@ -14,17 +14,28 @@ Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
 **Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-**Phase 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED.**
+**Phase 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED**
+
+**Phase 6 — IDENTITY, PERMISSIONS & LIFECYCLE — COMPLETE / PRODUCTION-LIVE / AUDITED / ROLLBACK-PROVEN / POST-MERGE GREEN / ARCHIVED**
+
+Current protected `main` before this documentation correction: `06ec1c00e618c2a0a0a59f0bc9324a02d3a045e0`.
+
+Phase 6 implementation PR: #34
+Phase 6 implementation merge commit: `e3bd3af42138cc403f212847baefa2a890452e9d`
+Phase 6 completion archive PR: #35
+Phase 6 archive merge commit: `06ec1c00e618c2a0a0a59f0bc9324a02d3a045e0`
+Phase 6 final migration: `014`
+Detailed Phase 6 completion archive: `docs/PHASE6_COMPLETION_ARCHIVE.md`
+Current Phase 6 checkpoint: `docs/PHASE6_IDENTITY_ENTITLEMENT_CHECKPOINT.md`
+Database migration/runbook: `database/README.md`
 
 Phase 5 implementation PR: #28
 Phase 5 implementation merge commit: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
 Phase 5 completion archive PR: #29
 Phase 5 archive merge commit: `1a513223a407e05986c520d493543fa0c1f1eb50`
-Phase 5 readiness migration: `007`
+Phase 5 sealed migration boundary: `007`
 Detailed Phase 5 completion archive: `docs/PHASE5_COMPLETION_ARCHIVE.md`
 Detailed Phase 5 engineering evidence: `docs/PHASE5_DATABASE_SAFETY.md`
-Current checkpoint: `docs/PHASE5_CURRENT_CHECKPOINT.md`
-Database migration/runbook: `database/README.md`
 
 ## Locked chronology
 
@@ -32,21 +43,125 @@ Do not start a later phase until the immediately preceding phase is built, linke
 
 The authoritative sequence through the current checkpoint is:
 
-`Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare deployment → Phase 4 Hyperdrive/Neon connection → Phase 5 database safety`
+`Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare deployment → Phase 4 Hyperdrive/Neon connection → Phase 5 database safety → Phase 6 managed identity, permissions and lifecycle`
 
 The executable production chain is:
 
-`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → preserved app.js → Cloudflare ASSETS → Worker /health + /ready → HYPERDRIVE → Neon neondb → schema_migrations 007 → RLS/ownership/archive/audit controls`
+`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → preserved app.js → Cloudflare ASSETS → Worker /health + /ready + /auth + /api → managed Neon Auth session validation → HYPERDRIVE → Neon neondb → schema_migrations 014 → transaction-local user/owner/actor scope → active-user/session-revocation checks → trusted-support / Professional authority → PostgreSQL RLS/ownership/archive/audit controls`
 
 Verification remains nested rather than bypassed:
 
-`Phase 2 preservation → Phase 3 Cloudflare verification → Phase 4 database/readiness verification → Phase 5 database-safety verification`
+`Phase 2 preservation → Phase 3 Cloudflare verification → Phase 4 database/readiness verification → Phase 5 database-safety verification → Phase 6 identity/permissions/lifecycle verification`
 
 Phase 1 remains the governing locked product contract.
 
-The donor `app.js` remains preserved.
+The protected `app.js` remains byte-for-byte preserved at blob SHA `a86381a76c4676b9d14cbcb1a6b9de842c1cd24c`.
 
-## Phase 5 — Database Safety — sealed scope
+## Phase 6 — Identity, permissions and lifecycle — sealed scope
+
+Phase 6 is permanently defined as the identity, user-scope, permission and account-lifecycle stage built on top of the sealed Phase 5 database-safety boundary.
+
+Delivered controls include:
+
+- individual managed authenticated identity;
+- server-side managed-session validation;
+- transaction-local PostgreSQL `app.user_id`, owner and actor scope before protected work;
+- fail-closed missing, malformed, expired, inactive, revoked or unverifiable identities/sessions;
+- Personal vs Professional entitlement;
+- trusted-support read authority separated from financial-action authority;
+- cross-user isolation;
+- Professional workspaces;
+- exactly six Professional roles: Owner, Administrator, Manager, Accountant/bookkeeper, Project manager and Read-only user;
+- separate Professional read, financial-action, member-management and workspace-management capabilities;
+- managed sign-up, sign-in, passwordless sign-in, sign-out, password-reset and session lifecycle proxy paths;
+- hashed application session/device registry without raw session-token storage;
+- one-way local session revocation enforced before user-owned work;
+- self-scoped JSON account export including application, financial, trusted-support, Professional and audit records;
+- export audit evidence using the audit ledger's `bigint` identifier type;
+- soft account deletion preserving financial records;
+- deletion revocation of trusted support, sessions, entitlement and Professional memberships;
+- automatic archive of Professional workspaces owned by a deleted account so no active ownerless workspace remains;
+- explicit permission failures returned as HTTP 403 rather than being misreported as database outages;
+- protected Budget engine unchanged;
+- complete Phase 6 status gate nested after Phases 2–5.
+
+Phase 6 production migrations were applied in strict chronological order:
+
+`007 → 008 → 009 → 010 → 011 → 012 → 013 → 014`
+
+Phase 6 migration files:
+
+1. `008_phase6_auth_identity_entitlement.sql`
+2. `009_phase6_trusted_support_permissions.sql`
+3. `010_phase6_professional_roles.sql`
+4. `011_phase6_account_lifecycle_sessions_export.sql`
+5. `012_phase6_export_audit_id_type.sql`
+6. `013_phase6_account_deletion_authority.sql`
+7. `014_phase6_lifecycle_audit_hardening.sql`
+
+The complete reverse sequence was proven on the isolated rollback branch:
+
+`014 → 013 → 012 → 011 → 010 → 009 → 008 → 007`
+
+The rollback proof returned to migration `007`, removed all Phase 6 tables/functions and produced an empty Neon schema diff against the sealed Phase 5 boundary.
+
+Production Neon state at the Phase 6 seal:
+
+- project: `genevieve-budget` (`icy-morning-93993343`)
+- branch: `main` (`br-old-boat-axqvorbe`)
+- database: `neondb`
+- PostgreSQL: 18
+- latest migration: `014`
+- `user_entitlements`: present
+- `trusted_support_grants`: present
+- `professional_workspaces`: present
+- `professional_memberships`: present
+- `user_sessions`: present
+- production application users at final seal: `0`
+
+Production Worker readiness is sealed to:
+
+- `CURRENT_PHASE = 6`
+- `EXPECTED_MIGRATION = "014"`
+
+Live `/ready` verification after the Phase 6 archive merge returned HTTP 200 with:
+
+`{"ok":true,"service":"genevieve-budget","phase":6,"assets":"ready","database":"ready","migration":"014"}`
+
+Material Phase 6 defects found during audit and fixed before production included:
+
+- incorrect Professional workspace audit linkage;
+- export audit identifier type mismatch;
+- insufficient account-deletion cleanup authority;
+- Professional permission errors being misreported as 503 instead of 403;
+- locally revoked sessions not being enforced on later owned requests;
+- session registration being able to reactivate a revoked session hash;
+- incomplete account-export lifecycle coverage;
+- Professional owner deletion leaving an active ownerless workspace.
+
+All were corrected before the production seal and re-proven by CI, live readiness and rollback verification.
+
+## Phase 6 merge and archive evidence
+
+Final implementation head:
+
+`59df52be1edf7b1b499c58e561e56282770eb267`
+
+Protected implementation merge:
+
+`e3bd3af42138cc403f212847baefa2a890452e9d`
+
+The final implementation-head tree and protected merge tree were identical, proving the merge introduced no conflict-resolution or accidental content changes.
+
+Post-implementation merge, all five required workflows were GREEN on the exact merge commit.
+
+Phase 6 archive PR #35 then changed documentation only and merged as:
+
+`06ec1c00e618c2a0a0a59f0bc9324a02d3a045e0`
+
+All five workflows passed again on that exact protected `main` archive merge, including live Phase 6 readiness.
+
+## Phase 5 — Database Safety — sealed historical scope
 
 Phase 5 is permanently defined as the database-safety stage required before identity-dependent app screens or user-owned persistence APIs.
 
@@ -68,8 +183,7 @@ Delivered controls:
 - rollback procedure recorded at `database/rollbacks/phase5_to_phase4.sql`;
 - rollback tested with an empty schema diff against Phase 4;
 - isolated Neon test and production branches kept separate;
-- synthetic Phase 5 test records kept out of production;
-- Worker `/ready` requires migration `007` and fails closed if it is absent or database connectivity is unavailable.
+- synthetic Phase 5 test records kept out of production.
 
 Phase 5 migrations:
 
@@ -79,68 +193,13 @@ Phase 5 migrations:
 
 A test-only audit-actor NULL defect was found after migration 005 on the isolated Neon test branch and corrected by migration 006 before production promotion. Production received migrations 005–007 in one controlled transaction, so that defective intermediate state was never exposed live.
 
-## Phase 5 production audit
+Phase 5 historical completion evidence remains authoritative in:
 
-Production database:
+- `docs/PHASE5_COMPLETION_ARCHIVE.md`
+- `docs/PHASE5_DATABASE_SAFETY.md`
+- `docs/PHASE5_CURRENT_CHECKPOINT.md`
 
-- project: `genevieve-budget`
-- project ID: `icy-morning-93993343`
-- database: `neondb`
-- PostgreSQL: 18
-- production branch: `main` (`br-old-boat-axqvorbe`)
-- restricted Worker role: `genevieve_budget_worker`
-
-Phase 5 isolated test branch:
-
-- `phase5-database-safety-test` (`br-withered-fire-axt9yppr`)
-
-Rollback proof branch:
-
-- `phase5-rollback-test` (`br-soft-mountain-axryrrpf`)
-
-Final production audit after promotion:
-
-- migrations `000,001,002,003,004,005,006,007` — PASS;
-- RLS-protected tables: 15 — PASS;
-- RLS policies: 44 — PASS;
-- ownership-preserving foreign keys: 8 — PASS;
-- automatic owned-record audit triggers: 14 — PASS;
-- floating-point money columns: 0 — PASS;
-- required ownership on every current financial record — PASS;
-- archive coverage on current mutable financial records — PASS;
-- Worker DELETE privilege on Phase 5 application tables: none — PASS;
-- test-to-production schema comparison: empty — PASS.
-
-## Phase 5 verification evidence
-
-Implementation merge commit:
-
-`66933f63e4cee767ad25afa8a4ae491f6272f92e`
-
-Post-implementation `main` verification:
-
-- Phase 2 baseline verification #129 (`32924950634`) — GREEN;
-- Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
-- Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
-- Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live production `/ready` at migration `007`.
-
-Completion archive PR #29 head `47c6cc1e494d790994922d10327122485b204b24` then passed:
-
-- Phase 2 #130 (`32929273963`) — GREEN;
-- Phase 3 #64 (`32929274026`) — GREEN;
-- Phase 4 #20 (`32929273975`) — GREEN;
-- Phase 5 #4 (`32929273940`) — GREEN.
-
-Archive merge commit:
-
-`1a513223a407e05986c520d493543fa0c1f1eb50`
-
-Post-archive `main` verification:
-
-- Phase 2 baseline verification #131 (`32929321289`) — GREEN;
-- Phase 3 Cloudflare verification #65 (`32929321312`) — GREEN;
-- Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
-- Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live production `/ready` at migration `007`.
+The migration `007` references in those historical Phase 5 records describe the sealed Phase 5 boundary; they do not represent the current production migration, which is now `014` after Phase 6.
 
 ## Earlier sealed stages
 
@@ -152,7 +211,7 @@ Phase 4 archive merge commit: `97730100088207bdb02a339e8dbcd27a29e14111`
 Detailed archive: `docs/PHASE4_COMPLETION_ARCHIVE.md`
 Trigger audit correction: `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`
 
-Phase 4 established the verified Cloudflare Worker → Hyperdrive → Neon `neondb` connection and migrations `000` through `004`.
+Phase 4 established the verified Cloudflare Worker → Hyperdrive → Neon `neondb` connection and migrations `000` through `004`. The Phase 4 responsibility remains live under the current Phase 6/migration-014 boundary.
 
 ### Phase 3 — Cloudflare production deployment
 
@@ -168,7 +227,7 @@ Authoritative historical archives:
 - `docs/PHASE2_DATA_CONTRACT_AMENDMENT.md`
 - `docs/PHASE2_SUBSCRIPTIONS_SAVINGS_AMENDMENT.md`
 
-Phase 2 contains the preserved subscriber runtime and financial data contracts on which Phases 3–5 depend.
+Phase 2 contains the preserved subscriber runtime and financial data contracts on which Phases 3–6 depend.
 
 ### Phase 1 — locked product contract
 
@@ -176,27 +235,31 @@ Authoritative contract: `docs/PRODUCT_CONTRACT.md`.
 
 Locked principles include Personal and Professional product doors, one shared financial engine, safe-to-spend, Smooth My Bills / Pay Ahead, Hold My Money / Bill Target, Green → Yellow → Red → Recovery alerts, subscription decisions, verified savings, privacy/authority rules and the GitHub + Cloudflare + Neon architecture.
 
-## Current known governance issue
+## Current repository governance
 
-GitHub `main` branch protection is not currently enabled. This does not break the live application, Cloudflare runtime, Hyperdrive connection or Phase 5 database safety controls, but repository governance remains weaker than the intended production standard until PR/status-check protection is enabled.
+GitHub `main` protection is enabled through active repository ruleset `Protect main` (`21530843`).
 
-The current GitHub connector can read this state but does not expose a branch-protection write operation.
+The ruleset applies to `refs/heads/main` and:
+
+- requires pull requests;
+- requires branches to be up to date before protected merge;
+- requires `phase2`;
+- requires `cloudflare-phase3`;
+- requires `phase4-neon`;
+- requires `phase5-database-safety`;
+- requires `phase6`;
+- blocks branch deletion;
+- blocks force pushes;
+- has no bypass actors;
+- reports that the current user cannot bypass it.
+
+The previous statement that `main` protection was not enabled is superseded and must not be relied on.
 
 ## Remaining build — chronological order
 
-The previous roadmap that called identity work “Phase 5” is superseded. Phase 5 is now permanently Database Safety. All later stages move forward by one number.
+Phase 6 is complete and archived. Phase 7 has not been started by this archive correction.
 
-### Phase 6 — Identity, user scope and permissions — NEXT
-
-- Authenticated user identity.
-- Transaction-local PostgreSQL `app.user_id` established before every user-owned query.
-- Personal vs Professional entitlement.
-- Trusted-support permission model.
-- Separate read authority from financial action authority.
-- Preserve and rerun Phase 2, Phase 3, Phase 4 and Phase 5 gates.
-- Do not build user-owned financial screens or persistence endpoints until identity scope is proven fail-closed.
-
-### Phase 7 — Core accounts and balances
+### Phase 7 — Core accounts and balances — NEXT FUNCTIONAL PHASE
 
 - Persistent multiple accounts/assets.
 - Credit cards, loans, BNPL and debts.
@@ -341,10 +404,12 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 
 ## Advancement rule
 
-**Phase 5 — Database Safety is COMPLETE / LIVE / GREEN / ARCHIVED.**
+**Phase 6 — Identity, Permissions & Lifecycle is COMPLETE / PRODUCTION-LIVE / GREEN / AUDITED / ROLLBACK-PROVEN / ARCHIVED.**
 
-The next permitted functional build is:
+This `docs/BUILD_ARCHIVE.md` chronology correction is documentation-only and must itself pass all five protected checks and merge through protected `main` before the next functional phase is scoped.
 
-**Phase 6 — Identity, user scope and permissions.**
+After that documentation correction is merged and post-merge verification is GREEN, the next permitted functional phase is:
 
-Do not start Phase 7 or any later stage until Phase 6 is built, linked to Phases 1–5, verified, GREEN and archived.
+**Phase 7 — Core accounts and balances.**
+
+Phase 7 is not started by this document.
