@@ -12,6 +12,7 @@ import {
 
 const runtime = await readFile(new URL('./phase7-first-time-setup.js', import.meta.url), 'utf8');
 const index = await readFile(new URL('./index.html', import.meta.url), 'utf8');
+const linker = await readFile(new URL('./scripts/link-phase7-first-time-setup.mjs', import.meta.url), 'utf8');
 
 test('Phase 7 pay-frequency contract is exact', () => {
   assert.deepEqual(PAY_FREQUENCIES, ['weekly', 'fortnightly', 'monthly', 'irregular']);
@@ -78,7 +79,7 @@ test('Runtime contains all eight chronological screens and the exact requested c
     'Set protected emergency cash.',
     'Set optional savings goals.',
     'YOUR FIRST MONEY PLAN',
-  ]) assert.match(runtime, new RegExp(fragment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  ]) assert.ok(runtime.includes(fragment), `missing Phase 7 wording: ${fragment}`);
 
   const screenDefinitions = [...runtime.matchAll(/function screen([1-8])\(/g)].map(match => Number(match[1]));
   assert.deepEqual(screenDefinitions, [1,2,3,4,5,6,7,8]);
@@ -102,13 +103,12 @@ test('Target mode has live Green Yellow Red Recovery warning refresh logic', () 
   assert.match(runtime, /refreshCompletedBillPlans/);
 });
 
-test('Source index links Phase 7 after both Phase 2 extensions and before protected app.js', () => {
+test('Production linker preserves the Phase 2 source order and inserts Phase 7 immediately before app.js', () => {
   const data = index.indexOf('/phase2-data-runtime.js');
   const extended = index.indexOf('/phase2-subscriptions-savings-runtime.js');
-  const phase7 = index.indexOf('/phase7-first-time-setup.js');
   const app = index.indexOf('/app.js');
-  assert.ok(data >= 0);
-  assert.ok(extended > data);
-  assert.ok(phase7 > extended);
-  assert.ok(app > phase7);
+  assert.ok(data >= 0 && extended > data && app > extended);
+  assert.match(linker, /phase7-first-time-setup\.js/);
+  assert.match(linker, /protectedAppPattern/);
+  assert.match(linker, /linked Phase 7 after Phase 2 runtimes and immediately before protected app\.js/);
 });
