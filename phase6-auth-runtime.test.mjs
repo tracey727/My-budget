@@ -77,8 +77,9 @@ test('built Cloudflare artifact contains the Phase 6 gate before the preserved B
   assert.match(index, /id="phase6SignInForm"/);
   assert.match(index, /id="phase6SignUpForm"/);
   assert.match(index, /id="phase6MagicLinkForm"/);
-  assert.match(index, /\/auth\/get-session/);
-  assert.match(index, /\/auth\/sign-in\/magic-link/);
+  assert.match(index, /const AUTH_BASE = '\/auth'/);
+  assert.match(index, /'\/get-session'/);
+  assert.match(index, /'\/sign-in\/magic-link'/);
 
   const authPosition = index.indexOf('data-phase6-auth-runtime');
   const dataPosition = index.indexOf('/phase2-data-runtime.js');
