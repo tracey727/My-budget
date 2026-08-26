@@ -15,7 +15,7 @@ class ReadyClient {
   async connect() {}
   async query(sql, params) {
     assert.match(sql, /public\.schema_migrations/);
-    assert.deepEqual(params, ["006"]);
+    assert.deepEqual(params, ["007"]);
     return { rows: [{ database_name: "neondb", migration_ready: true }] };
   }
   async end() {}
@@ -39,9 +39,9 @@ class FailingClient extends ReadyClient {
   }
 }
 
-test("database readiness keeps the Phase 4 Hyperdrive path linked to neondb at current migration 006", async () => {
+test("database readiness keeps the Phase 4 Hyperdrive path linked to neondb at current migration 007", async () => {
   const result = await checkDatabase({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, ReadyClient);
-  assert.deepEqual(result, { ok: true, migration: "006" });
+  assert.deepEqual(result, { ok: true, migration: "007" });
 });
 
 test("missing Hyperdrive binding fails closed", async () => {
@@ -54,7 +54,7 @@ test("wrong database fails closed", async () => {
   assert.deepEqual(result, { ok: false, migration: null });
 });
 
-test("missing current migration 006 fails closed", async () => {
+test("missing current migration 007 fails closed", async () => {
   const result = await checkDatabase({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, MissingMigrationClient);
   assert.deepEqual(result, { ok: false, migration: null });
 });
@@ -82,7 +82,7 @@ test("assets and database must both be ready before HTTP 200", async () => {
     phase: 5,
     assets: "ready",
     database: "ready",
-    migration: "006",
+    migration: "007",
   });
 
   const noAssets = await checkReadiness({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, ReadyClient);
