@@ -6,16 +6,19 @@ import { resolve } from 'node:path';
 const root = process.cwd();
 const dist = resolve(root, 'dist');
 const setupRuntimeName = 'phase7-first-time-setup.js';
+const planRuntimeName = 'phase7-plan-integrity-bridge.js';
 const backupRuntimeName = 'phase7-backup-bridge.js';
 
 await Promise.all([
   access(resolve(dist, setupRuntimeName), constants.R_OK),
+  access(resolve(dist, planRuntimeName), constants.R_OK),
   access(resolve(dist, backupRuntimeName), constants.R_OK),
 ]);
 
-const [index, setupRuntime, backupRuntime, worker, sourceApp] = await Promise.all([
+const [index, setupRuntime, planRuntime, backupRuntime, worker, sourceApp] = await Promise.all([
   readFile(resolve(dist, 'index.html'), 'utf8'),
   readFile(resolve(dist, setupRuntimeName), 'utf8'),
+  readFile(resolve(dist, planRuntimeName), 'utf8'),
   readFile(resolve(dist, backupRuntimeName), 'utf8'),
   readFile(resolve(dist, 'service-worker.js'), 'utf8'),
   readFile(resolve(root, 'app.js'), 'utf8'),
@@ -24,10 +27,11 @@ const [index, setupRuntime, backupRuntime, worker, sourceApp] = await Promise.al
 const dataRuntime = index.indexOf('/phase2-data-runtime.js');
 const extendedRuntime = index.indexOf('/phase2-subscriptions-savings-runtime.js');
 const phase7Setup = index.indexOf('/phase7-first-time-setup.js');
+const phase7Plan = index.indexOf('/phase7-plan-integrity-bridge.js');
 const phase7Backup = index.indexOf('/phase7-backup-bridge.js');
 const protectedApp = index.indexOf('/app.js');
-if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Setup && phase7Setup < phase7Backup && phase7Backup < protectedApp)) {
-  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 setup -> Phase 7 backup bridge -> protected app.js');
+if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Setup && phase7Setup < phase7Plan && phase7Plan < phase7Backup && phase7Backup < protectedApp)) {
+  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 setup -> Phase 7 plan integrity -> Phase 7 backup bridge -> protected app.js');
 }
 
 for (const fragment of [
@@ -48,6 +52,17 @@ for (const fragment of [
 }
 
 for (const fragment of [
+  'paysAvailableByDueDate',
+  'rollNextPayDate',
+  'correctFirstPlanPresentation',
+  'Choose today or a future date for your next pay.',
+  'adjusted to have each dated bill ready by its next due date.',
+  'setTimeout(refreshCommittedPlan, 0)',
+]) {
+  if (!planRuntime.includes(fragment)) throw new Error(`deployed Phase 7 plan-integrity bridge missing contract fragment: ${fragment}`);
+}
+
+for (const fragment of [
   'phase7Setup',
   'genevieve-first-time-setup-v1',
   'fullBackup',
@@ -58,7 +73,7 @@ for (const fragment of [
   if (!backupRuntime.includes(fragment)) throw new Error(`deployed Phase 7 backup bridge missing contract fragment: ${fragment}`);
 }
 
-for (const asset of ['/phase7-first-time-setup.js', '/phase7-backup-bridge.js']) {
+for (const asset of ['/phase7-first-time-setup.js', '/phase7-plan-integrity-bridge.js', '/phase7-backup-bridge.js']) {
   if (!worker.includes(asset)) throw new Error(`deployed service worker does not cache ${asset}`);
 }
 if (!worker.includes('phase7-first-time-setup-v1')) {
@@ -72,4 +87,4 @@ if (sourceHash !== expectedProtectedAppHash) {
   throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);
 }
 
-console.log('Phase 7 production artifact verification passed: eight-screen setup and setup-aware backup/restore are linked after Phase 2 and before protected app.js.');
+console.log('Phase 7 production artifact verification passed: first-time setup, due-date-aware plan integrity and setup-aware backup/restore are linked after Phase 2 and before protected app.js.');
