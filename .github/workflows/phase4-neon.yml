@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - name: Reproducible install
         run: npm ci
-      - name: Preserve Phase 2 and Phase 3 and verify Phase 4
+      - name: Preserve Phase 2 and Phase 3 and verify Phase 4 connection contract
         run: npm run verify:phase4
       - name: Verify generated Cloudflare types are current
         run: git diff --exit-code -- worker-configuration.d.ts
@@ -38,7 +38,7 @@ jobs:
             echo "Raw database secret/configuration detected in deployable source" >&2
             exit 1
           fi
-      - name: Verify Phase 4 database readiness live
+      - name: Verify preserved Phase 4 database path through current Phase 5 schema
         shell: bash
         run: |
           set -euo pipefail
@@ -49,27 +49,27 @@ jobs:
             BASE_URL="https://my-budget.positivity864.workers.dev"
           fi
 
-          echo "Verifying Phase 4 readiness at ${BASE_URL}/ready"
+          echo "Verifying preserved Cloudflare → Hyperdrive → Neon path at ${BASE_URL}/ready"
           body_file="$(mktemp)"
           code=""
 
           for attempt in $(seq 1 30); do
             code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
             if [ "$code" = "200" ] \
-              && grep -Fq '"phase":4' "$body_file" \
+              && grep -Fq '"phase":5' "$body_file" \
               && grep -Fq '"assets":"ready"' "$body_file" \
               && grep -Fq '"database":"ready"' "$body_file" \
-              && grep -Fq '"migration":"004"' "$body_file"; then
-              echo "PASS Phase 4 live readiness on attempt ${attempt}"
+              && grep -Fq '"migration":"006"' "$body_file"; then
+              echo "PASS preserved Phase 4 database path on attempt ${attempt}"
               cat "$body_file"
               rm -f "$body_file"
               exit 0
             fi
-            echo "Waiting for Phase 4 deployment: /ready returned ${code} on attempt ${attempt}"
+            echo "Waiting for current schema deployment: /ready returned ${code} on attempt ${attempt}"
             sleep 10
           done
 
-          echo "Phase 4 live readiness failed at ${BASE_URL}/ready" >&2
+          echo "Preserved Phase 4 database path verification failed at ${BASE_URL}/ready" >&2
           echo "Last HTTP status: ${code}" >&2
           cat "$body_file" >&2 || true
           rm -f "$body_file"
