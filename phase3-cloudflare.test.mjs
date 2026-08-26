@@ -14,7 +14,15 @@ test("Cloudflare config preserves the sealed Phase 3 Workers Static Assets contr
   assert.equal(config.compatibility_date, "2026-08-24");
   assert.equal(config.assets?.directory, "./dist");
   assert.equal(config.assets?.binding, "ASSETS");
-  assert.deepEqual(config.assets?.run_worker_first, ["/health", "/ready"]);
+
+  // Phase 3 sealed /health and /ready as Worker-first routes. Later phases may
+  // add protected Worker routes, but they must not remove, rename or reorder
+  // the original Phase 3 pair.
+  const runWorkerFirst = config.assets?.run_worker_first;
+  assert.ok(Array.isArray(runWorkerFirst));
+  assert.deepEqual(runWorkerFirst.slice(0, 2), ["/health", "/ready"]);
+  assert.equal(new Set(runWorkerFirst).size, runWorkerFirst.length, "Worker-first routes must remain unique");
+
   assert.equal(config.d1_databases, undefined);
   assert.equal(config.vars?.DATABASE_URL, undefined);
   assert.doesNotMatch(raw, /postgres(?:ql)?:\/\//i);

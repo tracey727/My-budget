@@ -10,6 +10,7 @@
     "test:phase3": "node --test phase3-runtime-chain.test.mjs phase3-cloudflare.test.mjs",
     "test:phase4": "node --test phase4-database-contract.test.mjs phase4-cloudflare-neon.test.mjs",
     "test:phase5": "node --test phase5-database-safety.test.mjs",
+    "test:phase6-auth": "node --test phase6-auth-runtime.test.mjs phase6-identity-scope.test.mjs",
     "check:source": "node scripts/check-source.mjs",
     "build": "vite build && node scripts/copy-subscriber-assets.mjs",
     "build:react-preservation": "vite build --config vite.react.config.mjs",
@@ -20,6 +21,7 @@
     "verify:phase3": "npm run verify:phase2 && npm run test:phase3 && npm run cf:types && npm run cf:dry-run",
     "verify:phase4": "npm run verify:phase3 && npm run test:phase4",
     "verify:phase5": "npm run verify:phase4 && npm run test:phase5",
+    "verify:phase6-auth": "npm run verify:phase5 && npm run test:phase6-auth",
     "preview": "vite preview"
   },
   "dependencies": {
