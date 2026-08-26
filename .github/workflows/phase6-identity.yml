@@ -25,14 +25,19 @@ jobs:
       - name: Reproducible install
         run: npm ci
 
-      - name: Preserve Phases 2 through 5 and verify Phase 6 chronologically
+      - name: Preserve Phases 2 through 5 and verify complete Phase 6 chronologically
         run: npm run verify:phase6
 
-      - name: Confirm Phase 6 migrations remain chronological and scoped
+      - name: Confirm Phase 6 migrations are chronological through 011
         run: |
           test -f database/migrations/008_phase6_auth_identity_entitlement.sql
           test -f database/migrations/009_phase6_trusted_support_permissions.sql
-          ! grep -Eiq 'professional_membership|professional_workspace|delete_current_account' database/migrations/008_phase6_auth_identity_entitlement.sql database/migrations/009_phase6_trusted_support_permissions.sql
+          test -f database/migrations/010_phase6_professional_roles.sql
+          test -f database/migrations/011_phase6_account_lifecycle_sessions_export.sql
+          grep -q "VALUES ('008'" database/migrations/008_phase6_auth_identity_entitlement.sql
+          grep -q "VALUES ('009'" database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "VALUES ('010'" database/migrations/010_phase6_professional_roles.sql
+          grep -q "VALUES ('011'" database/migrations/011_phase6_account_lifecycle_sessions_export.sql
 
       - name: Confirm trusted support keeps read and financial action separate
         run: |
@@ -40,6 +45,29 @@ jobs:
           grep -q 'can_financial_action boolean NOT NULL DEFAULT false' database/migrations/009_phase6_trusted_support_permissions.sql
           grep -q "WHEN 'read' THEN g.can_read" database/migrations/009_phase6_trusted_support_permissions.sql
           grep -q "WHEN 'financial_action' THEN g.can_financial_action" database/migrations/009_phase6_trusted_support_permissions.sql
+
+      - name: Confirm all six Professional roles and authority separation
+        run: |
+          for role in owner administrator manager accountant_bookkeeper project_manager read_only; do
+            grep -q "'$role'" database/migrations/010_phase6_professional_roles.sql
+          done
+          grep -q "WHEN 'manage_members' THEN m.role IN ('owner','administrator')" database/migrations/010_phase6_professional_roles.sql
+          grep -q "WHEN 'manage_workspace' THEN m.role = 'owner'" database/migrations/010_phase6_professional_roles.sql
+          ! grep -Eiq 'CREATE TABLE public\.(projects|cost_centres|invoices|commitments)' database/migrations/010_phase6_professional_roles.sql
+
+      - name: Confirm auth lifecycle session deletion and export controls
+        run: |
+          grep -q '/auth/sign-up/email' src/worker.mjs
+          grep -q '/auth/sign-in/email' src/worker.mjs
+          grep -q '/auth/sign-in/magic-link' src/worker.mjs
+          grep -q '/auth/sign-out' src/worker.mjs
+          grep -q '/auth/forget-password' src/worker.mjs
+          grep -q '/auth/reset-password' src/worker.mjs
+          grep -q '/api/sessions' src/worker.mjs
+          grep -q '/api/account/export' src/worker.mjs
+          grep -q 'delete_current_account' database/migrations/011_phase6_account_lifecycle_sessions_export.sql
+          grep -q 'record_data_export' database/migrations/011_phase6_account_lifecycle_sessions_export.sql
+          grep -q 'auth_session_hash' database/migrations/011_phase6_account_lifecycle_sessions_export.sql
 
       - name: Confirm managed Auth endpoint is configuration-driven
         run: |
