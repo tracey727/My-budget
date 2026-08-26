@@ -29,6 +29,10 @@ function authorityClient(authorityResolver, calls) {
       if (compact.includes('application_user_is_active')) {
         return { rows: [{ actor_active: true, owner_active: true }] };
       }
+      if (compact.includes('FROM public.user_sessions')) return { rows: [] };
+      if (compact.includes('register_current_session')) {
+        return { rows: [{ session_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' }] };
+      }
       if (compact.includes('trusted_support_can')) {
         return { rows: [{ allowed: authorityResolver(params) }] };
       }
@@ -58,7 +62,10 @@ test('User A cannot read User B data without an explicit trusted-support read gr
   const queries = calls.filter((entry) => entry.kind === 'query');
   assert.equal(queries[0].sql, 'BEGIN');
   assert.deepEqual(queries[1].params, [USER_A, USER_B, 'support']);
-  assert.deepEqual(queries[3].params, [USER_B, USER_A, 'read']);
+  const sessionQuery = queries.find((entry) => entry.sql.includes('FROM public.user_sessions'));
+  assert.equal(sessionQuery.params[0], USER_A);
+  const authorityQuery = queries.find((entry) => entry.sql.includes('trusted_support_can'));
+  assert.deepEqual(authorityQuery.params, [USER_B, USER_A, 'read']);
   assert.equal(queries.at(-1).sql, 'ROLLBACK');
 });
 
