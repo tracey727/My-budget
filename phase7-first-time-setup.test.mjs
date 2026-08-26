@@ -98,7 +98,7 @@ test('Target mode has live Green Yellow Red Recovery warning refresh logic', () 
   assert.match(runtime, /function targetAlertStatus/);
   assert.match(runtime, /return 'recovery'/);
   assert.match(runtime, /return 'red'/);
-  assert.match(runtime, /return 'yellow'/);
+  assert.match(runtime, /\? 'red' : 'yellow'/);
   assert.match(runtime, /return 'green'/);
   assert.match(runtime, /refreshCompletedBillPlans/);
 });
