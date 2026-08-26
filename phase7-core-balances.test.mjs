@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   buildAccountBalanceSnapshot,
   calculateBalanceSummary,
@@ -12,6 +13,7 @@ import {
 } from './src/phase7-account-routes.mjs';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
+const balanceBridge = await readFile(new URL('./phase7-core-balances-bridge.js', import.meta.url), 'utf8');
 
 test('internal transfers move balances but are never counted as spending', () => {
   const accounts = [
@@ -117,4 +119,14 @@ test('Phase 7 account API fails closed without an authenticated managed session'
   const response = await handlePhase7AccountRequest(new Request('https://budget.example.test/api/phase7/accounts'), {});
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { ok: false, error: { code: 'authentication_required' } });
+});
+
+test('cloud sync cannot archive from incomplete onboarding and restores protected emergency cash for established recovery', () => {
+  assert.match(balanceBridge, /function setupAllowsCloudSync\(\)/);
+  assert.match(balanceBridge, /readSetup\(\)\.completed === true/);
+  assert.match(balanceBridge, /Finish first-time setup before cloud account synchronisation begins\./);
+  assert.match(balanceBridge, /function restoreCloudSettingsForEstablishedUser/);
+  assert.match(balanceBridge, /emergencyCash: Math\.max\(0, Number\(settings\.emergencyBufferAmount\) \|\| 0\)/);
+  assert.match(balanceBridge, /Recovered your account balances and protected emergency amount from Neon\. Reloading…/);
+  assert.match(balanceBridge, /The full safe-to-spend forecast is a later chronological phase\./);
 });
