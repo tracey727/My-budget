@@ -14,185 +14,135 @@ Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
 **Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-Phase 4 production connection PR: #24
-Phase 4 implementation head: `6117b6b0e5d59d5399e3942f86b75250438f7c71`
-Phase 4 production merge commit: `393143b776541659a200eb05686883964e386c63`
-Phase 4 archive merge commit: `97730100088207bdb02a339e8dbcd27a29e14111`
-Detailed Phase 4 completion archive: `docs/PHASE4_COMPLETION_ARCHIVE.md`
-Trigger-count audit correction: `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`
-Database foundation checkpoint: `docs/PHASE4_DATABASE_CHECKPOINT.md`
-Connection handoff/history: `docs/PHASE4_CONNECTION_HANDOFF.md`
-Migration workflow: `database/README.md`
+**Phase 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED after the Phase 5 completion-archive PR is merged.**
 
-## Current production linkage
+Phase 5 implementation PR: #28
+Phase 5 implementation merge commit: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
+Phase 5 readiness migration: `007`
+Detailed Phase 5 completion archive: `docs/PHASE5_COMPLETION_ARCHIVE.md`
+Detailed Phase 5 engineering evidence: `docs/PHASE5_DATABASE_SAFETY.md`
+Current checkpoint: `docs/PHASE5_CURRENT_CHECKPOINT.md`
+Database migration/runbook: `database/README.md`
 
-The verified production chain is:
+## Locked chronology
 
-`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → preserved app.js → Cloudflare ASSETS → Worker /health + /ready → HYPERDRIVE → Neon neondb → schema_migrations 004`
+Do not start a later phase until the immediately preceding phase is built, linked to all earlier stages, verified with the appropriate stage-specific gate, GREEN and archived.
 
-The earlier stage gates remain nested rather than bypassed:
+The authoritative sequence through the current checkpoint is:
 
-`Phase 2 preservation → Phase 3 Cloudflare verification → Phase 4 database/readiness verification`
+`Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare deployment → Phase 4 Hyperdrive/Neon connection → Phase 5 database safety`
+
+The executable production chain is:
+
+`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → preserved app.js → Cloudflare ASSETS → Worker /health + /ready → HYPERDRIVE → Neon neondb → schema_migrations 007 → RLS/ownership/archive/audit controls`
+
+Verification remains nested rather than bypassed:
+
+`Phase 2 preservation → Phase 3 Cloudflare verification → Phase 4 database/readiness verification → Phase 5 database-safety verification`
+
+Phase 1 remains the governing locked product contract.
 
 The donor `app.js` remains preserved.
 
-## Phase 4 final infrastructure state
+## Phase 5 — Database Safety — sealed scope
 
-Dedicated Neon project:
+Phase 5 is permanently defined as the database-safety stage required before identity-dependent app screens or user-owned persistence APIs.
+
+Delivered controls:
+
+- foreign keys preserved and ownership-preserving foreign keys added;
+- unique constraints added where required;
+- required ownership fields enforced;
+- money stored using PostgreSQL `numeric`, never floating point;
+- required user ownership on every current financial record;
+- RLS prevents one user reading or writing another user's records;
+- cross-user financial relationships rejected at database level;
+- soft archive rules implemented;
+- physical DELETE withheld from the restricted Worker role;
+- created timestamps preserved;
+- updated timestamps covered, including alerts;
+- automatic append-only audit records implemented;
+- chronological migrations `005`, `006`, `007` deployed;
+- rollback procedure recorded at `database/rollbacks/phase5_to_phase4.sql`;
+- rollback tested with an empty schema diff against Phase 4;
+- isolated Neon test and production branches kept separate;
+- synthetic Phase 5 test records kept out of production;
+- Worker `/ready` requires migration `007` and fails closed if it is absent or database connectivity is unavailable.
+
+Phase 5 migrations:
+
+1. `005_phase5_database_safety.sql`
+2. `006_phase5_audit_actor_context.sql`
+3. `007_phase5_financial_settings_archive.sql`
+
+A test-only audit-actor NULL defect was found after migration 005 on the isolated Neon test branch and corrected by migration 006 before production promotion. Production received migrations 005–007 in one controlled transaction, so that defective intermediate state was never exposed live.
+
+## Phase 5 production audit
+
+Production database:
 
 - project: `genevieve-budget`
 - project ID: `icy-morning-93993343`
 - database: `neondb`
 - PostgreSQL: 18
 - production branch: `main` (`br-old-boat-axqvorbe`)
-- verified development branch: `phase4-schema-dev` (`br-wandering-rice-ax2oofpd`)
 - restricted Worker role: `genevieve_budget_worker`
 
-Cloudflare Hyperdrive:
+Phase 5 isolated test branch:
 
-- binding: `HYPERDRIVE`
-- configuration ID: `40061acf4dd74d808860c06fe9c2f075`
-- PostgreSQL through direct/unpooled Neon host
-- query caching disabled
+- `phase5-database-safety-test` (`br-withered-fire-axt9yppr`)
 
-No raw database password or connection URI is stored in this archive or committed deployable source.
+Rollback proof branch:
 
-## Phase 4 database foundation
+- `phase5-rollback-test` (`br-soft-mountain-axryrrpf`)
 
-Chronological migrations:
+Final production audit after promotion:
 
-1. `000_phase4_migration_ledger.sql`
-2. `001_phase4_user_foundation.sql`
-3. `002_phase4_accounts_transactions.sql`
-4. `003_phase4_recurring_money.sql`
-5. `004_phase4_alerts_savings_audit.sql`
+- migrations `000,001,002,003,004,005,006,007` — PASS;
+- RLS-protected tables: 15 — PASS;
+- RLS policies: 44 — PASS;
+- ownership-preserving foreign keys: 8 — PASS;
+- automatic owned-record audit triggers: 14 — PASS;
+- floating-point money columns: 0 — PASS;
+- required ownership on every current financial record — PASS;
+- archive coverage on current mutable financial records — PASS;
+- Worker DELETE privilege on Phase 5 application tables: none — PASS;
+- test-to-production schema comparison: empty — PASS.
 
-Production contains all 15 required Phase 4 application tables:
+## Phase 5 post-merge verification evidence
 
-- users
-- profiles
-- accounts
-- transactions
-- transaction_categories
-- incomes
-- bills
-- bill_provisions
-- subscriptions
-- savings_goals
-- debts
-- alerts
-- financial_settings
-- verified_savings
-- audit_events
+Implementation merge commit:
 
-Internal migration infrastructure: `schema_migrations`.
-
-Deferred professional tables remain intentionally unbuilt until the later professional stage.
-
-Final read-only Neon production audit after the Phase 4 connection merge:
-
-- 15 required application tables plus `schema_migrations` = 16 public base tables — PASS
-- migrations `000,001,002,003,004` — PASS
-- migration `004` present — PASS
-- foreign keys: 22
-- user-defined triggers: 14 — PASS
-- indexes: 40
-- Worker CONNECT to `neondb` — PASS
-- Worker USAGE on `public` — PASS
-- Worker SELECT on `public.schema_migrations` — PASS
-
-The 14 user-defined triggers are the expected live set: 13 `updated_at` maintenance triggers on tables that carry an `updated_at` field, plus the append-only protection trigger on `audit_events`. No functional trigger is missing. Earlier historical Phase 4 documents that recorded `15` triggers are superseded on this audit point by `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`; the database was not mutated to make the documentation match.
-
-The prior verified development-to-production schema comparison was empty.
-
-## Phase 4 readiness and failure behaviour
-
-`/health` is Worker liveness and does not depend on database readiness.
-
-`/ready` may return HTTP 200 only when:
-
-- Cloudflare static assets are available;
-- the Hyperdrive binding is present;
-- PostgreSQL can be reached;
-- `current_database()` is `neondb`;
-- migration `004` exists.
-
-Successful readiness shape:
-
-```json
-{"ok":true,"service":"genevieve-budget","phase":4,"assets":"ready","database":"ready","migration":"004"}
-```
-
-A controlled isolated failure proof was completed with database connectivity deliberately unavailable without changing production or preview Hyperdrive configuration.
-
-Failure result:
-
-- `/health` remained HTTP 200;
-- `/ready` returned HTTP 503;
-- database reported `unavailable`;
-- migration reported `null`;
-- no password, URI, driver error or stack trace leaked.
-
-Failure readiness shape:
-
-```json
-{"ok":false,"service":"genevieve-budget","phase":4,"assets":"ready","database":"unavailable","migration":null}
-```
-
-## Phase 4 verification evidence
-
-Fresh pre-merge gates on implementation head `6117b6b0e5d59d5399e3942f86b75250438f7c71` after the controlled failure proof:
-
-- Phase 2 baseline verification run #120 (`32921570621`) — GREEN
-- Phase 3 Cloudflare verification run #54 (`32921570570`) — GREEN
-- Phase 4 Neon database verification run #10 (`32921570583`) — GREEN, including live preview database readiness
-
-PR #24 was merged using the expected head SHA.
-
-Production merge commit:
-
-`393143b776541659a200eb05686883964e386c63`
+`66933f63e4cee767ad25afa8a4ae491f6272f92e`
 
 Post-merge `main` verification:
 
-- Phase 2 baseline verification run #121 (`32922303305`) — GREEN
-- Phase 3 Cloudflare verification run #55 (`32922303334`) — GREEN, including live production root and `/health`
-- Phase 4 Neon database verification run #11 (`32922303361`) — GREEN, including live production `/ready`
+- Phase 2 baseline verification #129 (`32924950634`) — GREEN;
+- Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
+- Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
+- Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live production `/ready` at migration `007`.
 
-The Phase 4 archive closure then merged as `97730100088207bdb02a339e8dbcd27a29e14111`, with post-archive Phase 2, Phase 3 and Phase 4 gates all GREEN.
+The Phase 5 completion-archive branch is documentation-only and must pass the same Phase 2, Phase 3, Phase 4 and Phase 5 gates before merge.
 
-The Cloudflare Git integration performed the production deployment. No uncontrolled manual production deploy was used.
+## Earlier sealed stages
 
-## Non-blocking warnings
+### Phase 4 — Neon connection
 
-- Wrangler recommends `@types/node` while `nodejs_compat` is enabled. The Worker remains JavaScript and generated Cloudflare types are current; all gates pass.
-- GitHub Actions reports some older action internals being forced from Node 20 to Node 24. Current workflows pass.
+Phase 4 production connection PR: #24
+Phase 4 production merge commit: `393143b776541659a200eb05686883964e386c63`
+Phase 4 archive merge commit: `97730100088207bdb02a339e8dbcd27a29e14111`
+Detailed archive: `docs/PHASE4_COMPLETION_ARCHIVE.md`
+Trigger audit correction: `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`
 
-Neither warning blocks deployment at this checkpoint.
+Phase 4 established the verified Cloudflare Worker → Hyperdrive → Neon `neondb` connection and migrations `000` through `004`.
 
----
+### Phase 3 — Cloudflare production deployment
 
-## Phase 3 — sealed production deployment
+Phase 3 re-seal merge commit: `09b773801e0d219ef248181de9e48bf906d72217`
+Phase 3 documentation closure: `bb63194af60a4dd7e8be00119f64c6e0ae39a4e3`
+Detailed archive: `docs/PHASE3_CLOUDFLARE_RESEAL.md`
 
-Phase 3 Cloudflare was re-sealed after the Phase 2 runtime expanded to the seven-view subscriber chain:
-
-`Home → Money → Bills → Subs → Accounts → Savings → Review`
-
-The sealed production runtime chain before the database connection was:
-
-`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → app.js`
-
-Phase 3 re-seal PR #20 merged as `09b773801e0d219ef248181de9e48bf906d72217`. The documentation closure merged as `bb63194af60a4dd7e8be00119f64c6e0ae39a4e3`.
-
-Detailed archive: `docs/PHASE3_CLOUDFLARE_RESEAL.md`.
-
-**Phase 3 result: COMPLETE / LIVE / GREEN / ARCHIVED.**
-
----
-
-## Phase 2 — sealed foundation
-
-Phase 2 is the preserved application/data-contract baseline on which later phases build.
+### Phase 2 — subscriber/data foundation
 
 Authoritative historical archives:
 
@@ -200,54 +150,42 @@ Authoritative historical archives:
 - `docs/PHASE2_DATA_CONTRACT_AMENDMENT.md`
 - `docs/PHASE2_SUBSCRIPTIONS_SAVINGS_AMENDMENT.md`
 
-Phase 2 includes the preserved subscriber runtime, deterministic install/build path, source and artifact verification, donor `app.js` preservation, account types including BNPL, expanded transactions, Bills, Subscriptions, Savings Goals, backup/restore continuity and the associated runtime/data contracts.
+Phase 2 contains the preserved subscriber runtime and financial data contracts on which Phases 3–5 depend.
 
-**Phase 2 result: COMPLETE / GREEN / ARCHIVED.**
-
----
-
-## Phase 1 — locked product contract
+### Phase 1 — locked product contract
 
 Authoritative contract: `docs/PRODUCT_CONTRACT.md`.
 
-Locked principles include:
+Locked principles include Personal and Professional product doors, one shared financial engine, safe-to-spend, Smooth My Bills / Pay Ahead, Hold My Money / Bill Target, Green → Yellow → Red → Recovery alerts, subscription decisions, verified savings, privacy/authority rules and the GitHub + Cloudflare + Neon architecture.
 
-- Personal and Professional product doors;
-- one shared financial engine;
-- bank balance is not safe-to-spend;
-- Smooth My Bills / Pay Ahead;
-- Hold My Money / Bill Target;
-- Green → Yellow → Red → Recovery alerts;
-- safe-to-spend model;
-- conversational expense review;
-- subscription decision model;
-- professional budget controls;
-- verified-savings separation;
-- privacy and authority rules;
-- GitHub + Cloudflare + Neon production architecture target.
+## Current known governance issue
 
----
+GitHub `main` branch protection is not currently enabled. This does not break the live application, Cloudflare runtime, Hyperdrive connection or Phase 5 database safety controls, but repository governance remains weaker than the intended production standard until PR/status-check protection is enabled.
 
-# Remaining build — chronological order
+The current GitHub connector can read this state but does not expose a branch-protection write operation.
 
-Do not start a later phase until the immediately preceding phase is built, linked, verified, archived and GREEN.
+## Remaining build — chronological order
 
-## Phase 5 — Identity, user scope and permissions — NEXT
+The previous roadmap that called identity work “Phase 5” is superseded. Phase 5 is now permanently Database Safety. All later stages move forward by one number.
 
-- User identity.
+### Phase 6 — Identity, user scope and permissions — NEXT
+
+- Authenticated user identity.
+- Transaction-local PostgreSQL `app.user_id` established before every user-owned query.
 - Personal vs Professional entitlement.
 - Trusted-support permission model.
 - Separate read authority from financial action authority.
-- Preserve Phase 2, Phase 3 and Phase 4 gates before introducing identity-dependent persistence.
+- Preserve and rerun Phase 2, Phase 3, Phase 4 and Phase 5 gates.
+- Do not build user-owned financial screens or persistence endpoints until identity scope is proven fail-closed.
 
-## Phase 6 — Core accounts and balances
+### Phase 7 — Core accounts and balances
 
 - Persistent multiple accounts/assets.
 - Credit cards, loans, BNPL and debts.
 - Internal transfers not counted as spending.
 - Spendable vs protected/reserved balances.
 
-## Phase 7 — Transactions and expense intelligence
+### Phase 8 — Transactions and expense intelligence
 
 - Persistent transaction storage/import/manual entry.
 - Categories.
@@ -255,26 +193,26 @@ Do not start a later phase until the immediately preceding phase is built, linke
 - Essential / Worth It / Unsure / Waste intelligence.
 - Unknown/duplicate/forgotten-charge foundations.
 
-## Phase 8 — Income and payday engine
+### Phase 9 — Income and payday engine
 
 - Weekly, fortnightly, monthly and irregular income.
 - Next-income calculation.
 - Income-cycle normalisation.
 
-## Phase 9 — Obligations and bill calendar
+### Phase 10 — Obligations and bill calendar
 
 - Recurring and irregular bills.
 - Due dates.
 - Bill calendar.
 - Upcoming-obligation protection.
 
-## Phase 10 — Smooth My Bills / Pay Ahead
+### Phase 11 — Smooth My Bills / Pay Ahead
 
 - Convert annual/quarterly/irregular obligations into income-cycle contributions.
 - Physical bills-account or virtual-reserve mode.
 - Green / Yellow / Red / Recovery alerting.
 
-## Phase 11 — Hold My Money / Bill Target
+### Phase 12 — Hold My Money / Bill Target
 
 - Target amount.
 - Due date.
@@ -283,7 +221,7 @@ Do not start a later phase until the immediately preceding phase is built, linke
 - Required contribution.
 - Green / Yellow / Red / Recovery alerting.
 
-## Phase 12 — Safe-to-spend engine
+### Phase 13 — Safe-to-spend engine
 
 - Income minus bills, provisions/targets, debts, emergency buffer and savings commitments.
 - Safe this income cycle.
@@ -291,27 +229,27 @@ Do not start a later phase until the immediately preceding phase is built, linke
 - Safe today.
 - Protected money excluded from free cash.
 
-## Phase 13 — Forecast and cash-flow warning
+### Phase 14 — Forecast and cash-flow warning
 
 - Budget vs actual.
 - Projected end-of-month spending.
 - Shortfall prediction.
 - Recovery actions.
 
-## Phase 14 — Savings and emergency funds
+### Phase 15 — Savings and emergency funds
 
 - Savings goals.
 - Emergency fund.
 - Separate potential savings from verified realised savings.
 
-## Phase 15 — Debt planning
+### Phase 16 — Debt planning
 
 - Debt commitments.
 - Interest scenarios.
 - Repayment planning.
 - Do not misrepresent future savings as realised savings.
 
-## Phase 16 — Subscription and recurring-cost manager
+### Phase 17 — Subscription and recurring-cost manager
 
 - Keep / Cancel / Maybe / Another month / Pause / Review next charge.
 - Price increases.
@@ -319,55 +257,55 @@ Do not start a later phase until the immediately preceding phase is built, linke
 - Forgotten charges.
 - Explicit authority before external action.
 
-## Phase 17 — Household continuity and financial-change controls
+### Phase 18 — Household continuity and financial-change controls
 
 - Direct-debit/account-change checklist.
 - Fees and interest monitoring.
 - Backup/export.
 
-## Phase 18 — Personal accessibility modes
+### Phase 19 — Personal accessibility modes
 
 - Simple / low-cognitive-load mode.
 - Trusted-support access with restricted permissions.
 
-## Phase 19 — Professional entities and project accounting
+### Phase 20 — Professional entities and project accounting
 
 - Businesses, divisions, projects, workstreams, cost centres, funding pools and accounts.
 - Transaction allocation across the hierarchy.
-- Professional schema tables are created at this later professional stage.
+- Professional schema tables created only at this later professional stage.
 
-## Phase 20 — Professional commitments, invoices and revenue
+### Phase 21 — Professional commitments, invoices and revenue
 
 - Committed vs paid vs owing.
 - Revenue expected/received.
 - Available uncommitted cash.
 
-## Phase 21 — Professional project forecasting
+### Phase 22 — Professional project forecasting
 
 - Approved budget, actual, committed, forecast, variance, cost-to-complete and projected final cost.
 - Green / Yellow / Red / Recovery monitoring.
 
-## Phase 22 — Professional cash-flow forecasting
+### Phase 23 — Professional cash-flow forecasting
 
 - 7-day, 30-day, 90-day and 12-month forecasts.
 - Wages, contractors, tax, commitments, rent, insurance, debt and reserved funds.
 
-## Phase 23 — Professional contracts and recurring costs
+### Phase 24 — Professional contracts and recurring costs
 
 - SaaS, licences, hosting, insurance, rent, vehicles, phones, memberships, suppliers, contractors and leases.
 - Keep / Renegotiate / Cancel / Review decisions with explicit authority.
 
-## Phase 24 — Verified Savings Ledger
+### Phase 25 — Verified Savings Ledger
 
 Baseline → Proposed action → Action completed → Evidence → Later result → Verified saving.
 
-## Phase 25 — Reporting, backup and export
+### Phase 26 — Reporting, backup and export
 
 - Personal reports.
 - Professional project/business reports.
 - Data export and continuity.
 
-## Phase 26 — Security, privacy and abuse-resistance audit
+### Phase 27 — Security, privacy and abuse-resistance audit
 
 - Access controls.
 - Secrets handling.
@@ -375,7 +313,7 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 - Financial-action authorisation.
 - Auditability.
 
-## Phase 27 — Subscriber readiness
+### Phase 28 — Subscriber readiness
 
 - Full automated test/build/audit gates.
 - Database migration verification.
@@ -383,16 +321,14 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 - Failure/recovery testing.
 - Final release checklist and production archive.
 
----
+## Advancement rule
 
-# Advancement rule
+After the Phase 5 completion-archive PR is merged and Phase 2 → Phase 5 gates remain GREEN:
 
-**Phase 4 is COMPLETE / LIVE / GREEN / ARCHIVED.**
+**Phase 5 — Database Safety is COMPLETE / LIVE / GREEN / ARCHIVED.**
 
-The trigger-count correction is documentation-only and does not change the production schema, Worker code, Hyperdrive configuration, or Phase 4 runtime contract. It must pass the normal Phase 2, Phase 3 and Phase 4 gates before merge.
+The next permitted functional build is:
 
-After that correction is merged and the same gates remain GREEN, the next permitted build is:
+**Phase 6 — Identity, user scope and permissions.**
 
-**Phase 5 — Identity, user scope and permissions.**
-
-Do not start Phase 6 or any later phase until Phase 5 is itself built, linked, verified, GREEN and archived.
+Do not start Phase 7 or any later stage until Phase 6 is built, linked to Phases 1–5, verified, GREEN and archived.
