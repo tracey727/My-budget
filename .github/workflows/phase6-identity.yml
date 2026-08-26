@@ -1,0 +1,41 @@
+name: Phase 6 identity verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  phase6-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Reproducible install
+        run: npm ci
+
+      - name: Preserve Phases 2 through 5 and verify Phase 6 identity
+        run: npm run verify:phase6-identity
+
+      - name: Confirm Phase 6 scope has not advanced
+        run: |
+          ! grep -Eiq 'trusted_support|professional_membership|professional_workspace|delete_current_account' database/migrations/008_phase6_auth_identity_entitlement.sql
+
+      - name: Confirm managed Auth endpoint is configuration-driven
+        run: |
+          ! grep -Eiq 'ep-[a-z0-9-]+\.neonauth\.' src/worker.mjs wrangler.jsonc
+
+      - name: Confirm protected Budget engine remains untouched
+        run: |
+          test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
