@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import {
   PAY_FREQUENCIES,
   annualBillCost,
+  paysAvailableByDueDate,
   smoothContribution,
   deriveBillPlan,
   hasMeaningfulFinancialData,
@@ -11,6 +12,7 @@ import {
 } from './phase7-first-time-setup-model.mjs';
 
 const runtime = await readFile(new URL('./phase7-first-time-setup.js', import.meta.url), 'utf8');
+const planBridge = await readFile(new URL('./phase7-plan-integrity-bridge.js', import.meta.url), 'utf8');
 const backupBridge = await readFile(new URL('./phase7-backup-bridge.js', import.meta.url), 'utf8');
 const index = await readFile(new URL('./index.html', import.meta.url), 'utf8');
 const linker = await readFile(new URL('./scripts/link-phase7-first-time-setup.mjs', import.meta.url), 'utf8');
@@ -19,11 +21,18 @@ test('Phase 7 pay-frequency contract is exact', () => {
   assert.deepEqual(PAY_FREQUENCIES, ['weekly', 'fortnightly', 'monthly', 'irregular']);
 });
 
-test('Smooth my bills annualises each bill and divides it by the pay cycle', () => {
+test('Smooth my bills annualises each bill when no due date is known', () => {
   assert.equal(annualBillCost(120, 'monthly'), 1440);
   assert.equal(smoothContribution(120, 'monthly', 'weekly'), 27.69);
   assert.equal(smoothContribution(120, 'monthly', 'fortnightly'), 55.38);
   assert.equal(smoothContribution(120, 'monthly', 'monthly'), 120);
+});
+
+test('Smooth my bills uses the pays actually available before the first due date', () => {
+  assert.equal(paysAvailableByDueDate('2026-09-03', '2026-11-25', 'fortnightly'), 6);
+  assert.equal(smoothContribution(1200, 'yearly', 'fortnightly', '2026-11-25', '2026-09-03'), 200);
+  assert.equal(smoothContribution(1200, 'yearly', 'fortnightly', '2026-09-01', '2026-09-03'), 1200);
+  assert.equal(smoothContribution(1200, 'yearly', 'fortnightly', '2026-11-25', '2026-09-03', 300), 150);
 });
 
 test('Irregular pay never fabricates a fixed per-pay contribution', () => {
@@ -57,6 +66,20 @@ test('First money plan sums smooth contributions without treating emergency cash
   assert.equal(plan.emergencyCash, 500);
   assert.equal(plan.bills.length, 2);
   assert.equal(plan.savingsGoals.length, 1);
+});
+
+test('First money plan is due-date aware when dated bills are supplied', () => {
+  const plan = buildFirstMoneyPlan({
+    payFrequency: 'fortnightly',
+    nextPayDate: '2026-09-03',
+    billMode: 'smooth',
+    emergencyCash: 0,
+    accounts: [{ id: 'a1' }],
+    bills: [{ amount: 1200, frequency: 'yearly', nextDueDate: '2026-11-25' }],
+    savingsGoals: [],
+  });
+  assert.equal(plan.regularPerPayBills, 200);
+  assert.equal(plan.bills[0].requiredContribution, 200);
 });
 
 test('Existing real financial data is recognised so established users are not forced through onboarding', () => {
@@ -104,6 +127,17 @@ test('Target mode has live Green Yellow Red Recovery warning refresh logic', () 
   assert.match(runtime, /refreshCompletedBillPlans/);
 });
 
+test('Plan-integrity bridge corrects due-date funding, stale pay dates and first-plan presentation', () => {
+  assert.match(planBridge, /function paysAvailableByDueDate/);
+  assert.match(planBridge, /function rollNextPayDate/);
+  assert.match(planBridge, /function smoothContribution/);
+  assert.match(planBridge, /function refreshCommittedPlan/);
+  assert.match(planBridge, /function correctFirstPlanPresentation/);
+  assert.match(planBridge, /adjusted to have each dated bill ready by its next due date/);
+  assert.match(planBridge, /Choose today or a future date for your next pay/);
+  assert.match(planBridge, /setTimeout\(refreshCommittedPlan, 0\)/);
+});
+
 test('Backup and restore preserve Phase 7 setup settings and remain compatible with legacy backups', () => {
   assert.match(backupBridge, /const SETUP_STORAGE_KEY = 'genevieve-first-time-setup-v1'/);
   assert.match(backupBridge, /const phase7Setup = readSetupState\(\)/);
@@ -115,13 +149,14 @@ test('Backup and restore preserve Phase 7 setup settings and remain compatible w
   assert.match(backupBridge, /Legacy backups pre-date Phase 7/);
 });
 
-test('Production linker preserves source lineage and inserts both Phase 7 runtimes before app.js', () => {
+test('Production linker preserves source lineage and inserts all Phase 7 runtimes before app.js', () => {
   const data = index.indexOf('/phase2-data-runtime.js');
   const extended = index.indexOf('/phase2-subscriptions-savings-runtime.js');
   const app = index.indexOf('/app.js');
   assert.ok(data >= 0 && extended > data && app > extended);
   assert.match(linker, /phase7-first-time-setup\.js/);
+  assert.match(linker, /phase7-plan-integrity-bridge\.js/);
   assert.match(linker, /phase7-backup-bridge\.js/);
   assert.match(linker, /protectedAppPattern/);
-  assert.match(linker, /linked Phase 7 setup and backup runtimes after Phase 2 and immediately before protected app\.js/);
+  assert.match(linker, /linked Phase 7 setup, plan-integrity and backup runtimes after Phase 2 and immediately before protected app\.js/);
 });
