@@ -6,11 +6,12 @@ Phase 4 connection PR: #24
 Implementation branch: `phase4-cloudflare-neon-connection`
 Implementation head: `6117b6b0e5d59d5399e3942f86b75250438f7c71`
 Merge commit on `main`: `393143b776541659a200eb05686883964e386c63`
+Archive merge commit on `main`: `97730100088207bdb02a339e8dbcd27a29e14111`
 Production URL: `https://my-budget.positivity864.workers.dev`
 
 ## Final result
 
-**PHASE 4 — COMPLETE / LIVE / GREEN / READY TO ARCHIVE**
+**PHASE 4 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
 Phase 4 established and verified the complete production database path:
 
@@ -107,7 +108,7 @@ Final read-only audit after production merge returned:
 - current database: `neondb`.
 - 15 required application tables plus internal `schema_migrations` = 16 public base tables.
 - foreign keys: 22.
-- triggers: 15.
+- user-defined triggers: 14.
 - indexes: 40.
 - migration ledger: `000,001,002,003,004`.
 - migration `004` present: true.
@@ -115,7 +116,9 @@ Final read-only audit after production merge returned:
 - Worker role USAGE on `public`: true.
 - Worker role SELECT on `public.schema_migrations`: true.
 
-The final audit matches the Phase 4 database design. No schema mutation was made during this closing audit.
+The 14 user-defined triggers are the expected live set: 13 `updated_at` maintenance triggers on tables that carry an `updated_at` field, plus the append-only mutation-prevention trigger on `audit_events`. No functional trigger is missing. Earlier historical Phase 4 documents that recorded `15` triggers are superseded on this audit point by `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`.
+
+The final audit matches the Phase 4 database design. No schema mutation was made during this closing audit or during the trigger-count correction.
 
 ## Credential and configuration safety
 
@@ -140,14 +143,12 @@ Neither warning is a deployment blocker at this checkpoint.
 
 ## Phase 4 closure decision
 
-**Phase 4 is technically complete, live and green.**
+**Phase 4 is complete, live, green and archived.**
 
-This documentation branch performs the final archive-only closure. It must pass the standard Phase 2, Phase 3 and Phase 4 gates before merge.
+The archive closure merged to `main` as `97730100088207bdb02a339e8dbcd27a29e14111` and the standard Phase 2, Phase 3 and Phase 4 gates remained GREEN afterward.
 
-After this archive branch is merged and `main` is verified one final time, Phase 4 becomes:
+The later trigger-count correction is documentation-only. It corrects the audit record from `15` to the verified live count of `14` without changing the database, Worker, Hyperdrive configuration, migration history, or runtime linkage.
 
-**COMPLETE / LIVE / GREEN / ARCHIVED**
-
-Only then is the next permitted build stage:
+After that documentation correction itself passes the standard gates and is merged, the next permitted build stage remains:
 
 **Phase 5 — Identity, user scope and permissions.**
