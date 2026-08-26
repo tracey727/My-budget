@@ -37,24 +37,76 @@ export function annualBillCost(amount, frequency) {
   return roundMoney(roundMoney(amount) * cycles);
 }
 
-export function smoothContribution(amount, billFrequency, payFrequency) {
-  if (payFrequency === 'irregular') return null;
-  const payPeriods = PAY_PERIODS_PER_YEAR[payFrequency];
-  if (!payPeriods) return null;
-  return roundMoney(annualBillCost(amount, billFrequency) / payPeriods);
+function parseDateOnly(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return null;
+  const [year, month, day] = String(value).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date;
 }
 
-export function deriveBillPlan(bill, billMode, payFrequency) {
+function monthlyPayDate(anchor, offset) {
+  const year = anchor.getUTCFullYear();
+  const month = anchor.getUTCMonth() + offset;
+  const targetYear = year + Math.floor(month / 12);
+  const targetMonth = ((month % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(targetYear, targetMonth, Math.min(anchor.getUTCDate(), lastDay)));
+}
+
+export function paysAvailableByDueDate(nextPayDate, dueDate, payFrequency) {
+  if (payFrequency === 'irregular') return null;
+  const start = parseDateOnly(nextPayDate);
+  const due = parseDateOnly(dueDate);
+  if (!start || !due) return null;
+  if (due.getTime() < start.getTime()) return 0;
+
+  let count = 0;
+  for (let index = 0; index < 600; index += 1) {
+    let payDate;
+    if (payFrequency === 'weekly' || payFrequency === 'fortnightly') {
+      const days = payFrequency === 'weekly' ? 7 : 14;
+      payDate = new Date(start.getTime() + (index * days * 86_400_000));
+    } else if (payFrequency === 'monthly') {
+      payDate = monthlyPayDate(start, index);
+    } else {
+      return null;
+    }
+    if (payDate.getTime() > due.getTime()) break;
+    count += 1;
+  }
+  return count;
+}
+
+export function smoothContribution(amount, billFrequency, payFrequency, nextDueDate = '', nextPayDate = '', amountReserved = 0) {
+  if (payFrequency === 'irregular') return null;
+  const amountDue = roundMoney(amount);
+  const reserved = roundMoney(amountReserved);
+  const paysBeforeDue = paysAvailableByDueDate(nextPayDate, nextDueDate, payFrequency);
+  if (paysBeforeDue !== null) {
+    const remainingForFirstDue = roundMoney(Math.max(0, amountDue - reserved));
+    if (remainingForFirstDue === 0) return 0;
+    if (paysBeforeDue <= 0) return remainingForFirstDue;
+    return roundMoney(remainingForFirstDue / paysBeforeDue);
+  }
+
+  const payPeriods = PAY_PERIODS_PER_YEAR[payFrequency];
+  if (!payPeriods) return null;
+  return roundMoney(annualBillCost(amountDue, billFrequency) / payPeriods);
+}
+
+export function deriveBillPlan(bill, billMode, payFrequency, nextPayDate = '') {
   const amount = roundMoney(bill?.amount);
+  const amountReserved = roundMoney(bill?.amountReserved);
   const method = billMode === 'smooth' ? 'smooth' : 'target';
   return {
     ...bill,
     amount,
     budgetingMethod: method,
     targetAmount: amount,
-    amountReserved: roundMoney(bill?.amountReserved),
+    amountReserved,
     requiredContribution: method === 'smooth'
-      ? (smoothContribution(amount, bill?.frequency, payFrequency) ?? 0)
+      ? (smoothContribution(amount, bill?.frequency, payFrequency, bill?.nextDueDate, nextPayDate, amountReserved) ?? 0)
       : 0,
     alertStatus: ['green', 'yellow', 'red', 'recovery'].includes(bill?.alertStatus)
       ? bill.alertStatus
@@ -75,8 +127,9 @@ export function buildFirstMoneyPlan(setup) {
     : 'fortnightly';
   const billMode = setup?.billMode === 'smooth' ? 'smooth' : 'target';
   const accounts = Array.isArray(setup?.accounts) ? setup.accounts : [];
+  const nextPayDate = String(setup?.nextPayDate || '');
   const bills = (Array.isArray(setup?.bills) ? setup.bills : [])
-    .map((bill) => deriveBillPlan(bill, billMode, payFrequency));
+    .map((bill) => deriveBillPlan(bill, billMode, payFrequency, nextPayDate));
   const savingsGoals = Array.isArray(setup?.savingsGoals) ? setup.savingsGoals : [];
   const emergencyCash = roundMoney(setup?.emergencyCash);
   const regularPerPayBills = billMode === 'smooth' && payFrequency !== 'irregular'
@@ -86,7 +139,7 @@ export function buildFirstMoneyPlan(setup) {
 
   return {
     payFrequency,
-    nextPayDate: String(setup?.nextPayDate || ''),
+    nextPayDate,
     billMode,
     accounts,
     bills,
