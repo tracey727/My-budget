@@ -20,6 +20,10 @@ const PROFESSIONAL_ROLES = new Set([
   "project_manager",
   "read_only",
 ]);
+const EXPLICIT_PERMISSION_FAILURES = new Set([
+  "professional_authority_required",
+  "professional_entitlement_required",
+]);
 
 export const AUTH_LIFECYCLE_PATHS = Object.freeze([
   "/auth/sign-up/email",
@@ -267,9 +271,12 @@ async function runOwnerScopedTransaction(
     await client.query("COMMIT");
     transactionOpen = false;
     return { ok: true, status: 200, data };
-  } catch {
+  } catch (error) {
     if (transactionOpen) {
       try { await client.query("ROLLBACK"); } catch {}
+    }
+    if (EXPLICIT_PERMISSION_FAILURES.has(error?.code)) {
+      return failure(403, error.code);
     }
     return failure(503, "database_unavailable");
   } finally {
