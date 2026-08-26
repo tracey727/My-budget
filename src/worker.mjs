@@ -186,7 +186,7 @@ async function sha256Hex(value) {
 
 async function sessionFingerprint(identity, request) {
   const sessionId = identity?.session?.id ?? identity?.session?.token ?? null;
-  if (!sessionId) return null;
+  if (!sessionId || !request) return null;
   return {
     hash: await sha256Hex(sessionId),
     deviceLabel: request.headers.get("x-device-label")?.slice(0, 120) || null,
@@ -198,6 +198,7 @@ async function sessionFingerprint(identity, request) {
 
 async function runOwnerScopedTransaction(
   identity,
+  request,
   env,
   ownerUserId,
   capability,
@@ -249,6 +250,36 @@ async function runOwnerScopedTransaction(
       return failure(403, "application_user_unavailable");
     }
 
+    // Managed Auth proves the browser session is valid. The local registry then
+    // enforces application-level device revocation without storing the raw token.
+    const fingerprint = await sessionFingerprint(identity, request);
+    if (!fingerprint) {
+      await client.query("ROLLBACK");
+      transactionOpen = false;
+      return failure(401, "authentication_required");
+    }
+
+    const sessionState = await client.query(
+      `SELECT id, revoked_at
+       FROM public.user_sessions
+       WHERE user_id = $1 AND auth_session_hash = $2
+       LIMIT 1`,
+      [identity.user.id, fingerprint.hash],
+    );
+    const existingSession = sessionState?.rows?.[0] || null;
+    if (existingSession?.revoked_at) {
+      await client.query("ROLLBACK");
+      transactionOpen = false;
+      return failure(401, "session_revoked");
+    }
+
+    if (!existingSession) {
+      await client.query(
+        `SELECT public.register_current_session($1, $2, $3, $4, $5::timestamptz) AS session_id`,
+        [fingerprint.hash, fingerprint.deviceLabel, fingerprint.userAgent, fingerprint.ipHint, fingerprint.expiresAt],
+      );
+    }
+
     if (isSupport) {
       const authority = await client.query(
         `SELECT public.trusted_support_can($1, $2, $3) AS allowed`,
@@ -292,7 +323,7 @@ export async function withAuthenticatedUserTransaction(
 ) {
   const identity = await authenticateRequest(request, env, fetchImpl);
   if (!identity.ok) return identity;
-  return runOwnerScopedTransaction(identity, env, identity.user.id, "read", operation, { ClientClass });
+  return runOwnerScopedTransaction(identity, request, env, identity.user.id, "read", operation, { ClientClass });
 }
 
 export async function withAuthorizedOwnerTransaction(
@@ -305,7 +336,7 @@ export async function withAuthorizedOwnerTransaction(
 ) {
   const identity = await authenticateRequest(request, env, fetchImpl);
   if (!identity.ok) return identity;
-  return runOwnerScopedTransaction(identity, env, ownerUserId, capability, operation, { ClientClass });
+  return runOwnerScopedTransaction(identity, request, env, ownerUserId, capability, operation, { ClientClass });
 }
 
 async function withProfessionalWorkspaceTransaction(request, env, workspaceId, capability, operation) {
@@ -352,16 +383,7 @@ async function getIdentity(request, env) {
 }
 
 async function getSessions(request, env) {
-  const identity = await authenticateRequest(request, env);
-  if (!identity.ok) return identity;
-  const fingerprint = await sessionFingerprint(identity, request);
-  return runOwnerScopedTransaction(identity, env, identity.user.id, "read", async (client) => {
-    if (fingerprint) {
-      await client.query(
-        `SELECT public.register_current_session($1, $2, $3, $4, $5::timestamptz)`,
-        [fingerprint.hash, fingerprint.deviceLabel, fingerprint.userAgent, fingerprint.ipHint, fingerprint.expiresAt],
-      );
-    }
+  return withAuthenticatedUserTransaction(request, env, async (client) => {
     const result = await client.query(
       `SELECT id, device_label, user_agent, created_at, last_seen_at, expires_at, revoked_at
        FROM public.user_sessions
@@ -384,16 +406,33 @@ async function revokeSession(request, env) {
 
 async function exportAccountData(request, env) {
   return withAuthenticatedUserTransaction(request, env, async (client, context) => {
+    const exportData = {};
+
+    const user = await client.query(
+      `SELECT * FROM public.users
+       WHERE id = $1 AND id = public.current_app_user_id()`,
+      [context.actor.id],
+    );
+    exportData.users = user.rows || [];
+
     const tables = [
       "profiles", "financial_settings", "transaction_categories", "accounts", "transactions",
       "incomes", "bills", "bill_provisions", "subscriptions", "savings_goals", "debts", "alerts",
       "verified_savings", "user_entitlements", "user_sessions",
     ];
-    const exportData = {};
     for (const table of tables) {
       const result = await client.query(`SELECT * FROM public.${table} WHERE user_id = $1`, [context.actor.id]);
       exportData[table] = result.rows || [];
     }
+
+    const supportGrants = await client.query(
+      `SELECT * FROM public.trusted_support_grants
+       WHERE owner_user_id = $1 OR support_user_id = $1
+       ORDER BY created_at`,
+      [context.actor.id],
+    );
+    exportData.trusted_support_grants = supportGrants.rows || [];
+
     const ownedWorkspaces = await client.query(
       `SELECT * FROM public.professional_workspaces WHERE owner_user_id = $1`,
       [context.actor.id],
@@ -404,7 +443,18 @@ async function exportAccountData(request, env) {
     );
     exportData.professional_workspaces = ownedWorkspaces.rows || [];
     exportData.professional_memberships = memberships.rows || [];
+
+    // Record the export before reading the audit ledger so the export event is
+    // included in the returned account history.
     await client.query(`SELECT public.record_data_export('json')`);
+    const auditEvents = await client.query(
+      `SELECT * FROM public.audit_events
+       WHERE user_id = $1
+       ORDER BY occurred_at, id`,
+      [context.actor.id],
+    );
+    exportData.audit_events = auditEvents.rows || [];
+
     return {
       exportedAt: new Date().toISOString(),
       format: "json",
