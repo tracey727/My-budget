@@ -10,6 +10,7 @@ const CURRENT_PHASE = 5;
 const EXPECTED_DATABASE = "neondb";
 const EXPECTED_MIGRATION = "007";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const OWNER_CAPABILITIES = new Set(["read", "financial_action"]);
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_HEADERS });
@@ -49,9 +50,7 @@ function authUpstreamUrl(requestUrl, env) {
 
 export async function proxyAuthRequest(request, env, fetchImpl = fetch) {
   const upstreamUrl = authUpstreamUrl(request.url, env);
-  if (!upstreamUrl) {
-    return json({ ok: false, error: { code: "auth_unavailable" } }, 503);
-  }
+  if (!upstreamUrl) return json({ ok: false, error: { code: "auth_unavailable" } }, 503);
 
   const headers = new Headers(request.headers);
   headers.delete("host");
@@ -100,11 +99,7 @@ export async function authenticateRequest(request, env, fetchImpl = fetch) {
   try {
     response = await fetchImpl(sessionUrl, {
       method: "GET",
-      headers: {
-        accept: "application/json",
-        cookie,
-        "cache-control": "no-store",
-      },
+      headers: { accept: "application/json", cookie, "cache-control": "no-store" },
       redirect: "manual",
     });
   } catch {
@@ -147,14 +142,18 @@ export async function authenticateRequest(request, env, fetchImpl = fetch) {
   };
 }
 
-export async function withAuthenticatedUserTransaction(
-  request,
+async function runOwnerScopedTransaction(
+  identity,
   env,
+  ownerUserId,
+  capability,
   operation,
-  { ClientClass = Client, fetchImpl = fetch } = {},
+  { ClientClass = Client } = {},
 ) {
-  const identity = await authenticateRequest(request, env, fetchImpl);
-  if (!identity.ok) return identity;
+  const ownerId = ownerUserId || identity.user.id;
+  if (!UUID_PATTERN.test(ownerId) || !OWNER_CAPABILITIES.has(capability)) {
+    return failure(400, "invalid_owner_scope");
+  }
 
   const connectionString = env?.HYPERDRIVE?.connectionString;
   if (!connectionString) return failure(503, "database_unavailable");
@@ -166,44 +165,59 @@ export async function withAuthenticatedUserTransaction(
     statement_timeout: 3000,
   });
 
+  const isSupport = identity.user.id !== ownerId;
+  const actorType = isSupport ? "support" : "user";
   let transactionOpen = false;
+
   try {
     await client.connect();
     await client.query("BEGIN");
     transactionOpen = true;
 
-    // Identity is LOCAL to this PostgreSQL transaction. This is deliberately
-    // the first database statement after BEGIN so no user-owned query can run
-    // before Phase 5 RLS sees the authenticated user.
+    // These are the first database settings after BEGIN. Both actor identity and
+    // data-owner scope are LOCAL to this transaction so Hyperdrive pooling cannot
+    // leak one user's authority into the next request.
     await client.query(
       `SELECT
          set_config('app.user_id', $1, true) AS app_user_id,
-         set_config('app.actor_type', 'user', true) AS actor_type`,
-      [identity.user.id],
+         set_config('app.owner_user_id', $2, true) AS app_owner_user_id,
+         set_config('app.actor_type', $3, true) AS actor_type`,
+      [identity.user.id, ownerId, actorType],
     );
 
-    const activeUser = await client.query(
-      `SELECT id, email
-       FROM public.users
-       WHERE id = $1
-         AND status = 'active'
-         AND deleted_at IS NULL
-         AND id = public.current_app_user_id()
-       LIMIT 1`,
-      [identity.user.id],
+    const active = await client.query(
+      `SELECT
+         public.application_user_is_active($1) AS actor_active,
+         public.application_user_is_active($2) AS owner_active`,
+      [identity.user.id, ownerId],
     );
 
-    if (!activeUser?.rows?.[0]) {
+    if (!active?.rows?.[0]?.actor_active || !active?.rows?.[0]?.owner_active) {
       await client.query("ROLLBACK");
       transactionOpen = false;
       return failure(403, "application_user_unavailable");
     }
 
+    if (isSupport) {
+      const authority = await client.query(
+        `SELECT public.trusted_support_can($1, $2, $3) AS allowed`,
+        [ownerId, identity.user.id, capability],
+      );
+      if (authority?.rows?.[0]?.allowed !== true) {
+        await client.query("ROLLBACK");
+        transactionOpen = false;
+        return failure(403, "support_authority_required");
+      }
+    }
+
     const data = await operation(client, {
-      user: {
+      actor: {
         id: identity.user.id,
-        email: activeUser.rows[0].email ?? identity.user.email ?? null,
+        email: identity.user.email,
+        type: actorType,
       },
+      ownerUserId: ownerId,
+      capability,
       session: identity.session,
     });
 
@@ -220,8 +234,32 @@ export async function withAuthenticatedUserTransaction(
   }
 }
 
+export async function withAuthenticatedUserTransaction(
+  request,
+  env,
+  operation,
+  { ClientClass = Client, fetchImpl = fetch } = {},
+) {
+  const identity = await authenticateRequest(request, env, fetchImpl);
+  if (!identity.ok) return identity;
+  return runOwnerScopedTransaction(identity, env, identity.user.id, "read", operation, { ClientClass });
+}
+
+export async function withAuthorizedOwnerTransaction(
+  request,
+  env,
+  ownerUserId,
+  capability,
+  operation,
+  { ClientClass = Client, fetchImpl = fetch } = {},
+) {
+  const identity = await authenticateRequest(request, env, fetchImpl);
+  if (!identity.ok) return identity;
+  return runOwnerScopedTransaction(identity, env, ownerUserId, capability, operation, { ClientClass });
+}
+
 async function getIdentity(request, env) {
-  return withAuthenticatedUserTransaction(request, env, async (client, identity) => {
+  return withAuthenticatedUserTransaction(request, env, async (client, context) => {
     const result = await client.query(
       `SELECT
          u.id,
@@ -233,7 +271,7 @@ async function getIdentity(request, env) {
        WHERE u.id = $1
          AND u.id = public.current_app_user_id()
        LIMIT 1`,
-      [identity.user.id],
+      [context.actor.id],
     );
 
     const row = result?.rows?.[0];
