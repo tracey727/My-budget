@@ -1,0 +1,130 @@
+name: Phase 6 verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  phase6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Reproducible install
+        run: npm ci
+
+      - name: Preserve Phases 2 through 5 and verify complete Phase 6 chronologically
+        run: npm run verify:phase6
+
+      - name: Confirm Phase 6 migrations are chronological through 014
+        run: |
+          for version in 008 009 010 011 012 013 014; do
+            test "$(find database/migrations -maxdepth 1 -type f -name "${version}_*.sql" | wc -l)" -eq 1
+          done
+          grep -q "VALUES ('008'" database/migrations/008_phase6_auth_identity_entitlement.sql
+          grep -q "VALUES ('009'" database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "VALUES ('010'" database/migrations/010_phase6_professional_roles.sql
+          grep -q "VALUES ('011'" database/migrations/011_phase6_account_lifecycle_sessions_export.sql
+          grep -q "VALUES ('012'" database/migrations/012_phase6_export_audit_id_type.sql
+          grep -q "VALUES ('013'" database/migrations/013_phase6_account_deletion_authority.sql
+          grep -q "VALUES ('014'" database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q "version = '014'" database/rollbacks/phase6_lifecycle_audit_hardening_to_account_deletion_authority.sql
+
+      - name: Confirm trusted support keeps read and financial action separate
+        run: |
+          grep -q 'can_read boolean NOT NULL DEFAULT true' database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q 'can_financial_action boolean NOT NULL DEFAULT false' database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "WHEN 'read' THEN g.can_read" database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "WHEN 'financial_action' THEN g.can_financial_action" database/migrations/009_phase6_trusted_support_permissions.sql
+
+      - name: Confirm all six Professional roles and authority separation
+        run: |
+          for role in owner administrator manager accountant_bookkeeper project_manager read_only; do
+            grep -q "'$role'" database/migrations/010_phase6_professional_roles.sql
+          done
+          grep -q "WHEN 'manage_members' THEN m.role IN ('owner','administrator')" database/migrations/010_phase6_professional_roles.sql
+          grep -q "WHEN 'manage_workspace' THEN m.role = 'owner'" database/migrations/010_phase6_professional_roles.sql
+          grep -q 'audit_professional_workspace_change' database/migrations/010_phase6_professional_roles.sql
+          ! grep -Eiq 'CREATE TABLE public\.(projects|cost_centres|invoices|commitments)' database/migrations/010_phase6_professional_roles.sql
+
+      - name: Confirm auth lifecycle session deletion and export controls
+        run: |
+          grep -q '/auth/sign-up/email' src/worker.mjs
+          grep -q '/auth/sign-in/email' src/worker.mjs
+          grep -q '/auth/sign-in/magic-link' src/worker.mjs
+          grep -q '/auth/sign-out' src/worker.mjs
+          grep -q '/auth/forget-password' src/worker.mjs
+          grep -q '/auth/reset-password' src/worker.mjs
+          grep -q '/api/sessions' src/worker.mjs
+          grep -q '/api/account/export' src/worker.mjs
+          grep -q 'auth_session_hash' database/migrations/011_phase6_account_lifecycle_sessions_export.sql
+          grep -q 'RETURNS bigint' database/migrations/012_phase6_export_audit_id_type.sql
+          grep -q 'SECURITY DEFINER' database/migrations/013_phase6_account_deletion_authority.sql
+          grep -q 'REVOKE ALL ON FUNCTION public.delete_current_account() FROM PUBLIC' database/migrations/013_phase6_account_deletion_authority.sql
+          grep -q 'revoked_at = public.user_sessions.revoked_at' database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q "SET status = 'archived'" database/migrations/014_phase6_lifecycle_audit_hardening.sql
+          grep -q 'session_revoked' src/worker.mjs
+          grep -q 'SELECT \* FROM public.audit_events' src/worker.mjs
+          grep -q 'trusted_support_grants' src/worker.mjs
+
+      - name: Confirm final Phase 6 readiness seal
+        run: |
+          grep -q 'const CURRENT_PHASE = 6' src/worker.mjs
+          grep -q 'const EXPECTED_MIGRATION = "014"' src/worker.mjs
+
+      - name: Confirm managed Auth endpoint is configuration-driven
+        run: |
+          ! grep -Eiq 'ep-[a-z0-9-]+\.neonauth\.' src/worker.mjs wrangler.jsonc
+
+      - name: Confirm protected Budget engine remains untouched
+        run: |
+          test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
+
+      - name: Verify Phase 6 readiness live
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BRANCH="${GITHUB_HEAD_REF//\//-}"
+            BASE_URL="https://${BRANCH}-my-budget.positivity864.workers.dev"
+          else
+            BASE_URL="https://my-budget.positivity864.workers.dev"
+          fi
+
+          echo "Verifying Phase 6 readiness at ${BASE_URL}/ready"
+          body_file="$(mktemp)"
+          code=""
+
+          for attempt in $(seq 1 30); do
+            code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
+            if [ "$code" = "200" ] \
+              && grep -Fq '"phase":6' "$body_file" \
+              && grep -Fq '"assets":"ready"' "$body_file" \
+              && grep -Fq '"database":"ready"' "$body_file" \
+              && grep -Fq '"migration":"014"' "$body_file"; then
+              echo "PASS Phase 6 live readiness on attempt ${attempt}"
+              cat "$body_file"
+              rm -f "$body_file"
+              exit 0
+            fi
+            echo "Waiting for Phase 6 deployment: /ready returned ${code} on attempt ${attempt}"
+            sleep 10
+          done
+
+          echo "Phase 6 live readiness failed at ${BASE_URL}/ready" >&2
+          echo "Last HTTP status: ${code}" >&2
+          cat "$body_file" >&2 || true
+          rm -f "$body_file"
+          exit 1
