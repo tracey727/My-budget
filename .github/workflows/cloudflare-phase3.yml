@@ -34,13 +34,13 @@ jobs:
         run: git diff --exit-code -- worker-configuration.d.ts
       - name: Cloudflare deploy dry run
         run: npm run cf:dry-run
-      - name: Confirm no Phase 4 database bindings
+      - name: Confirm no raw database secret or D1 configuration
         run: |
-          if grep -E 'hyperdrive|d1_databases|database_id|DATABASE_URL|NEON' wrangler.jsonc; then
-            echo "Phase 4 database configuration detected during Phase 3" >&2
+          if grep -Ei 'postgres(ql)?://|DATABASE_URL|NEON_DATABASE_URL|d1_databases|database_id' wrangler.jsonc; then
+            echo "Raw database configuration detected in wrangler.jsonc" >&2
             exit 1
           fi
-      - name: Verify Cloudflare Git deployment live
+      - name: Verify sealed Phase 3 Cloudflare surface live
         shell: bash
         run: |
           set -euo pipefail
@@ -79,5 +79,4 @@ jobs:
           }
 
           verify_endpoint "/" "Every Cent"
-          verify_endpoint "/health" '"phase":3'
-          verify_endpoint "/ready" '"database":"not-configured-phase-4"'
+          verify_endpoint "/health" '"service":"genevieve-budget"'

@@ -6,7 +6,7 @@ async function text(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("Cloudflare config targets Workers Static Assets and current phase", async () => {
+test("Cloudflare config preserves the sealed Phase 3 Workers Static Assets contract", async () => {
   const raw = await text("./wrangler.jsonc");
   const config = JSON.parse(raw);
   assert.equal(config.name, "genevieve-budget");
@@ -15,14 +15,16 @@ test("Cloudflare config targets Workers Static Assets and current phase", async 
   assert.equal(config.assets?.directory, "./dist");
   assert.equal(config.assets?.binding, "ASSETS");
   assert.deepEqual(config.assets?.run_worker_first, ["/health", "/ready"]);
-  assert.equal(config.hyperdrive, undefined);
   assert.equal(config.d1_databases, undefined);
+  assert.equal(config.vars?.DATABASE_URL, undefined);
+  assert.doesNotMatch(raw, /postgres(?:ql)?:\/\//i);
 });
 
-test("Cloudflare worker exposes health and readiness without Phase 4 database claims", async () => {
+test("Cloudflare worker preserves health, readiness and static-asset routing for later phases", async () => {
   const worker = await text("./src/worker.mjs");
   assert.match(worker, /\/health/);
   assert.match(worker, /\/ready/);
-  assert.match(worker, /database:\s*["']not-configured-phase-4["']/);
+  assert.match(worker, /service:\s*["']genevieve-budget["']/);
+  assert.match(worker, /runtime:\s*["']cloudflare-workers["']/);
   assert.match(worker, /env\.ASSETS\.fetch\(request\)/);
 });

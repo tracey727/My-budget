@@ -8,7 +8,7 @@
     "test": "node --test",
     "test:phase2": "node --test bill-model.test.mjs expense-intelligence.test.mjs export-model.test.mjs phase2-baseline.test.mjs phase2-data-runtime.test.mjs phase2-subscriptions-savings-runtime.test.mjs savings-goal-model.test.mjs subscription-model.test.mjs subscription-record.test.mjs transaction-model.test.mjs",
     "test:phase3": "node --test phase3-runtime-chain.test.mjs phase3-cloudflare.test.mjs",
-    "test:phase4": "node --test phase4-database-contract.test.mjs",
+    "test:phase4": "node --test phase4-database-contract.test.mjs phase4-cloudflare-neon.test.mjs",
     "check:source": "node scripts/check-source.mjs",
     "build": "vite build && node scripts/copy-subscriber-assets.mjs",
     "build:react-preservation": "vite build --config vite.react.config.mjs",
@@ -21,13 +21,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "0.383.0",
+    "pg": "8.23.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "lucide-react": "0.383.0"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "vite": "8.2.2",
     "@vitejs/plugin-react": "6.1.0",
+    "vite": "8.2.2",
     "wrangler": "4.125.0"
   }
 }
