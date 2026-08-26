@@ -123,6 +123,15 @@ BEGIN
     RETURN false;
   END IF;
 
+  -- Write immutable deletion evidence while the user is still active. Phase 6
+  -- audit RLS correctly rejects new writes after the user becomes deleted.
+  INSERT INTO public.audit_events (
+    user_id, actor_type, event_type, entity_type, entity_id, action, metadata
+  ) VALUES (
+    actor_id, 'user', 'account_deleted', 'users', actor_id, 'delete',
+    jsonb_build_object('mode', 'soft_delete', 'financial_records_preserved', true)
+  );
+
   UPDATE public.trusted_support_grants
   SET revoked_at = COALESCE(revoked_at, now()),
       can_financial_action = false
@@ -143,13 +152,6 @@ BEGIN
   UPDATE public.users
   SET status = 'deleted', deleted_at = now()
   WHERE id = actor_id;
-
-  INSERT INTO public.audit_events (
-    user_id, actor_type, event_type, entity_type, entity_id, action, metadata
-  ) VALUES (
-    actor_id, 'user', 'account_deleted', 'users', actor_id, 'delete',
-    jsonb_build_object('mode', 'soft_delete', 'financial_records_preserved', true)
-  );
 
   RETURN true;
 END;
