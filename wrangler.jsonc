@@ -9,7 +9,14 @@
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/health", "/ready"]
+    "run_worker_first": [
+      "/health",
+      "/ready",
+      "/auth",
+      "/auth/*",
+      "/api",
+      "/api/*"
+    ]
   },
   "hyperdrive": [
     {
