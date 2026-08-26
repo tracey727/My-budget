@@ -1,14 +1,14 @@
-# GENEVIEVE Budget — Phase 7 Current Checkpoint — Core Accounts & Balances Reconciliation
+# GENEVIEVE Budget — Phase 7 Current Checkpoint — Core Accounts & Balances
 
 Date: 27 August 2026, AEST (Queensland)
 
 ## Status
 
-**PHASE 7 — RECONCILED WITH CURRENT PROTECTED MAIN / FULL-DIFF RE-AUDIT BLOCKED / DRAFT / NOT MERGE-READY / NOT ARCHIVED.**
+**PHASE 7 AUTHORITATIVE SCOPE IMPLEMENTED ON ISOLATED BRANCH / RECONCILED WITH CURRENT PROTECTED MAIN / FINAL EXACT-HEAD PHASE 2→7 GATE PENDING / DRAFT / NOT MERGED / NOT ARCHIVED.**
 
-This checkpoint supersedes the earlier statement that the isolated First-Time Setup implementation was a final pre-merge Phase 7 candidate.
+This checkpoint supersedes the earlier audit-blocked checkpoint.
 
-The existing onboarding work remains preserved on the Phase 7 branch, but the corrected authoritative `docs/BUILD_ARCHIVE.md` on protected `main` defines Phase 7 more broadly as **Core accounts and balances**. The current draft does not yet satisfy that complete scope and must not merge as Phase 7.
+The existing First-Time Setup work is preserved as the onboarding entry into Phase 7, but the phase is now governed by the corrected authoritative `docs/BUILD_ARCHIVE.md`: **Core accounts and balances**.
 
 No Phase 8 work has started.
 
@@ -16,152 +16,231 @@ No Phase 8 work has started.
 
 - repository: `tracey727/My-budget`
 - protected base branch: `main`
-- authoritative protected `main` after the Phase 6 Build Archive correction: `156a36e9ba1b6a2452012c6915341f0184baa284`
+- authoritative protected `main`: `156a36e9ba1b6a2452012c6915341f0184baa284`
 - Phase 7 branch: `phase7-first-time-setup`
 - draft implementation PR: `#36`
-- original Phase 7 pre-reconciliation head: `720cd88c8c0a9e4a8ade52aaeb7ba9dd7f28b51b`
+- original pre-reconciliation Phase 7 head: `720cd88c8c0a9e4a8ade52aaeb7ba9dd7f28b51b`
 - reconciliation merge commit: `35bbda5b575cb5c8e7bf65f4b5c0b767f714db5f`
 - reconciliation used a normal two-parent merge commit; no force push or history rewrite was used
-- immediately after reconciliation the branch compared as 27 commits ahead and 0 behind protected `main`
 - production Neon migration remains: `014`
 - protected source `app.js` must remain Git blob `a86381a76c4676b9d14cbcb1a6b9de842c1cd24c`
+- sealed Phase 6 Worker copy must remain Git blob `670159e8b820f597ed2376c246df04e69a244988`
 
-The three commits that advanced protected `main` after the old Phase 7 base changed only `docs/BUILD_ARCHIVE.md`. That authoritative document was carried into the Phase 7 branch during reconciliation; no runtime conflict resolution was required.
+The three commits that advanced protected `main` after the old Phase 7 base changed only `docs/BUILD_ARCHIVE.md`. The current authoritative archive was carried into this branch during reconciliation without runtime conflict resolution.
 
 ## Authoritative Phase 7 scope
 
-Protected `main` now defines Phase 7 as **Core accounts and balances** with these required responsibilities:
+Phase 7 is **Core accounts and balances** and must prove:
 
-1. Persistent multiple accounts/assets.
-2. Credit cards, loans, BNPL and debts.
-3. Internal transfers between the user's own accounts must not be counted as spending.
-4. Spendable balances must be separated from protected/reserved balances.
+1. persistent multiple accounts/assets;
+2. credit cards, loans, BNPL and debts;
+3. internal transfers between the user's own accounts are not spending;
+4. spendable balances are separated from protected/reserved balances.
 
-Phase 1 also remains binding: a raw bank balance must never be represented as safe-to-spend; protected bill money, emergency buffers, reserved funds and protected savings must not be represented as free cash; internal transfers between the user's own accounts are not spending.
+Phase 1 remains binding: raw bank balance is not safe-to-spend, protected money is not free cash, and an internal transfer is money movement rather than expenditure.
 
-## What the preserved First-Time Setup draft already delivers
+## Delivered Phase 7 responsibilities
 
-The existing Phase 7 branch contains a useful eight-screen onboarding flow:
+### 1. Multiple accounts/assets and liabilities
 
-1. pay frequency;
-2. next pay date;
-3. add accounts;
-4. add bills;
-5. choose Smooth my bills or target mode;
-6. set protected emergency cash;
-7. add optional savings goals;
-8. show a first money plan.
+The preserved account model supports:
 
-It also contains:
+- bank;
+- savings;
+- cash;
+- credit card;
+- loan/debt;
+- BNPL;
+- investment;
+- other.
 
-- due-date-aware Smooth calculations;
-- target warning refresh;
-- established-user onboarding detection;
-- Phase 7 setup-aware backup/restore;
-- a production linker for the onboarding, plan-integrity and backup runtimes;
-- a dedicated Phase 7 workflow;
-- preservation of the protected `app.js` source.
+The First-Time Setup flow can create the first account set, and the protected application continues to support later account additions and edits without modifying `app.js`.
 
-This work is preserved and may be reused inside the complete Phase 7 build. It is not discarded.
+### 2. Persistent account balance snapshots through the locked production architecture
 
-## Full-diff re-audit result — material blockers
+New subscriber runtime:
 
-### 1. Persistent accounts are not yet connected to the production database
+- `phase7-core-balances-bridge.js`
 
-The subscriber app and the preserved onboarding draft write account state to the established browser money store. The current Cloudflare Worker does not yet expose user-owned account CRUD, transfer or balance-summary endpoints.
+New authenticated Worker route module:
 
-Therefore the current draft cannot yet prove **persistent multiple accounts/assets through the locked Cloudflare → Hyperdrive → Neon production path**.
+- `src/phase7-account-routes.mjs`
 
-### 2. There is no browser-side authenticated account client yet
+New same-origin endpoints:
 
-Phase 6 completed server-side managed-auth proxying, server-side session validation, transaction-local database identity, user/session revocation, trusted-support authority, Professional authority, account export and lifecycle controls.
+- `GET /api/phase7/accounts`
+- `POST /api/phase7/accounts/sync`
 
-The subscriber app does not yet contain a browser-side Phase 6 identity/session client that can authenticate and then persist account changes through the Worker. Phase 7 must reuse the Phase 6 managed-auth boundary rather than invent a parallel identity mechanism.
+The path is:
 
-### 3. Internal-transfer exclusion exists in sealed foundations but is not a complete Phase 7 persistence gate
+`subscriber account state → same-origin Phase 7 client → Cloudflare Worker → Phase 6 managed-session validation → transaction-local user scope → Hyperdrive → Neon accounts / financial_settings → RLS + audit controls`
 
-The sealed transaction model and PostgreSQL schema already support `transfer` transactions and exclude transfers from expense totals. The database also requires a distinct destination account and prevents cross-user account references.
+The sync endpoint is a full active-account snapshot. Each browser account receives a server mapping, active account balances are upserted into the existing Neon `accounts` table, and accounts removed from the active device snapshot are soft-archived rather than physically deleted.
 
-However the current Phase 7 workflow does not prove a complete authenticated persistence path in which a transfer is written between two owned accounts, updates both account positions, remains cross-user isolated and is excluded from spending.
+No raw database credential is exposed to the browser.
 
-### 4. Spendable versus protected/reserved balance is not yet a complete Phase 7 production responsibility
+### 3. Sealed Phase 6 security/runtime composition
 
-The sealed schema already contains:
+Phase 7 does not rewrite the completed Phase 6 security engine.
 
-- `financial_settings.emergency_buffer_amount`;
-- `bill_provisions.amount_reserved`;
-- protected savings goals;
-- accounts and liabilities.
+The exact former `src/worker.mjs` bytes are preserved as:
 
-The current Phase 7 draft does not yet expose and verify an owned production balance summary that separates:
+- `src/worker-phase6-sealed.mjs`
 
-- gross asset/account position;
-- liabilities/debts;
-- protected emergency amount;
-- reserved bill provisions;
+Its required Git blob is:
+
+`670159e8b820f597ed2376c246df04e69a244988`
+
+The new `src/worker.mjs` is a composition entrypoint: it handles the two Phase 7 account routes first and delegates every other route to the sealed Phase 6 module. Named Phase 6 exports are re-exported so the existing Phase 2→6 tests continue to exercise the original implementation.
+
+Phase 7 production verification independently hashes the sealed copy, so the source-level compatibility anchors in the composition entrypoint do not substitute for byte-level preservation evidence.
+
+### 4. Internal transfers are not spending
+
+The sealed transaction engine already treats `transfer` as a distinct transaction type and changes both source and destination account positions.
+
+The reconciled Phase 7 core-balance tests now make this a Phase 7 gate:
+
+- a transfer reduces one owned account and increases the other;
+- the combined asset position is unchanged by the transfer itself;
+- monthly spending totals include only `expense` transactions;
+- a transfer is therefore never counted as spending.
+
+Phase 7 deliberately does **not** add new transaction persistence or expense-intelligence APIs. Those remain Phase 8 responsibilities. Phase 7 persists the resulting account balance snapshot while preserving the existing transaction semantics.
+
+### 5. Spendable versus protected/reserved balances
+
+New pure model:
+
+- `phase7-core-balances.mjs`
+
+The Phase 7 balance summary separates:
+
+- asset balance;
+- debt balance;
+- liquid balance;
+- protected emergency cash;
+- bill amount already reserved;
+- protected savings already held;
+- protected/reserved total;
+- remaining spendable balance after those protected amounts.
+
+The subscriber bridge displays:
+
+- **Spendable balance**;
+- **Protected / reserved**;
+- **Assets**;
+- **Debts owed**.
+
+The displayed Phase 7 spendable balance is intentionally a bounded account-balance responsibility. It is **not** labelled as the later full safe-to-spend engine, which will incorporate the complete income/obligation/debt/savings-commitment forecast in its later chronological phase.
+
+### 6. Authenticated cloud recovery behavior
+
+If there is no authenticated managed session, the Phase 7 account API fails closed and the browser keeps the current device data intact.
+
+When an authenticated session exists:
+
+- the device account balance snapshot is persisted through Cloudflare → Hyperdrive → Neon;
+- server IDs are mapped separately from protected local account IDs, so editing the preserved app does not break persistence identity;
+- if a new device has no local accounts or transaction history and Neon has active account snapshots, Phase 7 can restore those account balances into the established money store;
+- transaction history is not fabricated during account-only recovery and remains Phase 8 scope.
+
+## Preserved First-Time Setup scope
+
+The eight-screen onboarding flow remains:
+
+1. How often do you get paid?
+2. When do you get paid next?
+3. Add your accounts.
+4. What bills do you have?
+5. Choose Smooth my bills or I'll keep the money.
+6. Set protected emergency cash.
+7. Set optional savings goals.
+8. YOUR FIRST MONEY PLAN.
+
+Preserved supporting responsibilities include due-date-aware Smooth calculations, target warning refresh, established-user detection and setup-aware backup/restore.
+
+## Production runtime linkage
+
+The subscriber runtime order is now:
+
+`Phase 2 data → Phase 2 subscriptions/savings → Phase 7 first-time setup → Phase 7 plan integrity → Phase 7 backup continuity → Phase 7 core balances/cloud account sync → protected app.js`
+
+The production linker copies all four Phase 7 runtimes, inserts them in this exact order before protected `app.js`, and reseals the service-worker cache as `phase7-first-time-setup-v2`.
+
+## Database decision
+
+**No migration `015` is required.**
+
+Migration `014` already contains the required sealed database responsibilities through earlier migrations:
+
+- owned accounts and supported account types;
+- financial settings and emergency buffer;
+- bill provisions;
 - protected savings;
-- remaining amount after protected/reserved funds.
+- user ownership constraints;
+- cross-user foreign-key protection;
+- RLS;
+- soft archive controls;
+- append-only audit evidence.
 
-This Phase 7 figure must not be mislabelled as the later full **safe-to-spend** engine, which remains a later phase and also requires income, debt commitments, obligations and savings commitments.
+The Phase 7 Worker routes use those existing tables and the Phase 6 transaction-local authenticated identity boundary.
 
-### 5. The old Phase 7 readiness gate is stale
+Production backend readiness therefore remains the sealed Phase 6 / migration `014` boundary during this pre-merge gate. Phase 7 is independently proven by its static/runtime/API gate rather than weakening or rewriting Phase 6 readiness assertions.
 
-The old Phase 7 workflow deliberately required Worker readiness to remain `CURRENT_PHASE = 6` and `/ready` to report Phase 6 / migration `014`.
+## Verification architecture
 
-That was valid for the isolated onboarding experiment but is not sufficient evidence for the authoritative Phase 7 production stage.
+`verify:phase7` remains nested after `verify:phase6`, which remains nested after the earlier stages.
 
-At the same time, the protected Phase 6 workflow currently hard-checks `CURRENT_PHASE = 6` and live `"phase":6`. Phase 7 must therefore advance production readiness without destroying the historical Phase 6 preservation gate. That coupling must be repaired deliberately before Phase 7 can be declared production-live.
+The final Phase 7 gate now verifies:
 
-## Database decision after re-audit
+- all eight onboarding screens;
+- Smooth and target modes;
+- due-date-aware plan integrity;
+- setup-aware backup/restore;
+- multiple account and liability types;
+- internal transfer balance effects;
+- transfers excluded from spending;
+- protected/reserved balance arithmetic;
+- valid negative asset balances such as an overdrawn bank account;
+- authenticated account persistence routes;
+- RLS-scoped database queries;
+- soft archive behavior;
+- unauthenticated Phase 7 API requests fail closed with HTTP 401;
+- no migration `015` exists;
+- protected `app.js` hash is unchanged;
+- sealed Phase 6 Worker hash is unchanged;
+- all four Phase 7 runtime assets are in the production artifact and service-worker cache;
+- live branch preview serves all four Phase 7 runtimes;
+- live unauthenticated `/api/phase7/accounts` returns authentication-required rather than exposing data;
+- `/ready` still proves the preserved Phase 6 / migration `014` backend boundary.
 
-**No migration `015` is currently required for the authoritative Phase 7 account/balance responsibilities.**
+## Implementation-history note
 
-The sealed migration-014 schema already provides the required primitives:
+During the sealed-worker copy step, two transient connector placeholder commits were created and immediately superseded before any verification gate. No force push was used. The final branch file is independently verified to be the exact original Phase 6 Worker blob `670159e8...`, and no green/merge claim is based on either transient head.
 
-- owned accounts with `bank`, `savings`, `cash`, `credit`, `loan`, `bnpl`, `investment` and `other` account types;
-- owned transactions with `income`, `expense` and `transfer` types;
-- transfer destination integrity;
-- user ownership and cross-user foreign-key protection;
-- Row Level Security;
-- append-only audit evidence;
-- bill provisions and reserved amounts;
-- protected savings goals;
-- debts;
-- financial settings including emergency buffer amount.
+## Final pre-merge gate still required
 
-Phase 7 should use these existing sealed tables through the Phase 6 authenticated Worker transaction boundary. Production remains migration `014` unless a later audited implementation proves a genuinely missing database invariant.
+This checkpoint does **not** approve a merge.
 
-## Gate decision
+Before PR #36 may even be considered for merge:
 
-The reconciled branch is **not merge-ready**.
+1. the branch must remain zero commits behind protected `main`;
+2. one exact final Phase 7 head must run all six workflows;
+3. `phase2` must be GREEN;
+4. `cloudflare-phase3` must be GREEN;
+5. `phase4-neon` must be GREEN;
+6. `phase5-database-safety` must be GREEN;
+7. `phase6` must be GREEN;
+8. `phase7` must be GREEN;
+9. the complete diff must be re-audited after the final checks;
+10. only then may `Protect main` be considered for addition of `phase7` as the sixth required check;
+11. PR #36 must remain Draft until those conditions are satisfied.
 
-Do not:
+No Phase 8 work may begin during this gate.
 
-- mark PR #36 Ready for review;
-- merge PR #36;
-- add `phase7` to `Protect main` as a final required production gate yet;
-- call the current onboarding-only workflow a complete Phase 7 proof;
-- start Phase 8.
+## Current chronological lock
 
-The old exact-head green evidence on `720cd88…` remains useful regression evidence for the onboarding components, but it is no longer sufficient merge authority after the corrected Phase 7 scope and branch reconciliation.
+**Phase 1→6 remain protected, GREEN and archived. Phase 7 authoritative Core Accounts & Balances implementation is now reconciled and code-complete on the isolated draft branch, but its final exact-head Phase 2→7 verification is still pending.**
 
-## Next chronological Phase 7 implementation work
-
-Before a final Phase 2→7 gate may be treated as authoritative, Phase 7 must add and verify, in this order:
-
-1. a browser-side authenticated client path that reuses the existing Phase 6 managed-auth/session boundary;
-2. user-owned account persistence through Cloudflare Worker → Hyperdrive → Neon for multiple assets and liabilities;
-3. internal transfer persistence between two owned accounts with transfer exclusion from spending and cross-user denial;
-4. an owned balance-summary responsibility separating asset position, liabilities and protected/reserved amounts without claiming the later full safe-to-spend calculation;
-5. linkage to the existing account/onboarding UI without modifying protected `app.js`;
-6. behavioral tests for account persistence, liability types, internal transfer balance effects, transfer exclusion from spending, protected/reserved balance calculation, authentication failure and cross-user denial;
-7. a Phase 7 workflow that verifies the complete authoritative scope and a production readiness seal without breaking Phase 6 preservation;
-8. an updated current checkpoint and PR body for one exact final Phase 7 head.
-
-Only after those responsibilities are complete should the branch be manually retriggered if necessary and the exact-head Phase 2→7 GitHub Actions suite be used as the final pre-merge gate.
-
-## Final chronological lock
-
-**Current decision: Phase 7 reconciliation complete; Phase 7 implementation audit RED because authoritative Core Accounts & Balances scope is incomplete.**
-
-No merge is permitted while this material gap remains. No Phase 8 work may begin before Phase 7 is scope-complete, exact-head GREEN, protected-merge verified and archived.
+No merge is permitted until that exact-head gate is GREEN and the final re-audit finds no material defect.
