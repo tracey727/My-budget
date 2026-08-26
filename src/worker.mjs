@@ -9,8 +9,31 @@ const JSON_HEADERS = {
 const CURRENT_PHASE = 5;
 const EXPECTED_DATABASE = "neondb";
 const EXPECTED_MIGRATION = "007";
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 const OWNER_CAPABILITIES = new Set(["read", "financial_action"]);
+const PROFESSIONAL_CAPABILITIES = new Set(["read", "financial_action", "manage_members", "manage_workspace"]);
+const PROFESSIONAL_ROLES = new Set([
+  "owner",
+  "administrator",
+  "manager",
+  "accountant_bookkeeper",
+  "project_manager",
+  "read_only",
+]);
+
+export const AUTH_LIFECYCLE_PATHS = Object.freeze([
+  "/auth/sign-up/email",
+  "/auth/sign-in/email",
+  "/auth/sign-in/magic-link",
+  "/auth/sign-out",
+  "/auth/forget-password",
+  "/auth/reset-password",
+  "/auth/get-session",
+  "/auth/list-sessions",
+  "/auth/revoke-session",
+  "/auth/revoke-other-sessions",
+  "/auth/delete-user",
+]);
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_HEADERS });
@@ -18,6 +41,15 @@ function json(payload, status = 200) {
 
 function failure(status, code) {
   return { ok: false, status, code };
+}
+
+async function readJson(request) {
+  try {
+    const value = await request.json();
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export function resolveAuthBaseUrl(env) {
@@ -142,6 +174,24 @@ export async function authenticateRequest(request, env, fetchImpl = fetch) {
   };
 }
 
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(String(value));
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function sessionFingerprint(identity, request) {
+  const sessionId = identity?.session?.id ?? identity?.session?.token ?? null;
+  if (!sessionId) return null;
+  return {
+    hash: await sha256Hex(sessionId),
+    deviceLabel: request.headers.get("x-device-label")?.slice(0, 120) || null,
+    userAgent: request.headers.get("user-agent")?.slice(0, 500) || null,
+    ipHint: request.headers.get("cf-connecting-ip")?.slice(0, 120) || null,
+    expiresAt: identity.session.expiresAt ?? identity.session.expires_at ?? null,
+  };
+}
+
 async function runOwnerScopedTransaction(
   identity,
   env,
@@ -174,9 +224,6 @@ async function runOwnerScopedTransaction(
     await client.query("BEGIN");
     transactionOpen = true;
 
-    // These are the first database settings after BEGIN. Both actor identity and
-    // data-owner scope are LOCAL to this transaction so Hyperdrive pooling cannot
-    // leak one user's authority into the next request.
     await client.query(
       `SELECT
          set_config('app.user_id', $1, true) AS app_user_id,
@@ -211,11 +258,7 @@ async function runOwnerScopedTransaction(
     }
 
     const data = await operation(client, {
-      actor: {
-        id: identity.user.id,
-        email: identity.user.email,
-        type: actorType,
-      },
+      actor: { id: identity.user.id, email: identity.user.email, type: actorType },
       ownerUserId: ownerId,
       capability,
       session: identity.session,
@@ -258,22 +301,34 @@ export async function withAuthorizedOwnerTransaction(
   return runOwnerScopedTransaction(identity, env, ownerUserId, capability, operation, { ClientClass });
 }
 
+async function withProfessionalWorkspaceTransaction(request, env, workspaceId, capability, operation) {
+  if (!UUID_PATTERN.test(workspaceId) || !PROFESSIONAL_CAPABILITIES.has(capability)) {
+    return failure(400, "invalid_workspace_scope");
+  }
+  return withAuthenticatedUserTransaction(request, env, async (client, context) => {
+    const authority = await client.query(
+      `SELECT public.professional_role_can($1, $2, $3) AS allowed`,
+      [workspaceId, context.actor.id, capability],
+    );
+    if (authority?.rows?.[0]?.allowed !== true) {
+      const error = new Error("professional_authority_required");
+      error.code = "professional_authority_required";
+      throw error;
+    }
+    return operation(client, context);
+  });
+}
+
 async function getIdentity(request, env) {
   return withAuthenticatedUserTransaction(request, env, async (client, context) => {
     const result = await client.query(
-      `SELECT
-         u.id,
-         u.email,
-         e.product_mode,
-         e.status AS entitlement_status
+      `SELECT u.id, u.email, e.product_mode, e.status AS entitlement_status
        FROM public.users u
        LEFT JOIN public.user_entitlements e ON e.user_id = u.id
-       WHERE u.id = $1
-         AND u.id = public.current_app_user_id()
+       WHERE u.id = $1 AND u.id = public.current_app_user_id()
        LIMIT 1`,
       [context.actor.id],
     );
-
     const row = result?.rows?.[0];
     if (!row) throw new Error("identity unavailable");
     const productMode = row.product_mode === "professional" ? "professional" : "personal";
@@ -289,27 +344,145 @@ async function getIdentity(request, env) {
   });
 }
 
+async function getSessions(request, env) {
+  const identity = await authenticateRequest(request, env);
+  if (!identity.ok) return identity;
+  const fingerprint = await sessionFingerprint(identity, request);
+  return runOwnerScopedTransaction(identity, env, identity.user.id, "read", async (client) => {
+    if (fingerprint) {
+      await client.query(
+        `SELECT public.register_current_session($1, $2, $3, $4, $5::timestamptz)`,
+        [fingerprint.hash, fingerprint.deviceLabel, fingerprint.userAgent, fingerprint.ipHint, fingerprint.expiresAt],
+      );
+    }
+    const result = await client.query(
+      `SELECT id, device_label, user_agent, created_at, last_seen_at, expires_at, revoked_at
+       FROM public.user_sessions
+       WHERE user_id = public.current_app_user_id()
+       ORDER BY last_seen_at DESC`,
+    );
+    return { sessions: result.rows || [] };
+  });
+}
+
+async function revokeSession(request, env) {
+  const body = await readJson(request);
+  const sessionId = typeof body?.sessionId === "string" ? body.sessionId : "";
+  if (!UUID_PATTERN.test(sessionId)) return failure(400, "invalid_session_id");
+  return withAuthenticatedUserTransaction(request, env, async (client) => {
+    const result = await client.query(`SELECT public.revoke_current_session($1) AS revoked`, [sessionId]);
+    return { revoked: result?.rows?.[0]?.revoked === true };
+  });
+}
+
+async function exportAccountData(request, env) {
+  return withAuthenticatedUserTransaction(request, env, async (client, context) => {
+    const tables = [
+      "profiles", "financial_settings", "transaction_categories", "accounts", "transactions",
+      "incomes", "bills", "bill_provisions", "subscriptions", "savings_goals", "debts", "alerts",
+      "verified_savings", "user_entitlements", "user_sessions",
+    ];
+    const exportData = {};
+    for (const table of tables) {
+      const result = await client.query(`SELECT * FROM public.${table} WHERE user_id = $1`, [context.actor.id]);
+      exportData[table] = result.rows || [];
+    }
+    const ownedWorkspaces = await client.query(
+      `SELECT * FROM public.professional_workspaces WHERE owner_user_id = $1`,
+      [context.actor.id],
+    );
+    const memberships = await client.query(
+      `SELECT * FROM public.professional_memberships WHERE user_id = $1`,
+      [context.actor.id],
+    );
+    exportData.professional_workspaces = ownedWorkspaces.rows || [];
+    exportData.professional_memberships = memberships.rows || [];
+    await client.query(`SELECT public.record_data_export('json')`);
+    return {
+      exportedAt: new Date().toISOString(),
+      format: "json",
+      userId: context.actor.id,
+      data: exportData,
+    };
+  });
+}
+
+async function deleteAccount(request, env) {
+  const body = await readJson(request);
+  if (body?.confirm !== "DELETE") return failure(400, "deletion_confirmation_required");
+  return withAuthenticatedUserTransaction(request, env, async (client) => {
+    const result = await client.query(`SELECT public.delete_current_account() AS deleted`);
+    if (result?.rows?.[0]?.deleted !== true) throw new Error("account deletion failed");
+    return { deleted: true, financialRecordsPreserved: true };
+  });
+}
+
+async function createProfessionalWorkspace(request, env) {
+  const body = await readJson(request);
+  const name = typeof body?.name === "string" ? body.name.trim().slice(0, 200) : "";
+  if (!name) return failure(400, "workspace_name_required");
+  return withAuthenticatedUserTransaction(request, env, async (client, context) => {
+    const entitlement = await client.query(
+      `SELECT product_mode, status FROM public.user_entitlements WHERE user_id = $1`,
+      [context.actor.id],
+    );
+    const row = entitlement?.rows?.[0];
+    if (row?.product_mode !== "professional" || row?.status !== "active") {
+      const error = new Error("professional_entitlement_required");
+      error.code = "professional_entitlement_required";
+      throw error;
+    }
+    const result = await client.query(
+      `INSERT INTO public.professional_workspaces (owner_user_id, name)
+       VALUES ($1, $2)
+       RETURNING id, owner_user_id, name, status, created_at`,
+      [context.actor.id, name],
+    );
+    return { workspace: result.rows[0] };
+  });
+}
+
+async function listProfessionalMembers(request, env, workspaceId) {
+  return withProfessionalWorkspaceTransaction(request, env, workspaceId, "read", async (client) => {
+    const result = await client.query(
+      `SELECT id, workspace_id, user_id, role, status, created_at, updated_at, revoked_at
+       FROM public.professional_memberships
+       WHERE workspace_id = $1 ORDER BY created_at`,
+      [workspaceId],
+    );
+    return { memberships: result.rows || [] };
+  });
+}
+
+async function upsertProfessionalMember(request, env, workspaceId) {
+  const body = await readJson(request);
+  const userId = typeof body?.userId === "string" ? body.userId : "";
+  const role = typeof body?.role === "string" ? body.role : "";
+  if (!UUID_PATTERN.test(userId) || !PROFESSIONAL_ROLES.has(role) || role === "owner") {
+    return failure(400, "invalid_professional_member");
+  }
+  return withProfessionalWorkspaceTransaction(request, env, workspaceId, "manage_members", async (client) => {
+    const result = await client.query(
+      `INSERT INTO public.professional_memberships (workspace_id, user_id, role, status)
+       VALUES ($1, $2, $3, 'active')
+       ON CONFLICT (workspace_id, user_id) DO UPDATE
+       SET role = EXCLUDED.role, status = 'active', revoked_at = NULL
+       RETURNING id, workspace_id, user_id, role, status`,
+      [workspaceId, userId, role],
+    );
+    return { membership: result.rows[0] };
+  });
+}
+
 export async function checkDatabase(env, ClientClass = Client) {
   const connectionString = env?.HYPERDRIVE?.connectionString;
   if (!connectionString) return { ok: false, migration: null };
-
-  const client = new ClientClass({
-    connectionString,
-    connectionTimeoutMillis: 3000,
-    query_timeout: 3000,
-    statement_timeout: 3000,
-  });
-
+  const client = new ClientClass({ connectionString, connectionTimeoutMillis: 3000, query_timeout: 3000, statement_timeout: 3000 });
   try {
     await client.connect();
     const result = await client.query(`
-      SELECT
-        current_database() AS database_name,
-        EXISTS (
-          SELECT 1
-          FROM public.schema_migrations
-          WHERE version = $1
-        ) AS migration_ready
+      SELECT current_database() AS database_name,
+        EXISTS (SELECT 1 FROM public.schema_migrations WHERE version = $1) AS migration_ready
     `, [EXPECTED_MIGRATION]);
     const row = result?.rows?.[0];
     const ok = row?.database_name === EXPECTED_DATABASE && row?.migration_ready === true;
@@ -338,6 +511,11 @@ export async function checkReadiness(env, ClientClass = Client) {
   };
 }
 
+function apiResult(result) {
+  if (!result.ok) return json({ ok: false, error: { code: result.code } }, result.status);
+  return json({ ok: true, ...result.data });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -345,26 +523,41 @@ export default {
     if (url.pathname === "/health") {
       return json({ ok: true, service: "genevieve-budget", phase: CURRENT_PHASE, runtime: "cloudflare-workers" });
     }
-
     if (url.pathname === "/ready") {
       const readiness = await checkReadiness(env);
       return json(readiness.payload, readiness.status);
     }
-
     if (url.pathname === "/auth" || url.pathname.startsWith("/auth/")) {
       return proxyAuthRequest(request, env);
     }
-
     if (url.pathname === "/api/identity" && request.method === "GET") {
-      const result = await getIdentity(request, env);
-      if (!result.ok) return json({ ok: false, error: { code: result.code } }, result.status);
-      return json({ ok: true, ...result.data });
+      return apiResult(await getIdentity(request, env));
     }
-
+    if (url.pathname === "/api/sessions" && request.method === "GET") {
+      return apiResult(await getSessions(request, env));
+    }
+    if (url.pathname === "/api/sessions/revoke" && request.method === "POST") {
+      return apiResult(await revokeSession(request, env));
+    }
+    if (url.pathname === "/api/account/export" && request.method === "GET") {
+      return apiResult(await exportAccountData(request, env));
+    }
+    if (url.pathname === "/api/account" && request.method === "DELETE") {
+      return apiResult(await deleteAccount(request, env));
+    }
+    if (url.pathname === "/api/professional/workspaces" && request.method === "POST") {
+      return apiResult(await createProfessionalWorkspace(request, env));
+    }
+    const membersMatch = url.pathname.match(/^\/api\/professional\/workspaces\/([0-9a-f-]+)\/members$/i);
+    if (membersMatch && request.method === "GET") {
+      return apiResult(await listProfessionalMembers(request, env, membersMatch[1]));
+    }
+    if (membersMatch && request.method === "POST") {
+      return apiResult(await upsertProfessionalMember(request, env, membersMatch[1]));
+    }
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       return json({ ok: false, error: { code: "not_found" } }, 404);
     }
-
     return env.ASSETS.fetch(request);
   },
 };
