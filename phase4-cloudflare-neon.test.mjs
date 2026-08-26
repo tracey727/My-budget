@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkDatabase, checkReadiness } from "./src/worker.mjs";
+import worker, { checkDatabase, checkReadiness } from "./src/worker.mjs";
 
 const assets = {
   async fetch() {
@@ -15,7 +15,7 @@ class ReadyClient {
   async connect() {}
   async query(sql, params) {
     assert.match(sql, /public\.schema_migrations/);
-    assert.deepEqual(params, ["004"]);
+    assert.deepEqual(params, ["006"]);
     return { rows: [{ database_name: "neondb", migration_ready: true }] };
   }
   async end() {}
@@ -39,9 +39,9 @@ class FailingClient extends ReadyClient {
   }
 }
 
-test("database readiness succeeds only for neondb at migration 004", async () => {
+test("database readiness keeps the Phase 4 Hyperdrive path linked to neondb at current migration 006", async () => {
   const result = await checkDatabase({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, ReadyClient);
-  assert.deepEqual(result, { ok: true, migration: "004" });
+  assert.deepEqual(result, { ok: true, migration: "006" });
 });
 
 test("missing Hyperdrive binding fails closed", async () => {
@@ -54,7 +54,7 @@ test("wrong database fails closed", async () => {
   assert.deepEqual(result, { ok: false, migration: null });
 });
 
-test("missing migration 004 fails closed", async () => {
+test("missing current migration 006 fails closed", async () => {
   const result = await checkDatabase({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, MissingMigrationClient);
   assert.deepEqual(result, { ok: false, migration: null });
 });
@@ -65,7 +65,7 @@ test("connection failure returns unavailable without leaking error details", asy
   assert.deepEqual(readiness.payload, {
     ok: false,
     service: "genevieve-budget",
-    phase: 4,
+    phase: 5,
     assets: "ready",
     database: "unavailable",
     migration: null,
@@ -79,14 +79,37 @@ test("assets and database must both be ready before HTTP 200", async () => {
   assert.deepEqual(success.payload, {
     ok: true,
     service: "genevieve-budget",
-    phase: 4,
+    phase: 5,
     assets: "ready",
     database: "ready",
-    migration: "004",
+    migration: "006",
   });
 
   const noAssets = await checkReadiness({ HYPERDRIVE: { connectionString: "postgres://hyperdrive" } }, ReadyClient);
   assert.equal(noAssets.status, 503);
   assert.equal(noAssets.payload.assets, "unavailable");
   assert.equal(noAssets.payload.database, "ready");
+});
+
+test("endpoint-level failure proof keeps health live while readiness fails closed", async () => {
+  const envWithoutDatabase = { ASSETS: assets };
+  const health = await worker.fetch(new Request("https://budget.test/health"), envWithoutDatabase);
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), {
+    ok: true,
+    service: "genevieve-budget",
+    phase: 5,
+    runtime: "cloudflare-workers",
+  });
+
+  const ready = await worker.fetch(new Request("https://budget.test/ready"), envWithoutDatabase);
+  assert.equal(ready.status, 503);
+  assert.deepEqual(await ready.json(), {
+    ok: false,
+    service: "genevieve-budget",
+    phase: 5,
+    assets: "ready",
+    database: "unavailable",
+    migration: null,
+  });
 });
