@@ -48,10 +48,11 @@ if (!worker.includes('phase7-first-time-setup-v1')) {
   throw new Error('deployed service-worker cache was not resealed for Phase 7');
 }
 
-const sourceHash = createHash('sha256').update(sourceApp).digest('hex');
+const gitBlobHeader = Buffer.from(`blob ${Buffer.byteLength(sourceApp, 'utf8')}\0`, 'utf8');
+const sourceHash = createHash('sha1').update(gitBlobHeader).update(sourceApp, 'utf8').digest('hex');
 const expectedProtectedAppHash = 'a86381a76c4676b9d14cbcb1a6b9de842c1cd24c';
 if (sourceHash !== expectedProtectedAppHash) {
-  throw new Error(`protected app.js changed: expected ${expectedProtectedAppHash}, got ${sourceHash}`);
+  throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);
 }
 
 console.log('Phase 7 production artifact verification passed: eight-screen first-time setup is linked after Phase 2 and before protected app.js.');
