@@ -14,6 +14,7 @@ import {
 const runtime = await readFile(new URL('./phase7-first-time-setup.js', import.meta.url), 'utf8');
 const planBridge = await readFile(new URL('./phase7-plan-integrity-bridge.js', import.meta.url), 'utf8');
 const backupBridge = await readFile(new URL('./phase7-backup-bridge.js', import.meta.url), 'utf8');
+const balanceBridge = await readFile(new URL('./phase7-core-balances-bridge.js', import.meta.url), 'utf8');
 const index = await readFile(new URL('./index.html', import.meta.url), 'utf8');
 const linker = await readFile(new URL('./scripts/link-phase7-first-time-setup.mjs', import.meta.url), 'utf8');
 
@@ -149,7 +150,15 @@ test('Backup and restore preserve Phase 7 setup settings and remain compatible w
   assert.match(backupBridge, /Legacy backups pre-date Phase 7/);
 });
 
-test('Production linker preserves source lineage and inserts all Phase 7 runtimes before app.js', () => {
+test('Core-balance bridge keeps transfers as money movement and uses authenticated same-origin persistence', () => {
+  assert.match(balanceBridge, /Internal transfers move money between your own accounts and are not counted as spending\./);
+  assert.match(balanceBridge, /\/api\/phase7\/accounts/);
+  assert.match(balanceBridge, /\/api\/phase7\/accounts\/sync/);
+  assert.match(balanceBridge, /credentials: 'same-origin'/);
+  assert.match(balanceBridge, /Protected \/ reserved/);
+});
+
+test('Production linker preserves source lineage and inserts all reconciled Phase 7 runtimes before app.js', () => {
   const data = index.indexOf('/phase2-data-runtime.js');
   const extended = index.indexOf('/phase2-subscriptions-savings-runtime.js');
   const app = index.indexOf('/app.js');
@@ -157,6 +166,7 @@ test('Production linker preserves source lineage and inserts all Phase 7 runtime
   assert.match(linker, /phase7-first-time-setup\.js/);
   assert.match(linker, /phase7-plan-integrity-bridge\.js/);
   assert.match(linker, /phase7-backup-bridge\.js/);
+  assert.match(linker, /phase7-core-balances-bridge\.js/);
   assert.match(linker, /protectedAppPattern/);
-  assert.match(linker, /linked Phase 7 setup, plan-integrity and backup runtimes after Phase 2 and immediately before protected app\.js/);
+  assert.match(linker, /linked Phase 7 setup, plan-integrity, backup and core-balance runtimes after Phase 2 and immediately before protected app\.js/);
 });
