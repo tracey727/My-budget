@@ -1,0 +1,29 @@
+name: Phase 4 Worker readiness checkpoint
+
+on:
+  push:
+    branches:
+      - phase4-cloudflare-neon-connection
+
+permissions:
+  contents: read
+
+jobs:
+  readiness-checkpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Worker syntax
+        run: node --check src/worker.mjs
+      - name: Phase 4 database and readiness tests
+        run: npm run test:phase4
+      - name: Dependency security audit
+        run: npm run audit:deps
