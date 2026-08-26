@@ -5,8 +5,9 @@ const JSON_HEADERS = {
   "cache-control": "no-store",
 };
 
+const CURRENT_PHASE = 5;
 const EXPECTED_DATABASE = "neondb";
-const EXPECTED_MIGRATION = "004";
+const EXPECTED_MIGRATION = "006";
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_HEADERS });
@@ -64,7 +65,7 @@ export async function checkReadiness(env, ClientClass = Client) {
     payload: {
       ok: ready,
       service: "genevieve-budget",
-      phase: 4,
+      phase: CURRENT_PHASE,
       assets: assetsReady ? "ready" : "unavailable",
       database: database.ok ? "ready" : "unavailable",
       migration: database.ok ? database.migration : null,
@@ -80,7 +81,7 @@ export default {
       return json({
         ok: true,
         service: "genevieve-budget",
-        phase: 4,
+        phase: CURRENT_PHASE,
         runtime: "cloudflare-workers",
       });
     }
