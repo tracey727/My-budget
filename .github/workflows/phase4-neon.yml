@@ -24,5 +24,53 @@ jobs:
           cache: npm
       - name: Reproducible install
         run: npm ci
-      - name: Preserve Phase 2 and Phase 3 and verify Phase 4 migration contract
+      - name: Preserve Phase 2 and Phase 3 and verify Phase 4
         run: npm run verify:phase4
+      - name: Verify generated Cloudflare types are current
+        run: git diff --exit-code -- worker-configuration.d.ts
+      - name: Confirm Hyperdrive binding and no raw database secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq '"binding": "HYPERDRIVE"' wrangler.jsonc
+          grep -Fq '"id": "40061acf4dd74d808860c06fe9c2f075"' wrangler.jsonc
+          if grep -REi --exclude='package-lock.json' --exclude='*.md' 'postgres(ql)?://[^" ]+:[^" ]+@|DATABASE_URL|NEON_DATABASE_URL' src wrangler.jsonc package.json .github; then
+            echo "Raw database secret/configuration detected in source" >&2
+            exit 1
+          fi
+      - name: Verify Phase 4 database readiness live
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BRANCH="${GITHUB_HEAD_REF//\//-}"
+            BASE_URL="https://${BRANCH}-my-budget.positivity864.workers.dev"
+          else
+            BASE_URL="https://my-budget.positivity864.workers.dev"
+          fi
+
+          echo "Verifying Phase 4 readiness at ${BASE_URL}/ready"
+          body_file="$(mktemp)"
+          code=""
+
+          for attempt in $(seq 1 30); do
+            code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
+            if [ "$code" = "200" ] \
+              && grep -Fq '"phase":4' "$body_file" \
+              && grep -Fq '"assets":"ready"' "$body_file" \
+              && grep -Fq '"database":"ready"' "$body_file" \
+              && grep -Fq '"migration":"004"' "$body_file"; then
+              echo "PASS Phase 4 live readiness on attempt ${attempt}"
+              cat "$body_file"
+              rm -f "$body_file"
+              exit 0
+            fi
+            echo "Waiting for Phase 4 deployment: /ready returned ${code} on attempt ${attempt}"
+            sleep 10
+          done
+
+          echo "Phase 4 live readiness failed at ${BASE_URL}/ready" >&2
+          echo "Last HTTP status: ${code}" >&2
+          cat "$body_file" >&2 || true
+          rm -f "$body_file"
+          exit 1
