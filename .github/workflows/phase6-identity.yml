@@ -1,4 +1,4 @@
-name: Phase 6 identity verification
+name: Phase 6 verification
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  phase6-identity:
+  phase6:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,12 +25,21 @@ jobs:
       - name: Reproducible install
         run: npm ci
 
-      - name: Preserve Phases 2 through 5 and verify Phase 6 identity
-        run: npm run verify:phase6-identity
+      - name: Preserve Phases 2 through 5 and verify Phase 6 chronologically
+        run: npm run verify:phase6
 
-      - name: Confirm Phase 6 scope has not advanced
+      - name: Confirm Phase 6 migrations remain chronological and scoped
         run: |
-          ! grep -Eiq 'trusted_support|professional_membership|professional_workspace|delete_current_account' database/migrations/008_phase6_auth_identity_entitlement.sql
+          test -f database/migrations/008_phase6_auth_identity_entitlement.sql
+          test -f database/migrations/009_phase6_trusted_support_permissions.sql
+          ! grep -Eiq 'professional_membership|professional_workspace|delete_current_account' database/migrations/008_phase6_auth_identity_entitlement.sql database/migrations/009_phase6_trusted_support_permissions.sql
+
+      - name: Confirm trusted support keeps read and financial action separate
+        run: |
+          grep -q 'can_read boolean NOT NULL DEFAULT true' database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q 'can_financial_action boolean NOT NULL DEFAULT false' database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "WHEN 'read' THEN g.can_read" database/migrations/009_phase6_trusted_support_permissions.sql
+          grep -q "WHEN 'financial_action' THEN g.can_financial_action" database/migrations/009_phase6_trusted_support_permissions.sql
 
       - name: Confirm managed Auth endpoint is configuration-driven
         run: |
