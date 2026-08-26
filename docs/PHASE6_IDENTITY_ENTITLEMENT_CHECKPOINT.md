@@ -1,10 +1,10 @@
-# GENEVIEVE Budget — Phase 6 Identity / Entitlement Checkpoint
+# GENEVIEVE Budget — Phase 6 Current Checkpoint — Identity, Entitlement & Trusted Support
 
 Date: 26 August 2026, AEST (Queensland)
 
 ## Status
 
-**PARTIAL PHASE 6 CHECKPOINT — AUTHORISED IDENTITY / ENTITLEMENT ITEMS GREEN — NOT MERGED / NOT ARCHIVED.**
+**PARTIAL PHASE 6 CHECKPOINT — AUTHORISED WORK THROUGH TRUSTED-SUPPORT VERIFICATION IS GREEN — NOT MERGED / NOT ARCHIVED.**
 
 Authoritative base:
 - repository: `tracey727/My-budget`
@@ -13,24 +13,27 @@ Authoritative base:
 - clean Phase 6 branch: `phase6-auth-identity-entitlement`
 - draft verification PR: `#34`
 - isolated Neon test branch: `phase6-identity-entitlement-clean-test` (`br-super-mouse-axqrxqeb`)
-- isolated rollback proof branch: `phase6-identity-entitlement-rollback-proof` (`br-lively-waterfall-axowho2i`)
+- isolated identity rollback proof branch: `phase6-identity-entitlement-rollback-proof` (`br-lively-waterfall-axowho2i`)
 - production remains at migration `007`
-- clean test branch is at migration `008`
+- isolated Phase 6 test branch is at migration `009`
 
-## Authorised scope in this checkpoint
+## Authorised Phase 6 scope completed to this checkpoint
 
 1. Build authenticated user identity.
 2. Establish PostgreSQL transaction-local `app.user_id` before every user-owned database query.
 3. Fail closed when identity is missing, expired, invalid, inactive or cannot be verified.
 4. Define Personal vs Professional entitlement.
+5. Define trusted-support permissions with read authority separate from financial-action authority.
+6. Prove User A cannot read/write User B data and read-only support cannot perform financial actions without explicit authority.
+7. Add the Phase 6 GitHub Actions verification gate while preserving and rerunning Phase 2, Phase 3, Phase 4 and Phase 5 gates.
 
-Explicitly excluded from this checkpoint:
-- trusted-support permissions;
-- professional staff roles/memberships/workspaces;
+Still explicitly excluded / not yet built in this checkpoint:
+- Professional staff role model: Owner, Administrator, Manager, Accountant/bookkeeper, Project manager, Read-only user;
 - account deletion;
 - data export;
 - device/session management;
-- later Phase 6 features.
+- later Phase 6 authentication lifecycle work;
+- Phase 7.
 
 ## Chronological linkage
 
@@ -38,13 +41,15 @@ Existing sealed chain remains:
 
 `Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare Worker/static assets → Phase 4 Hyperdrive/Neon → Phase 5 RLS database safety at migration 007`
 
-This checkpoint extends that chain only as follows:
+Phase 6 extends that chain in strict order:
 
-`managed Neon Auth session → Cloudflare Worker /auth and /api boundaries → server-side session validation → Hyperdrive → BEGIN → set_config('app.user_id', authenticated UUID, true) → Phase 5 current_app_user_id() RLS → active application user check → user-owned query → COMMIT`
+`managed Neon Auth session → Cloudflare Worker /auth and /api boundaries → server-side session validation → Hyperdrive → BEGIN → transaction-local app.user_id + app.owner_user_id + app.actor_type → active actor/owner validation → exact capability check when actor != owner → Phase 5/6 RLS → user-owned query → append-only audit path → COMMIT`
 
-The Worker does not trust a browser identity claim by itself. It independently validates the managed Auth session, opens the PostgreSQL transaction, sets the authenticated UUID transaction-locally, then validates the matching active application user before the owned operation is permitted.
+The Worker does not trust a browser identity or a requested owner by itself. It independently validates the managed Auth session, places both actor and owner identity into transaction-local PostgreSQL settings, validates both application users, and requires the exact trusted-support capability before another user's owned operation may run.
 
-## Personal vs Professional entitlement
+Transaction-local scope prevents Hyperdrive connection pooling from carrying one user's actor/owner authority into another request.
+
+## Personal vs Professional entitlement — migration 008
 
 Personal/Professional entitlement is stored in `public.user_entitlements`.
 
@@ -56,72 +61,153 @@ Rules:
 - Worker read access is restricted by RLS to `user_id = current_app_user_id()`;
 - the Worker cannot directly insert, update or delete entitlement records through the user-data role.
 
+Migration:
+`database/migrations/008_phase6_auth_identity_entitlement.sql`
+
+Rollback:
+`database/rollbacks/phase6_identity_to_phase5.sql`
+
+## Trusted-support authority — migration 009
+
+Trusted-support authority is stored in `public.trusted_support_grants`.
+
+Authority is deliberately split:
+- `can_read` controls read authority;
+- `can_financial_action` controls financial-action authority;
+- financial-action authority requires read authority;
+- read-only support cannot insert or update financial records;
+- expired or revoked grants fail closed;
+- owner and support user must be different;
+- only the owner may create or update a support grant through the Worker role;
+- support and owner may view a grant they participate in;
+- physical DELETE is withheld from the Worker;
+- grant changes create append-only audit evidence.
+
+Financial-table RLS is linked to the capability model:
+- SELECT → `can_access_owned_record(user_id, 'read')`;
+- INSERT → `can_access_owned_record(user_id, 'financial_action')`;
+- UPDATE → `can_access_owned_record(user_id, 'financial_action')`;
+- audit-event SELECT → read authority;
+- audit-event INSERT → financial-action authority.
+
+Migration:
+`database/migrations/009_phase6_trusted_support_permissions.sql`
+
+Rollback:
+`database/rollbacks/phase6_trusted_support_to_identity.sql`
+
 ## Migration order
 
 Production remains sealed at:
 `000 → 001 → 002 → 003 → 004 → 005 → 006 → 007`
 
-The isolated clean Phase 6 test branch is:
-`000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008`
+The isolated Phase 6 test branch is now:
+`000 → 001 → 002 → 003 → 004 → 005 → 006 → 007 → 008 → 009`
 
-Migration `008_phase6_auth_identity_entitlement.sql` contains only identity and entitlement scope. It does not create trusted-support or professional workspace/membership structures and does not add account-deletion logic.
+No migration was applied to production during this checkpoint.
 
-Rollback file:
-`database/rollbacks/phase6_identity_to_phase5.sql`
+## Fail-closed and authority tests verified
 
-## Fail-closed rules verified
-
+Identity foundation:
 - no session cookie: no Auth network call and no database connection;
 - invalid authenticated UUID: no database connection;
 - missing Auth configuration: unavailable, never anonymous fallback;
 - expired/invalid session: rejected;
 - missing Hyperdrive: rejected;
-- inactive/deleted application user: transaction rolled back before owned operation;
-- `app.user_id` is set with PostgreSQL transaction-local scope before the active-user and user-owned queries;
-- after the transaction ends, `current_app_user_id()` returns `NULL`, proving identity does not persist across pooled work;
-- Phase 5 account and transaction policies still require their row `user_id` to equal `current_app_user_id()`;
-- entitlement SELECT policy requires `user_id = current_app_user_id()`;
-- unknown `/api/*` route: JSON 404, never static-asset fallback;
-- `NEON_AUTH_URL` is configuration-driven and is not embedded in repository source;
-- readiness remains Phase 5 / migration 007 until all Phase 6 work is promoted and archived.
+- inactive actor or owner: transaction rolled back before owned operation;
+- invalid owner UUID or capability: rejected before DB construction;
+- actor, owner and actor type are transaction-local;
+- after test transactions, `current_app_user_id()` and `current_data_owner_id()` return `NULL`.
 
-## GitHub verification evidence
+Cross-user and support authority live database proof on isolated Neon branch `br-super-mouse-axqrxqeb`:
+- User A → User B read: `false`;
+- User A → User B financial action: `false`;
+- support with read-only grant → User B read: `true`;
+- support with read-only grant → User B financial action: `false`;
+- after explicit `can_financial_action` authority → support financial action: `true`;
+- User B on own data → read: `true`;
+- User B on own data → financial action: `true`.
 
-Clean PR head before this documentation-only evidence update passed every gate:
-- Phase 2 baseline verification #145 — run `32961520792` — success;
-- Phase 3 Cloudflare verification #79 — run `32961520777` — success;
-- Phase 4 Neon database verification #35 — run `32961520714` — success;
-- Phase 5 database safety verification #19 — run `32961520830` — success;
-- Phase 6 identity verification #1 — run `32961520893` — success.
+The synthetic test authority was retired after verification:
+- active synthetic test users: `0`;
+- active trusted-support grants: `0`;
+- append-only audit evidence was preserved rather than deleted.
 
-The Phase 6 gate executes `npm run verify:phase6-identity`, which nests the existing Phase 2 → Phase 3 → Phase 4 → Phase 5 verification before Phase 6 identity tests.
+## Rollback proof
 
-`app.js` remains byte-for-byte protected by the Phase 6 gate.
+Migration 008 rollback proof:
+- migration `008` applied to isolated branch;
+- `phase6_identity_to_phase5.sql` returned it to Phase 5;
+- Neon schema comparison against the Phase 5 parent returned an empty diff.
 
-## Neon verification evidence
+Migration 009 rollback proof:
+- migration `009` applied to isolated branch at 008;
+- `phase6_trusted_support_to_identity.sql` returned the branch to migration `008`;
+- `public.user_entitlements` remained present;
+- `public.trusted_support_grants` was removed;
+- original Phase 5 account ownership policies were restored;
+- Phase 6 scoped account policies were removed;
+- migration `009` was then reapplied successfully so the test branch finishes at `009`.
 
-Clean isolated test branch `br-super-mouse-axqrxqeb`:
-- migration ledger is exactly `000` through `008`;
-- `public.user_entitlements` exists;
-- entitlement RLS policy exists;
-- Neon Auth → application-user synchronization trigger exists;
-- later trusted-support and professional-workspace tables are absent;
-- transaction-local `app.user_id` was visible inside its transaction and reset to `NULL` afterward;
-- existing Phase 5 `users`, `accounts` and `transactions` RLS policies remain tied to `current_app_user_id()`.
+## GitHub verification gate
 
-Rollback proof branch `br-lively-waterfall-axowho2i`:
-- migration `008` applied successfully in an isolated transaction;
-- `phase6_identity_to_phase5.sql` rollback applied successfully;
-- Neon schema comparison against the Phase 5 parent returned an empty diff: `{"diff":""}`.
+The Phase 6 workflow is:
+`.github/workflows/phase6-identity.yml`
 
-Production was not migrated by this checkpoint and remains at migration `007`.
+Workflow name:
+`Phase 6 verification`
+
+Required job/check name created by this workflow:
+`phase6`
+
+The Phase 6 verification command is:
+`npm run verify:phase6`
+
+The nested gate is:
+`verify:phase2 → test:phase3 / Cloudflare checks → test:phase4 → test:phase5 → Phase 6 identity tests → Phase 6 trusted-support tests`
+
+Green code-head evidence on `675c18563f26dcfc22d57c6a572d3ab43785ad42`:
+- Phase 2 baseline verification #155 — run `32963355147` — success;
+- Phase 3 Cloudflare verification #89 — run `32963355179` — success;
+- Phase 4 Neon database verification #45 — run `32963355172` — success;
+- Phase 5 database safety verification #29 — run `32963355140` — success;
+- Phase 6 verification #11 — run `32963355155` — success.
+
+The Phase 6 job also verifies:
+- migration 008 exists before migration 009;
+- later Professional workspace/membership and account-deletion implementation has not been introduced;
+- read and financial-action authority remain distinct;
+- the managed Auth endpoint is configuration-driven;
+- protected `app.js` remains byte-for-byte unchanged.
+
+## Audit issues found and resolved
+
+1. The first Phase 6 support CI run failed because a test regex interpreted the explanatory comment `account deletion is excluded` as if account-deletion code had been built. The assertion was corrected to test implementation identifiers only. No runtime/database code change was required for this issue.
+2. An isolated Neon test cleanup attempted to delete append-only audit evidence. The database correctly rejected the deletion and rolled the whole transaction back. The test was rerun without violating append-only audit rules.
+3. A synthetic read-only support grant remained on the isolated test branch after migration reapplication. It was identified as test data, revoked, its financial authority was disabled, and all three synthetic test users were disabled. There are now zero active synthetic users and zero active support grants on that test branch.
+
+## Production audit
+
+Production Neon branch `main` (`br-old-boat-axqvorbe`) remains unchanged:
+- latest migration: `007`;
+- production users: `0`;
+- `public.user_entitlements`: absent;
+- `public.trusted_support_grants`: absent.
+
+The GitHub diff from protected `main` contains only Phase 6 identity/support migrations and rollbacks, Phase 6 tests, the Phase 6 workflow, Worker/Cloudflare routing needed for the authorization boundary, package verification scripts, the Phase 3 compatibility test extension, and this checkpoint.
+
+`app.js` is not changed by the Phase 6 diff.
 
 ## Audit note — superseded WIP
 
-The earlier draft branch `phase6-identity-user-scope-permissions` contains later Phase 6 work that was created before the authorised scope was narrowed. It is not authoritative for this checkpoint and must not be merged as the four-item Phase 6 foundation.
+The earlier draft branch `phase6-identity-user-scope-permissions` contains later Phase 6 work that was created before scope was corrected. It remains non-authoritative and must not be merged into this chronological build.
 
-## Gate / chronology lock
+## Current build position / chronology lock
 
-These four authorised Phase 6 controls are built and verified on the clean branch, but this is **not the end of Phase 6** and therefore it is not archived or merged into production yet.
+The authorised Phase 6 work through trusted-support permissions, cross-user/support tests and the Phase 6 verification gate is built and verified on the clean branch.
 
-Do not start later Phase 6 items or Phase 7 without explicit user instruction. Do not merge PR #34 merely because this partial checkpoint is green.
+This is **still not the end of Phase 6**. PR #34 remains draft and must not be merged or archived yet. Production remains at Phase 5/migration 007 until the full Phase 6 scope has been completed, audited and explicitly approved for promotion.
+
+The next chronological Phase 6 build step is the Professional role/permission model (Owner, Administrator, Manager, Accountant/bookkeeper, Project manager, Read-only user), unless the user explicitly directs a different remaining Phase 6 authentication item first.
+
+Do not start that next step or Phase 7 without explicit user instruction.
