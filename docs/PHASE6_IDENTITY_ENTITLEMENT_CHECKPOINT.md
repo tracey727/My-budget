@@ -166,12 +166,19 @@ The Phase 6 verification command is:
 The nested gate is:
 `verify:phase2 → test:phase3 / Cloudflare checks → test:phase4 → test:phase5 → Phase 6 identity tests → Phase 6 trusted-support tests`
 
-Green code-head evidence on `675c18563f26dcfc22d57c6a572d3ab43785ad42`:
+Green evidence on code head `675c18563f26dcfc22d57c6a572d3ab43785ad42`:
 - Phase 2 baseline verification #155 — run `32963355147` — success;
 - Phase 3 Cloudflare verification #89 — run `32963355179` — success;
 - Phase 4 Neon database verification #45 — run `32963355172` — success;
 - Phase 5 database safety verification #29 — run `32963355140` — success;
 - Phase 6 verification #11 — run `32963355155` — success.
+
+The subsequent checkpoint head `788b4346b8170f061b2cc29404e468b1e525a408` also passed all five gates:
+- Phase 2 baseline verification #156 — success;
+- Phase 3 Cloudflare verification #90 — success;
+- Phase 4 Neon database verification #46 — success;
+- Phase 5 database safety verification #30 — success;
+- Phase 6 verification #12 — success.
 
 The Phase 6 job also verifies:
 - migration 008 exists before migration 009;
@@ -208,6 +215,22 @@ The authorised Phase 6 work through trusted-support permissions, cross-user/supp
 
 This is **still not the end of Phase 6**. PR #34 remains draft and must not be merged or archived yet. Production remains at Phase 5/migration 007 until the full Phase 6 scope has been completed, audited and explicitly approved for promotion.
 
-The next chronological Phase 6 build step is the Professional role/permission model (Owner, Administrator, Manager, Accountant/bookkeeper, Project manager, Read-only user), unless the user explicitly directs a different remaining Phase 6 authentication item first.
+### Immediate next chronological action
 
-Do not start that next step or Phase 7 without explicit user instruction.
+Because the new `phase6` GitHub Actions check now exists and is green, the immediate next step from the locked build sequence is:
+
+**Add `phase6` to the active `Protect main` repository ruleset as another required status check.**
+
+Do not skip this governance step.
+
+### Next Phase 6 build scope after that governance step
+
+The next unbuilt Phase 6 product/permission scope is the Professional role model:
+- Owner;
+- Administrator;
+- Manager;
+- Accountant/bookkeeper;
+- Project manager;
+- Read-only user.
+
+Do not start the Professional role model, any other remaining Phase 6 item, or Phase 7 without explicit user instruction.
