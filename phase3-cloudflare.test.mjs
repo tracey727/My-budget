@@ -26,10 +26,13 @@ test("Cloudflare config preserves the sealed Phase 3 Workers Static Assets contr
 });
 
 test("Cloudflare worker preserves health, readiness and static-asset routing for later phases", async () => {
-  const worker = await text("./src/worker.mjs");
-  assert.match(worker, /\/health/);
-  assert.match(worker, /\/ready/);
-  assert.match(worker, /service:\s*["']genevieve-budget["']/);
-  assert.match(worker, /runtime:\s*["']cloudflare-workers["']/);
-  assert.match(worker, /env\.ASSETS\.fetch\(request\)/);
+  const entry = await text("./src/worker.mjs");
+  const sealedWorker = await text("./src/worker-phase6-sealed.mjs");
+  assert.match(entry, /worker-phase6-sealed\.mjs/);
+  assert.match(entry, /phase6Worker\.fetch\(request, env\)/);
+  assert.match(sealedWorker, /\/health/);
+  assert.match(sealedWorker, /\/ready/);
+  assert.match(sealedWorker, /service:\s*["']genevieve-budget["']/);
+  assert.match(sealedWorker, /runtime:\s*["']cloudflare-workers["']/);
+  assert.match(sealedWorker, /env\.ASSETS\.fetch\(request\)/);
 });
