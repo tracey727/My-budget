@@ -34,8 +34,8 @@ jobs:
           set -euo pipefail
           grep -Fq '"binding": "HYPERDRIVE"' wrangler.jsonc
           grep -Fq '"id": "40061acf4dd74d808860c06fe9c2f075"' wrangler.jsonc
-          if grep -REi --exclude='package-lock.json' --exclude='*.md' 'postgres(ql)?://[^" ]+:[^" ]+@|DATABASE_URL|NEON_DATABASE_URL' src wrangler.jsonc package.json .github; then
-            echo "Raw database secret/configuration detected in source" >&2
+          if grep -REi --exclude='package-lock.json' --exclude='*.md' 'postgres(ql)?://[^" ]+:[^" ]+@|DATABASE_URL|NEON_DATABASE_URL' src wrangler.jsonc package.json; then
+            echo "Raw database secret/configuration detected in deployable source" >&2
             exit 1
           fi
       - name: Verify Phase 4 database readiness live
