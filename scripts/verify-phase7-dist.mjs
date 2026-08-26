@@ -5,23 +5,29 @@ import { resolve } from 'node:path';
 
 const root = process.cwd();
 const dist = resolve(root, 'dist');
-const runtimeName = 'phase7-first-time-setup.js';
+const setupRuntimeName = 'phase7-first-time-setup.js';
+const backupRuntimeName = 'phase7-backup-bridge.js';
 
-await access(resolve(dist, runtimeName), constants.R_OK);
+await Promise.all([
+  access(resolve(dist, setupRuntimeName), constants.R_OK),
+  access(resolve(dist, backupRuntimeName), constants.R_OK),
+]);
 
-const [index, runtime, worker, sourceApp] = await Promise.all([
+const [index, setupRuntime, backupRuntime, worker, sourceApp] = await Promise.all([
   readFile(resolve(dist, 'index.html'), 'utf8'),
-  readFile(resolve(dist, runtimeName), 'utf8'),
+  readFile(resolve(dist, setupRuntimeName), 'utf8'),
+  readFile(resolve(dist, backupRuntimeName), 'utf8'),
   readFile(resolve(dist, 'service-worker.js'), 'utf8'),
   readFile(resolve(root, 'app.js'), 'utf8'),
 ]);
 
 const dataRuntime = index.indexOf('/phase2-data-runtime.js');
 const extendedRuntime = index.indexOf('/phase2-subscriptions-savings-runtime.js');
-const phase7Runtime = index.indexOf('/phase7-first-time-setup.js');
+const phase7Setup = index.indexOf('/phase7-first-time-setup.js');
+const phase7Backup = index.indexOf('/phase7-backup-bridge.js');
 const protectedApp = index.indexOf('/app.js');
-if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Runtime && phase7Runtime < protectedApp)) {
-  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 first-time setup -> protected app.js');
+if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Setup && phase7Setup < phase7Backup && phase7Backup < protectedApp)) {
+  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 setup -> Phase 7 backup bridge -> protected app.js');
 }
 
 for (const fragment of [
@@ -38,11 +44,22 @@ for (const fragment of [
   'genevieve-first-time-setup-v1',
   'refreshCompletedBillPlans',
 ]) {
-  if (!runtime.includes(fragment)) throw new Error(`deployed Phase 7 runtime missing contract fragment: ${fragment}`);
+  if (!setupRuntime.includes(fragment)) throw new Error(`deployed Phase 7 setup runtime missing contract fragment: ${fragment}`);
 }
 
-if (!worker.includes('/phase7-first-time-setup.js')) {
-  throw new Error('deployed service worker does not cache the Phase 7 setup runtime');
+for (const fragment of [
+  'phase7Setup',
+  'genevieve-first-time-setup-v1',
+  'fullBackup',
+  'restoreFullBackup',
+  "Object.prototype.hasOwnProperty.call(parsed, 'phase7Setup')",
+  'localStorage.removeItem(SETUP_STORAGE_KEY)',
+]) {
+  if (!backupRuntime.includes(fragment)) throw new Error(`deployed Phase 7 backup bridge missing contract fragment: ${fragment}`);
+}
+
+for (const asset of ['/phase7-first-time-setup.js', '/phase7-backup-bridge.js']) {
+  if (!worker.includes(asset)) throw new Error(`deployed service worker does not cache ${asset}`);
 }
 if (!worker.includes('phase7-first-time-setup-v1')) {
   throw new Error('deployed service-worker cache was not resealed for Phase 7');
@@ -55,4 +72,4 @@ if (sourceHash !== expectedProtectedAppHash) {
   throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);
 }
 
-console.log('Phase 7 production artifact verification passed: eight-screen first-time setup is linked after Phase 2 and before protected app.js.');
+console.log('Phase 7 production artifact verification passed: eight-screen setup and setup-aware backup/restore are linked after Phase 2 and before protected app.js.');
