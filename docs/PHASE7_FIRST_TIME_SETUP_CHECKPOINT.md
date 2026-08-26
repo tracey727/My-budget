@@ -91,9 +91,9 @@ Its required Git blob is:
 
 `670159e8b820f597ed2376c246df04e69a244988`
 
-The new `src/worker.mjs` is a composition entrypoint: it handles the two Phase 7 account routes first and delegates every other route to the sealed Phase 6 module. Named Phase 6 exports are re-exported so the existing Phase 2→6 tests continue to exercise the original implementation.
+The new `src/worker.mjs` is a structural composition entrypoint: it handles the two Phase 7 account routes first and delegates every other route to the sealed Phase 6 module. Named Phase 6 exports are re-exported so the existing Phase 2→6 behavioral tests continue to exercise the original implementation.
 
-Phase 7 production verification independently hashes the sealed copy, so the source-level compatibility anchors in the composition entrypoint do not substitute for byte-level preservation evidence.
+Earlier Phase 3 and Phase 6 source-preservation assertions now inspect `src/worker-phase6-sealed.mjs` directly, and the Phase 6 workflow independently verifies its exact Git blob. The composition entrypoint contains only real routing/re-export code; it carries no copied verification-anchor comments. Phase 7 production verification hashes the same sealed module again before accepting the artifact.
 
 ### 4. Internal transfers are not spending
 
@@ -216,6 +216,7 @@ The final Phase 7 gate now verifies:
 - no migration `015` exists;
 - protected `app.js` hash is unchanged;
 - sealed Phase 6 Worker hash is unchanged;
+- earlier Phase 3/6 source-preservation tests inspect the sealed worker directly rather than relying on wrapper text;
 - all four Phase 7 runtime assets are in the production artifact and service-worker cache;
 - live branch preview serves all four Phase 7 runtimes;
 - live unauthenticated `/api/phase7/accounts` returns authentication-required rather than exposing data;
