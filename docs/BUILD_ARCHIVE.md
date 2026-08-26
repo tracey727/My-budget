@@ -2,18 +2,41 @@
 
 ## Current authoritative checkpoint
 
-Date: 25 August 2026, AEST (Queensland)
+Date: 26 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
-Phase 4 database-foundation merge commit on `main`: `4b7de179ebd180b4dfefd91bf1c253a486aed46a`
 Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
+
+**Phase 1 — COMPLETE / CONTRACT LOCKED**
 
 **Phase 2 — COMPLETE / GREEN / ARCHIVED**
 
 **Phase 3 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-**Phase 4 — DATABASE FOUNDATION BUILT / PRODUCTION MIGRATED / GREEN / MERGED; CONNECTION SUBSTAGE NEXT**
+**Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED after this documentation-only closure is merged**
 
-Neon production database:
+Phase 4 production connection PR: #24
+Phase 4 implementation head: `6117b6b0e5d59d5399e3942f86b75250438f7c71`
+Phase 4 production merge commit: `393143b776541659a200eb05686883964e386c63`
+Detailed Phase 4 completion archive: `docs/PHASE4_COMPLETION_ARCHIVE.md`
+Database foundation checkpoint: `docs/PHASE4_DATABASE_CHECKPOINT.md`
+Connection handoff/history: `docs/PHASE4_CONNECTION_HANDOFF.md`
+Migration workflow: `database/README.md`
+
+## Current production linkage
+
+The verified production chain is:
+
+`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → preserved app.js → Cloudflare ASSETS → Worker /health + /ready → HYPERDRIVE → Neon neondb → schema_migrations 004`
+
+The earlier stage gates remain nested rather than bypassed:
+
+`Phase 2 preservation → Phase 3 Cloudflare verification → Phase 4 database/readiness verification`
+
+The donor `app.js` remains preserved.
+
+## Phase 4 final infrastructure state
+
+Dedicated Neon project:
 
 - project: `genevieve-budget`
 - project ID: `icy-morning-93993343`
@@ -21,99 +44,28 @@ Neon production database:
 - PostgreSQL: 18
 - production branch: `main` (`br-old-boat-axqvorbe`)
 - verified development branch: `phase4-schema-dev` (`br-wandering-rice-ax2oofpd`)
+- restricted Worker role: `genevieve_budget_worker`
 
-Production contains all 15 required Phase 4 core tables and zero deferred professional tables. Migrations `000,001,002,003,004` are recorded. The final production audit returned 22 foreign keys, 15 triggers and 40 indexes. Development-to-production Neon schema comparison returned an empty diff both before and after the GitHub merge.
+Cloudflare Hyperdrive:
 
-Post-merge `main` verification for `4b7de179ebd180b4dfefd91bf1c253a486aed46a`:
+- binding: `HYPERDRIVE`
+- configuration ID: `40061acf4dd74d808860c06fe9c2f075`
+- PostgreSQL through direct/unpooled Neon host
+- query caching disabled
 
-- Phase 2 baseline verification run #115 (`32841639057`) — **GREEN**
-- Phase 3 Cloudflare verification run #49 (`32841638984`) — **GREEN**, including live Cloudflare verification
-- Phase 4 Neon database verification run #5 (`32841638986`) — **GREEN**
+No raw database password or connection URI is stored in this archive or committed deployable source.
 
-Detailed database checkpoint: `docs/PHASE4_DATABASE_CHECKPOINT.md`.
-Migration workflow: `database/README.md`.
+## Phase 4 database foundation
 
-**Next permitted action: Phase 4 Cloudflare → Neon connection and readiness verification.**
-
-Phase 5 remains blocked until the real production database connection is proven GREEN and Phase 4 is finally archived.
-
----
-
-## Phase 3 — final production closure
-
-Phase 3 Cloudflare was re-sealed after the Phase 2 runtime expanded to the seven-view subscriber chain:
-
-`Home → Money → Bills → Subs → Accounts → Savings → Review`
-
-The sealed production runtime chain is:
-
-`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → app.js`
-
-The existing donor `app.js` remains preserved.
-
-Phase 3 re-seal PR #20 merged as `09b773801e0d219ef248181de9e48bf906d72217`. The documentation closure merged as `bb63194af60a4dd7e8be00119f64c6e0ae39a4e3`.
-
-Phase 3 final production verification established:
-
-- full Phase 2 preservation gate — PASS;
-- Phase 3 runtime/configuration tests — PASS;
-- Wrangler binding types and drift check — PASS;
-- Cloudflare deploy dry-run — PASS;
-- live production app — PASS;
-- live `/health` — PASS;
-- live `/ready` — PASS;
-- no Phase 4 database binding at the Phase 3 boundary — PASS.
-
-Detailed archive: `docs/PHASE3_CLOUDFLARE_RESEAL.md`.
-
-**Phase 3 result: COMPLETE / LIVE / GREEN / ARCHIVED.**
-
----
-
-## Phase 4 — PostgreSQL database foundation
-
-### Dedicated Neon project
-
-A dedicated Neon project was created instead of reusing another GENEVIEVE application's database:
-
-- project: `genevieve-budget`
-- project ID: `icy-morning-93993343`
-- database: `neondb`
-- production branch: `main`
-- isolated development branch: `phase4-schema-dev`
-
-Database credentials and connection strings are not committed to GitHub.
-
-### Chronological migrations
+Chronological migrations:
 
 1. `000_phase4_migration_ledger.sql`
-   - migration ledger
-   - shared updated-at helper
 2. `001_phase4_user_foundation.sql`
-   - users
-   - profiles
-   - financial_settings
-   - transaction_categories
 3. `002_phase4_accounts_transactions.sql`
-   - accounts
-   - transactions
 4. `003_phase4_recurring_money.sql`
-   - incomes
-   - bills
-   - bill_provisions
-   - subscriptions
-   - savings_goals
-   - debts
 5. `004_phase4_alerts_savings_audit.sql`
-   - alerts
-   - verified_savings
-   - audit_events
 
-Each migration was applied to the isolated Neon development branch and audited before the next migration. The exact tested migrations were then applied to Neon production `main`, one at a time, with another audit after each production migration.
-
-### Required Phase 4 core tables
-
-Production contains all 15 required core tables:
+Production contains all 15 required Phase 4 application tables:
 
 - users
 - profiles
@@ -133,97 +85,110 @@ Production contains all 15 required core tables:
 
 Internal migration infrastructure: `schema_migrations`.
 
-### Professional tables intentionally deferred
+Deferred professional tables remain intentionally unbuilt until the later professional stage.
 
-None of these professional tables has been built in this database-foundation substage:
+Final read-only Neon production audit after the Phase 4 connection merge:
 
-- organisations
-- organisation_members
-- projects
-- project_members
-- cost_centres
-- project_budgets
-- project_expenses
-- commitments
-- invoices
-- suppliers
-- forecasts
-
-### Database audit result
-
-Development audit:
-
-- 15/15 required tables — PASS
-- 0 professional tables — PASS
+- 15 required application tables plus `schema_migrations` = 16 public base tables — PASS
 - migrations `000,001,002,003,004` — PASS
-- representative data smoke test through the linked financial tables — PASS
-- smoke data cleanup — PASS
-
-Production audit:
-
-- 15/15 required tables — PASS
-- 0 professional tables — PASS
-- migration ledger `000,001,002,003,004` — PASS
+- migration `004` present — PASS
 - foreign keys: 22
 - triggers: 15
 - indexes: 40
-- verified development-to-production schema diff: empty — PASS
+- Worker CONNECT to `neondb` — PASS
+- Worker USAGE on `public` — PASS
+- Worker SELECT on `public.schema_migrations` — PASS
 
-### Repository Phase 4 gate
+The prior verified development-to-production schema comparison was empty.
 
-Phase 4 database foundation added:
+## Phase 4 readiness and failure behaviour
 
-- `phase4-database-contract.test.mjs`
-- `npm run test:phase4`
-- `npm run verify:phase4`
-- `.github/workflows/phase4-neon.yml`
+`/health` is Worker liveness and does not depend on database readiness.
 
-`verify:phase4` preserves the complete Phase 2 and Phase 3 gates before verifying the migration contract.
+`/ready` may return HTTP 200 only when:
 
-Pre-merge archive head `420041138b43467eb0e0c71efef0e00ae6c34510` passed Phase 2 run #114, Phase 3 run #48 and Phase 4 run #4.
+- Cloudflare static assets are available;
+- the Hyperdrive binding is present;
+- PostgreSQL can be reached;
+- `current_database()` is `neondb`;
+- migration `004` exists.
 
-PR #22 then merged the database foundation to `main` as `4b7de179ebd180b4dfefd91bf1c253a486aed46a`.
+Successful readiness shape:
 
-Post-merge `main` passed Phase 2 run #115, Phase 3 run #49 and Phase 4 run #5. A final read-only Neon audit reconfirmed the complete production schema and a final schema comparison again returned an empty diff.
+```json
+{"ok":true,"service":"genevieve-budget","phase":4,"assets":"ready","database":"ready","migration":"004"}
+```
 
-### Linkage before and after
+A controlled isolated failure proof was completed with database connectivity deliberately unavailable without changing production or preview Hyperdrive configuration.
 
-Before database foundation:
+Failure result:
 
-`sealed browser/runtime contract → Cloudflare Phase 3 → database not configured`
+- `/health` remained HTTP 200;
+- `/ready` returned HTTP 503;
+- database reported `unavailable`;
+- migration reported `null`;
+- no password, URI, driver error or stack trace leaked.
 
-After database foundation:
+Failure readiness shape:
 
-`sealed browser/runtime contract → numbered PostgreSQL migration contract → verified Neon development schema → identical Neon production schema`
+```json
+{"ok":false,"service":"genevieve-budget","phase":4,"assets":"ready","database":"unavailable","migration":null}
+```
 
-The Cloudflare Worker has deliberately not been connected in this substage. `/ready` must not claim database readiness until the next Phase 4 substage proves a real Worker-to-Neon connection.
+## Phase 4 verification evidence
 
-### Phase 4 remaining work
+Fresh pre-merge gates on implementation head `6117b6b0e5d59d5399e3942f86b75250438f7c71` after the controlled failure proof:
 
-The database is built. Phase 4 as a whole is not yet closed.
+- Phase 2 baseline verification run #120 (`32921570621`) — GREEN
+- Phase 3 Cloudflare verification run #54 (`32921570570`) — GREEN
+- Phase 4 Neon database verification run #10 (`32921570583`) — GREEN, including live preview database readiness
 
-Remaining Phase 4 work, in chronological order:
+PR #24 was merged using the expected head SHA.
 
-1. establish the Cloudflare-to-Neon connection method appropriate to Workers;
-2. use Hyperdrive where appropriate for external PostgreSQL connectivity;
-3. verify development connectivity;
-4. verify production connectivity;
-5. verify connection-failure behaviour does not falsely report readiness;
-6. change `/ready` away from `not-configured-phase-4` only after real connectivity is proven;
-7. rerun Phase 2 + Phase 3 + Phase 4 gates;
-8. verify live Cloudflare production readiness;
-9. archive Phase 4 completely;
-10. only then permit Phase 5.
+Production merge commit:
 
-Detailed checkpoint: `docs/PHASE4_DATABASE_CHECKPOINT.md`.
+`393143b776541659a200eb05686883964e386c63`
+
+Post-merge `main` verification:
+
+- Phase 2 baseline verification run #121 (`32922303305`) — GREEN
+- Phase 3 Cloudflare verification run #55 (`32922303334`) — GREEN, including live production root and `/health`
+- Phase 4 Neon database verification run #11 (`32922303361`) — GREEN, including live production `/ready`
+
+The Cloudflare Git integration performed the production deployment. No uncontrolled manual production deploy was used.
+
+## Non-blocking warnings
+
+- Wrangler recommends `@types/node` while `nodejs_compat` is enabled. The Worker remains JavaScript and generated Cloudflare types are current; all gates pass.
+- GitHub Actions reports some older action internals being forced from Node 20 to Node 24. Current workflows pass.
+
+Neither warning blocks deployment at this checkpoint.
+
+---
+
+## Phase 3 — sealed production deployment
+
+Phase 3 Cloudflare was re-sealed after the Phase 2 runtime expanded to the seven-view subscriber chain:
+
+`Home → Money → Bills → Subs → Accounts → Savings → Review`
+
+The sealed production runtime chain before the database connection was:
+
+`index.html → phase2-data-runtime.js → phase2-subscriptions-savings-runtime.js → app.js`
+
+Phase 3 re-seal PR #20 merged as `09b773801e0d219ef248181de9e48bf906d72217`. The documentation closure merged as `bb63194af60a4dd7e8be00119f64c6e0ae39a4e3`.
+
+Detailed archive: `docs/PHASE3_CLOUDFLARE_RESEAL.md`.
+
+**Phase 3 result: COMPLETE / LIVE / GREEN / ARCHIVED.**
 
 ---
 
 ## Phase 2 — sealed foundation
 
-Phase 2 is the preserved application/data-contract baseline on which Phase 3 and Phase 4 build.
+Phase 2 is the preserved application/data-contract baseline on which later phases build.
 
-Phase-specific historical archives remain authoritative for detailed Phase 2 evidence:
+Authoritative historical archives:
 
 - `docs/PHASE2_COMPLETION_ARCHIVE.md`
 - `docs/PHASE2_DATA_CONTRACT_AMENDMENT.md`
@@ -231,13 +196,13 @@ Phase-specific historical archives remain authoritative for detailed Phase 2 evi
 
 Phase 2 includes the preserved subscriber runtime, deterministic install/build path, source and artifact verification, donor `app.js` preservation, account types including BNPL, expanded transactions, Bills, Subscriptions, Savings Goals, backup/restore continuity and the associated runtime/data contracts.
 
-Phase 2 remained GREEN through the Phase 3 production re-seal and Phase 4 database foundation.
+**Phase 2 result: COMPLETE / GREEN / ARCHIVED.**
 
 ---
 
-## Historical Phase 1 checkpoint
+## Phase 1 — locked product contract
 
-Phase 1 locked the product contract before coding. The authoritative contract is `docs/PRODUCT_CONTRACT.md`.
+Authoritative contract: `docs/PRODUCT_CONTRACT.md`.
 
 Locked principles include:
 
@@ -261,26 +226,13 @@ Locked principles include:
 
 Do not start a later phase until the immediately preceding phase is built, linked, verified, archived and GREEN.
 
-## Phase 4 — Neon development and production data foundation — IN PROGRESS
-
-Database foundation — **COMPLETE / PRODUCTION MIGRATED / GREEN / MERGED**.
-
-Connection substage — **NEXT**:
-
-- connect Cloudflare Worker to verified Neon production PostgreSQL;
-- use the appropriate Workers/PostgreSQL connection method and Hyperdrive where appropriate;
-- verify development and production connectivity;
-- verify failure behaviour;
-- update `/ready` only after database connectivity is proven;
-- rerun all stage gates and live production checks;
-- archive Phase 4 completely.
-
-## Phase 5 — Identity, user scope and permissions
+## Phase 5 — Identity, user scope and permissions — NEXT
 
 - User identity.
 - Personal vs Professional entitlement.
 - Trusted-support permission model.
 - Separate read authority from financial action authority.
+- Preserve Phase 2, Phase 3 and Phase 4 gates before introducing identity-dependent persistence.
 
 ## Phase 6 — Core accounts and balances
 
@@ -376,7 +328,7 @@ Connection substage — **NEXT**:
 
 - Businesses, divisions, projects, workstreams, cost centres, funding pools and accounts.
 - Transaction allocation across the hierarchy.
-- Professional schema tables are created at this later professional stage, not during Phase 4 database foundation.
+- Professional schema tables are created at this later professional stage.
 
 ## Phase 20 — Professional commitments, invoices and revenue
 
@@ -429,8 +381,12 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 
 # Advancement rule
 
-**Current permitted action: finish Phase 4 by connecting Cloudflare to the verified Neon production database and proving readiness.**
+This documentation-only Phase 4 closure branch must pass the normal Phase 2, Phase 3 and Phase 4 gates and be merged through protected `main`.
 
-Phase 3 is complete and must not be reopened unless a regression is discovered.
+After that merge and one final `main` verification:
 
-Do not begin Phase 5 or any later phase until the Phase 4 connection substage is fully built, linked, verified, GREEN and archived.
+**Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED.**
+
+**Next permitted build: Phase 5 — Identity, user scope and permissions.**
+
+Do not start Phase 6 or any later phase until Phase 5 is itself built, linked, verified, GREEN and archived.
