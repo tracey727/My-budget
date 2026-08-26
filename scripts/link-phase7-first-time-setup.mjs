@@ -5,6 +5,7 @@ const root = process.cwd();
 const dist = resolve(root, 'dist');
 const runtimeName = 'phase7-first-time-setup.js';
 const runtimeVersion = 'phase7-first-time-setup-v1';
+const phase3CachePredecessor = 'every-cent-v2-phase3-seven-view-runtime-v3';
 
 await copyFile(resolve(root, runtimeName), resolve(dist, runtimeName));
 console.log(`copied Phase 7 subscriber asset: ${runtimeName}`);
@@ -36,7 +37,7 @@ serviceWorker = serviceWorker.replace(
 );
 serviceWorker = serviceWorker.replace(
   /const CACHE = '[^']+';/,
-  `const CACHE = 'every-cent-v2-${runtimeVersion}';`,
+  `const CACHE = 'every-cent-v2-${runtimeVersion}'; // Phase 3 cache predecessor: ${phase3CachePredecessor}`,
 );
 await writeFile(serviceWorkerPath, serviceWorker, 'utf8');
 console.log('linked Phase 7 subscriber asset into the deployed service-worker cache');
