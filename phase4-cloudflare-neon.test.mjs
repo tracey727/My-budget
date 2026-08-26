@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { checkDatabase, checkReadiness } from "./src/worker.mjs";
+import worker, { checkDatabase, checkReadiness } from "./src/worker.mjs";
 
 const assets = {
   async fetch() {
@@ -71,6 +71,30 @@ test("connection failure returns unavailable without leaking error details", asy
     migration: null,
   });
   assert.doesNotMatch(JSON.stringify(readiness), /secret-value|connection failed/);
+});
+
+test("isolated endpoint failure proof keeps health live while readiness fails closed", async () => {
+  const envWithoutDatabase = { ASSETS: assets };
+
+  const health = await worker.fetch(new Request("https://budget.test/health"), envWithoutDatabase);
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), {
+    ok: true,
+    service: "genevieve-budget",
+    phase: 4,
+    runtime: "cloudflare-workers",
+  });
+
+  const ready = await worker.fetch(new Request("https://budget.test/ready"), envWithoutDatabase);
+  assert.equal(ready.status, 503);
+  assert.deepEqual(await ready.json(), {
+    ok: false,
+    service: "genevieve-budget",
+    phase: 4,
+    assets: "ready",
+    database: "unavailable",
+    migration: null,
+  });
 });
 
 test("assets and database must both be ready before HTTP 200", async () => {
