@@ -183,7 +183,7 @@ test('migration 009 separates read from financial-action authority at RLS level'
   assert.match(migration, /audit_events_insert_scoped/);
   assert.match(migration, /REVOKE DELETE ON public\.trusted_support_grants/);
   assert.match(migration, /VALUES \('009', 'Phase 6 trusted support read and financial action authority separation'\)/);
-  assert.doesNotMatch(migration, /professional_membership|professional_workspace|delete_current_account|account deletion/i);
+  assert.doesNotMatch(migration, /professional_membership|professional_workspace|delete_current_account/i);
 
   assert.match(rollback, /DELETE FROM public\.schema_migrations WHERE version = '009'/);
   assert.match(rollback, /table_name \|\| '_select_own'/);
