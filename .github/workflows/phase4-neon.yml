@@ -59,7 +59,7 @@ jobs:
               && grep -Fq '"phase":5' "$body_file" \
               && grep -Fq '"assets":"ready"' "$body_file" \
               && grep -Fq '"database":"ready"' "$body_file" \
-              && grep -Fq '"migration":"006"' "$body_file"; then
+              && grep -Fq '"migration":"007"' "$body_file"; then
               echo "PASS preserved Phase 4 database path on attempt ${attempt}"
               cat "$body_file"
               rm -f "$body_file"
