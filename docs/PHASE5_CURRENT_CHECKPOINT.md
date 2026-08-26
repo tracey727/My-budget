@@ -81,9 +81,25 @@ On archive merge `1a513223a407e05986c520d493543fa0c1f1eb50`:
 - Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
 - Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live production `/ready` at migration `007`.
 
-## Known non-runtime governance fix
+## GitHub governance — restored and active
 
-GitHub `main` branch protection is not currently enabled. This does not break the application, Cloudflare deployment, Hyperdrive path or Phase 5 database protections, but required PR/status-check protection should be enabled before subscriber release governance is considered complete.
+GitHub repository ruleset `Protect main` is restored and ACTIVE for `refs/heads/main`.
+
+Verified controls:
+
+- `main` is protected by the active repository ruleset;
+- pull request required before merging;
+- required approvals: 0;
+- required checks: `phase2`, `cloudflare-phase3`, `phase4-neon`, `phase5-database-safety`;
+- required branches must be up to date before merging;
+- branch deletion blocked;
+- force pushes blocked;
+- bypass list empty;
+- current user cannot bypass the ruleset.
+
+Ruleset ID: `21530843`.
+
+This governance repair changes repository protection only. It does not alter the application, Cloudflare deployment, Hyperdrive path, Neon database, migrations, or Phase 5 runtime protections.
 
 ## Next chronological stage
 
