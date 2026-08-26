@@ -1,0 +1,39 @@
+name: Phase 4 regenerate Hyperdrive types
+
+on:
+  push:
+    branches:
+      - phase4-cloudflare-neon-connection
+
+permissions:
+  contents: write
+
+jobs:
+  generate-types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: phase4-cloudflare-neon-connection
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Generate Cloudflare binding types
+        run: npm run cf:types
+      - name: Verify Hyperdrive type exists
+        run: grep -Fq 'HYPERDRIVE' worker-configuration.d.ts
+      - name: Commit generated types and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/phase4-generate-types.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker-configuration.d.ts .github/workflows/phase4-generate-types.yml
+          git commit -m "Phase 4: refresh Hyperdrive Worker types"
+          git push origin HEAD:phase4-cloudflare-neon-connection
