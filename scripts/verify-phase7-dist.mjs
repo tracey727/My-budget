@@ -8,20 +8,22 @@ const dist = resolve(root, 'dist');
 const setupRuntimeName = 'phase7-first-time-setup.js';
 const planRuntimeName = 'phase7-plan-integrity-bridge.js';
 const backupRuntimeName = 'phase7-backup-bridge.js';
+const balanceRuntimeName = 'phase7-core-balances-bridge.js';
+const phase7RuntimeNames = [setupRuntimeName, planRuntimeName, backupRuntimeName, balanceRuntimeName];
 
-await Promise.all([
-  access(resolve(dist, setupRuntimeName), constants.R_OK),
-  access(resolve(dist, planRuntimeName), constants.R_OK),
-  access(resolve(dist, backupRuntimeName), constants.R_OK),
-]);
+await Promise.all(phase7RuntimeNames.map((runtimeName) => access(resolve(dist, runtimeName), constants.R_OK)));
 
-const [index, setupRuntime, planRuntime, backupRuntime, worker, sourceApp] = await Promise.all([
+const [index, setupRuntime, planRuntime, backupRuntime, balanceRuntime, serviceWorker, sourceApp, sealedWorker, workerEntry, accountRoutes] = await Promise.all([
   readFile(resolve(dist, 'index.html'), 'utf8'),
   readFile(resolve(dist, setupRuntimeName), 'utf8'),
   readFile(resolve(dist, planRuntimeName), 'utf8'),
   readFile(resolve(dist, backupRuntimeName), 'utf8'),
+  readFile(resolve(dist, balanceRuntimeName), 'utf8'),
   readFile(resolve(dist, 'service-worker.js'), 'utf8'),
   readFile(resolve(root, 'app.js'), 'utf8'),
+  readFile(resolve(root, 'src/worker-phase6-sealed.mjs'), 'utf8'),
+  readFile(resolve(root, 'src/worker.mjs'), 'utf8'),
+  readFile(resolve(root, 'src/phase7-account-routes.mjs'), 'utf8'),
 ]);
 
 const dataRuntime = index.indexOf('/phase2-data-runtime.js');
@@ -29,9 +31,10 @@ const extendedRuntime = index.indexOf('/phase2-subscriptions-savings-runtime.js'
 const phase7Setup = index.indexOf('/phase7-first-time-setup.js');
 const phase7Plan = index.indexOf('/phase7-plan-integrity-bridge.js');
 const phase7Backup = index.indexOf('/phase7-backup-bridge.js');
+const phase7Balances = index.indexOf('/phase7-core-balances-bridge.js');
 const protectedApp = index.indexOf('/app.js');
-if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Setup && phase7Setup < phase7Plan && phase7Plan < phase7Backup && phase7Backup < protectedApp)) {
-  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 setup -> Phase 7 plan integrity -> Phase 7 backup bridge -> protected app.js');
+if (!(dataRuntime >= 0 && dataRuntime < extendedRuntime && extendedRuntime < phase7Setup && phase7Setup < phase7Plan && phase7Plan < phase7Backup && phase7Backup < phase7Balances && phase7Balances < protectedApp)) {
+  throw new Error('Production runtime order must be Phase 2 data -> Phase 2 subscriptions/savings -> Phase 7 setup -> Phase 7 plan integrity -> Phase 7 backup -> Phase 7 core balances -> protected app.js');
 }
 
 for (const fragment of [
@@ -73,18 +76,53 @@ for (const fragment of [
   if (!backupRuntime.includes(fragment)) throw new Error(`deployed Phase 7 backup bridge missing contract fragment: ${fragment}`);
 }
 
-for (const asset of ['/phase7-first-time-setup.js', '/phase7-plan-integrity-bridge.js', '/phase7-backup-bridge.js']) {
-  if (!worker.includes(asset)) throw new Error(`deployed service worker does not cache ${asset}`);
-}
-if (!worker.includes('phase7-first-time-setup-v1')) {
-  throw new Error('deployed service-worker cache was not resealed for Phase 7');
+for (const fragment of [
+  '/api/phase7/accounts',
+  '/api/phase7/accounts/sync',
+  'Spendable balance',
+  'Protected / reserved',
+  'Internal transfers move money between your own accounts and are not counted as spending.',
+  'Cloudflare → Hyperdrive → Neon',
+]) {
+  if (!balanceRuntime.includes(fragment)) throw new Error(`deployed Phase 7 core-balance bridge missing contract fragment: ${fragment}`);
 }
 
-const gitBlobHeader = Buffer.from(`blob ${Buffer.byteLength(sourceApp, 'utf8')}\0`, 'utf8');
-const sourceHash = createHash('sha1').update(gitBlobHeader).update(sourceApp, 'utf8').digest('hex');
+for (const fragment of [
+  '/api/phase7/accounts',
+  '/api/phase7/accounts/sync',
+  'public.current_app_user_id()',
+  'public.financial_settings',
+  'public.bill_provisions',
+  'public.savings_goals',
+  'archived_at = COALESCE(archived_at, now())',
+]) {
+  if (!accountRoutes.includes(fragment)) throw new Error(`Phase 7 account route module missing security/persistence fragment: ${fragment}`);
+}
+
+for (const asset of phase7RuntimeNames.map((runtimeName) => `/${runtimeName}`)) {
+  if (!serviceWorker.includes(asset)) throw new Error(`deployed service worker does not cache ${asset}`);
+}
+if (!serviceWorker.includes('phase7-first-time-setup-v2')) {
+  throw new Error('deployed service-worker cache was not resealed for reconciled Phase 7');
+}
+
+function gitBlobHash(text) {
+  const header = Buffer.from(`blob ${Buffer.byteLength(text, 'utf8')}\0`, 'utf8');
+  return createHash('sha1').update(header).update(text, 'utf8').digest('hex');
+}
+
 const expectedProtectedAppHash = 'a86381a76c4676b9d14cbcb1a6b9de842c1cd24c';
+const sourceHash = gitBlobHash(sourceApp);
 if (sourceHash !== expectedProtectedAppHash) {
   throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);
 }
 
-console.log('Phase 7 production artifact verification passed: first-time setup, due-date-aware plan integrity and setup-aware backup/restore are linked after Phase 2 and before protected app.js.');
+const expectedSealedWorkerHash = '670159e8b820f597ed2376c246df04e69a244988';
+const sealedWorkerHash = gitBlobHash(sealedWorker);
+if (sealedWorkerHash !== expectedSealedWorkerHash) {
+  throw new Error(`sealed Phase 6 worker changed: expected Git blob ${expectedSealedWorkerHash}, got ${sealedWorkerHash}`);
+}
+if (!workerEntry.includes("export * from './worker-phase6-sealed.mjs'")) throw new Error('Phase 7 Worker entry does not re-export the sealed Phase 6 module');
+if (!workerEntry.includes('handlePhase7AccountRequest')) throw new Error('Phase 7 Worker entry does not compose the account persistence routes');
+
+console.log('Phase 7 production artifact verification passed: first-time setup, due-date plan integrity, backup continuity, core account balances and authenticated Neon account persistence are linked after Phase 2 while protected app.js and the sealed Phase 6 Worker remain hash-pinned.');
