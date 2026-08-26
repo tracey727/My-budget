@@ -38,7 +38,7 @@ jobs:
             echo "Raw database secret/configuration detected in deployable source" >&2
             exit 1
           fi
-      - name: Verify Phase 5 database readiness live
+      - name: Verify Phase 5 safety remains live under Phase 6 readiness
         shell: bash
         run: |
           set -euo pipefail
@@ -49,27 +49,27 @@ jobs:
             BASE_URL="https://my-budget.positivity864.workers.dev"
           fi
 
-          echo "Verifying Phase 5 readiness at ${BASE_URL}/ready"
+          echo "Verifying current readiness while preserving Phase 5 safety at ${BASE_URL}/ready"
           body_file="$(mktemp)"
           code=""
 
           for attempt in $(seq 1 30); do
             code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
             if [ "$code" = "200" ] \
-              && grep -Fq '"phase":5' "$body_file" \
+              && grep -Fq '"phase":6' "$body_file" \
               && grep -Fq '"assets":"ready"' "$body_file" \
               && grep -Fq '"database":"ready"' "$body_file" \
-              && grep -Fq '"migration":"007"' "$body_file"; then
-              echo "PASS Phase 5 live readiness on attempt ${attempt}"
+              && grep -Fq '"migration":"014"' "$body_file"; then
+              echo "PASS Phase 5 safety preserved under Phase 6 readiness on attempt ${attempt}"
               cat "$body_file"
               rm -f "$body_file"
               exit 0
             fi
-            echo "Waiting for Phase 5 deployment: /ready returned ${code} on attempt ${attempt}"
+            echo "Waiting for Phase 6 deployment: /ready returned ${code} on attempt ${attempt}"
             sleep 10
           done
 
-          echo "Phase 5 live readiness failed at ${BASE_URL}/ready" >&2
+          echo "Phase 5 safety live-path verification failed at ${BASE_URL}/ready" >&2
           echo "Last HTTP status: ${code}" >&2
           cat "$body_file" >&2 || true
           rm -f "$body_file"
