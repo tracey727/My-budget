@@ -1,5 +1,6 @@
 import { access, readFile } from 'node:fs/promises';
-import { constants, createHash } from 'node:fs';
+import { constants } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 
 const root = process.cwd();
