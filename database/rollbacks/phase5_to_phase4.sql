@@ -4,7 +4,10 @@ BEGIN;
 -- Apply only when intentionally returning the database from Phase 5 to the sealed Phase 4 schema.
 -- Historical audit rows are preserved; only Phase 5 schema/security objects are removed.
 
-DELETE FROM public.schema_migrations WHERE version IN ('006', '005');
+DELETE FROM public.schema_migrations WHERE version IN ('007', '006', '005');
+
+ALTER TABLE public.financial_settings DROP CONSTRAINT IF EXISTS financial_settings_archived_at_check;
+ALTER TABLE public.financial_settings DROP COLUMN IF EXISTS archived_at;
 
 DO $$
 DECLARE
