@@ -4,6 +4,8 @@ Date: 26 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
 Implementation PR: #28
 Implementation merge: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
+Completion archive PR: #29
+Completion archive merge: `1a513223a407e05986c520d493543fa0c1f1eb50`
 
 ## Scope
 
@@ -128,16 +130,21 @@ Implementation merge:
 
 `66933f63e4cee767ad25afa8a4ae491f6272f92e`
 
-Post-merge `main` runs:
-
 - Phase 2 baseline verification #129 (`32924950634`) — GREEN;
 - Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
 - Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
 - Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live production `/ready` at migration `007`.
 
-## Closure
+## Archive gate evidence
 
-The final documentation-only completion branch must pass the same Phase 2, Phase 3, Phase 4 and Phase 5 gates before merge. No Phase 6 implementation code is included in that closure.
+PR #29 head `47c6cc1e494d790994922d10327122485b204b24` passed Phase 2 #130, Phase 3 #64, Phase 4 #20 and Phase 5 #4.
+
+After archive merge `1a513223a407e05986c520d493543fa0c1f1eb50`:
+
+- Phase 2 baseline verification #131 (`32929321289`) — GREEN;
+- Phase 3 Cloudflare verification #65 (`32929321312`) — GREEN;
+- Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
+- Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live production `/ready`.
 
 ## Next stage
 
@@ -149,4 +156,4 @@ Phase 6 must establish authenticated identity and transaction-local `app.user_id
 
 ## Current result
 
-**PHASE 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVE CLOSURE IN PROGRESS.**
+**PHASE 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED.**

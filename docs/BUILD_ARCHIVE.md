@@ -14,10 +14,12 @@ Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
 **Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-**Phase 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED after the Phase 5 completion-archive PR is merged.**
+**Phase 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED.**
 
 Phase 5 implementation PR: #28
 Phase 5 implementation merge commit: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
+Phase 5 completion archive PR: #29
+Phase 5 archive merge commit: `1a513223a407e05986c520d493543fa0c1f1eb50`
 Phase 5 readiness migration: `007`
 Detailed Phase 5 completion archive: `docs/PHASE5_COMPLETION_ARCHIVE.md`
 Detailed Phase 5 engineering evidence: `docs/PHASE5_DATABASE_SAFETY.md`
@@ -109,20 +111,36 @@ Final production audit after promotion:
 - Worker DELETE privilege on Phase 5 application tables: none — PASS;
 - test-to-production schema comparison: empty — PASS.
 
-## Phase 5 post-merge verification evidence
+## Phase 5 verification evidence
 
 Implementation merge commit:
 
 `66933f63e4cee767ad25afa8a4ae491f6272f92e`
 
-Post-merge `main` verification:
+Post-implementation `main` verification:
 
 - Phase 2 baseline verification #129 (`32924950634`) — GREEN;
 - Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
 - Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
 - Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live production `/ready` at migration `007`.
 
-The Phase 5 completion-archive branch is documentation-only and must pass the same Phase 2, Phase 3, Phase 4 and Phase 5 gates before merge.
+Completion archive PR #29 head `47c6cc1e494d790994922d10327122485b204b24` then passed:
+
+- Phase 2 #130 (`32929273963`) — GREEN;
+- Phase 3 #64 (`32929274026`) — GREEN;
+- Phase 4 #20 (`32929273975`) — GREEN;
+- Phase 5 #4 (`32929273940`) — GREEN.
+
+Archive merge commit:
+
+`1a513223a407e05986c520d493543fa0c1f1eb50`
+
+Post-archive `main` verification:
+
+- Phase 2 baseline verification #131 (`32929321289`) — GREEN;
+- Phase 3 Cloudflare verification #65 (`32929321312`) — GREEN;
+- Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
+- Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live production `/ready` at migration `007`.
 
 ## Earlier sealed stages
 
@@ -322,8 +340,6 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 - Final release checklist and production archive.
 
 ## Advancement rule
-
-After the Phase 5 completion-archive PR is merged and Phase 2 → Phase 5 gates remain GREEN:
 
 **Phase 5 — Database Safety is COMPLETE / LIVE / GREEN / ARCHIVED.**
 

@@ -4,13 +4,15 @@ Date: 26 August 2026, AEST (Queensland)
 
 ## Current stage
 
-**Phase 5 — Database Safety — COMPLETE / LIVE / GREEN / ARCHIVE CLOSURE IN PROGRESS.**
+**Phase 5 — Database Safety — COMPLETE / LIVE / GREEN / ARCHIVED.**
 
-## Authoritative implementation
+## Authoritative implementation and archive
 
 - repository: `tracey727/My-budget`
 - implementation PR: #28
 - implementation merge commit: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
+- completion archive PR: #29
+- completion archive merge commit: `1a513223a407e05986c520d493543fa0c1f1eb50`
 - production database: `neondb`
 - production Neon branch: `main` (`br-old-boat-axqvorbe`)
 - readiness migration: `007`
@@ -19,7 +21,7 @@ Date: 26 August 2026, AEST (Queensland)
 
 ## Phase 1 → Phase 5 linkage
 
-The current verified chain is:
+The verified chain is:
 
 `Phase 1 product contract → Phase 2 subscriber/data runtime → Phase 3 Cloudflare deployment → Phase 4 Hyperdrive/Neon connection → Phase 5 database safety at migration 007`
 
@@ -57,9 +59,9 @@ Phase 1 remains the locked product contract that governs all later work.
 
 The isolated test database exposed an audit actor NULL-handling defect in the first Phase 5 migration. It was corrected by migration `006` before production promotion. Migrations `005`, `006`, and `007` were promoted to production in one transaction, so the defective intermediate state was never exposed live.
 
-## Production audit
+## Final production audit
 
-After production promotion:
+After Phase 5 promotion and archive closure:
 
 - migrations: `000,001,002,003,004,005,006,007`;
 - RLS-protected tables: 15;
@@ -68,20 +70,20 @@ After production promotion:
 - automatic owned-record audit triggers: 14;
 - floating-point money columns: 0;
 - Worker DELETE privilege: none on Phase 5 application tables;
-- test-to-production schema diff: empty.
+- test-to-production schema diff after promotion: empty.
 
-## Post-merge green evidence
+## Final post-archive green evidence
 
-On implementation merge `66933f63e4cee767ad25afa8a4ae491f6272f92e`:
+On archive merge `1a513223a407e05986c520d493543fa0c1f1eb50`:
 
-- Phase 2 baseline verification #129 (`32924950634`) — GREEN;
-- Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
-- Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
-- Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live production `/ready`.
+- Phase 2 baseline verification #131 (`32929321289`) — GREEN;
+- Phase 3 Cloudflare verification #65 (`32929321312`) — GREEN;
+- Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
+- Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live production `/ready` at migration `007`.
 
-## Do not build yet
+## Known non-runtime governance fix
 
-Do not build financial screens, core persistent account APIs, or later financial engines until the identity/user-scope layer is linked safely to the Phase 5 RLS contract.
+GitHub `main` branch protection is not currently enabled. This does not break the application, Cloudflare deployment, Hyperdrive path or Phase 5 database protections, but required PR/status-check protection should be enabled before subscriber release governance is considered complete.
 
 ## Next chronological stage
 
@@ -89,4 +91,4 @@ Do not build financial screens, core persistent account APIs, or later financial
 
 Phase 6 must establish authenticated identity and transaction-local `app.user_id` before any user-owned database query. It must define Personal vs Professional entitlement and trusted-support permissions, with read authority separated from financial-action authority.
 
-Do not start Phase 7 until Phase 6 is built, linked to Phases 1–5, verified, GREEN and archived.
+Do not build financial persistence screens or Phase 7 until Phase 6 is built, linked to Phases 1–5, verified, GREEN and archived.

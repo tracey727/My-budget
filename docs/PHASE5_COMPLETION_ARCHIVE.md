@@ -5,10 +5,12 @@ Repository: `tracey727/My-budget`
 
 ## Final result
 
-**PHASE 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED after this documentation-only closure is merged.**
+**PHASE 5 — DATABASE SAFETY — COMPLETE / LIVE / GREEN / ARCHIVED.**
 
 Implementation PR: #28
 Implementation merge commit: `66933f63e4cee767ad25afa8a4ae491f6272f92e`
+Completion archive PR: #29
+Completion archive merge commit: `1a513223a407e05986c520d493543fa0c1f1eb50`
 Readiness migration: `007`
 Production database: `neondb`
 Production Neon branch: `main` (`br-old-boat-axqvorbe`)
@@ -133,18 +135,32 @@ Production verified:
 - production users/accounts/transactions at promotion: 0;
 - test-to-production schema diff after promotion: empty.
 
-## Post-merge main evidence
+## Implementation post-merge evidence
 
 Implementation merge commit:
 
 `66933f63e4cee767ad25afa8a4ae491f6272f92e`
 
-Post-merge `main` verification:
-
 - Phase 2 baseline verification #129 (`32924950634`) — GREEN;
 - Phase 3 Cloudflare verification #63 (`32924950636`) — GREEN;
 - Phase 4 Neon database verification #19 (`32924950663`) — GREEN;
 - Phase 5 database safety verification #3 (`32924950629`) — GREEN, including live `/ready` at migration `007`.
+
+## Completion archive verification
+
+Before archive merge, PR #29 head `47c6cc1e494d790994922d10327122485b204b24` passed:
+
+- Phase 2 baseline verification #130 (`32929273963`) — GREEN;
+- Phase 3 Cloudflare verification #64 (`32929274026`) — GREEN;
+- Phase 4 Neon database verification #20 (`32929273975`) — GREEN;
+- Phase 5 database safety verification #4 (`32929273940`) — GREEN.
+
+After archive merge `1a513223a407e05986c520d493543fa0c1f1eb50`:
+
+- Phase 2 baseline verification #131 (`32929321289`) — GREEN;
+- Phase 3 Cloudflare verification #65 (`32929321312`) — GREEN;
+- Phase 4 Neon database verification #21 (`32929321310`) — GREEN;
+- Phase 5 database safety verification #5 (`32929321297`) — GREEN, including live `/ready` at migration `007`.
 
 ## Known governance issue outside Phase 5 runtime/database correctness
 
