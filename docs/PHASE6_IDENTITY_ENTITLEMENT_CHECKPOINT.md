@@ -13,7 +13,7 @@ Authoritative base:
 - clean Phase 6 branch: `phase6-auth-identity-entitlement`
 - draft verification PR: `#34`
 - isolated Neon test branch: `phase6-identity-entitlement-clean-test` (`br-super-mouse-axqrxqeb`)
-- isolated identity rollback proof branch: `phase6-identity-entitlement-rollback-proof` (`br-lively-waterfall-axowho2i`)
+- isolated rollback proof branch: `phase6-identity-entitlement-rollback-proof` (`br-lively-waterfall-axowho2i`)
 - production remains at migration `007`
 - isolated Phase 6 test branch is at migration `009`
 
@@ -125,12 +125,14 @@ Cross-user and support authority live database proof on isolated Neon branch `br
 - support with read-only grant → User B read: `true`;
 - support with read-only grant → User B financial action: `false`;
 - after explicit `can_financial_action` authority → support financial action: `true`;
-- User B on own data → read: `true`;
-- User B on own data → financial action: `true`.
+- active owner on own data → read: `true`;
+- active owner on own data → financial action: `true`.
 
 The synthetic test authority was retired after verification:
 - active synthetic test users: `0`;
 - active trusted-support grants: `0`;
+- all synthetic test users were disabled after testing;
+- the synthetic grant was revoked and financial-action authority disabled;
 - append-only audit evidence was preserved rather than deleted.
 
 ## Rollback proof
@@ -140,14 +142,17 @@ Migration 008 rollback proof:
 - `phase6_identity_to_phase5.sql` returned it to Phase 5;
 - Neon schema comparison against the Phase 5 parent returned an empty diff.
 
-Migration 009 rollback proof:
-- migration `009` applied to isolated branch at 008;
+Migration 009 rollback proof on `br-lively-waterfall-axowho2i`:
+- branch began at migration `007`;
+- migration `008` applied successfully;
+- migration `009` applied successfully;
 - `phase6_trusted_support_to_identity.sql` returned the branch to migration `008`;
 - `public.user_entitlements` remained present;
 - `public.trusted_support_grants` was removed;
-- original Phase 5 account ownership policies were restored;
-- Phase 6 scoped account policies were removed;
-- migration `009` was then reapplied successfully so the test branch finishes at `009`.
+- original Phase 5-style account `*_own` policies were restored;
+- the trusted-support access function was removed.
+
+The primary isolated Phase 6 test branch remains at migration `009` for continuing Phase 6 work.
 
 ## GitHub verification gate
 
@@ -164,21 +169,16 @@ The Phase 6 verification command is:
 `npm run verify:phase6`
 
 The nested gate is:
-`verify:phase2 → test:phase3 / Cloudflare checks → test:phase4 → test:phase5 → Phase 6 identity tests → Phase 6 trusted-support tests`
+`verify:phase2 → Phase 3 Cloudflare verification → Phase 4 Neon verification → Phase 5 database safety verification → Phase 6 identity tests → Phase 6 trusted-support tests`
 
-Green evidence on code head `675c18563f26dcfc22d57c6a572d3ab43785ad42`:
-- Phase 2 baseline verification #155 — run `32963355147` — success;
-- Phase 3 Cloudflare verification #89 — run `32963355179` — success;
-- Phase 4 Neon database verification #45 — run `32963355172` — success;
-- Phase 5 database safety verification #29 — run `32963355140` — success;
-- Phase 6 verification #11 — run `32963355155` — success.
+Latest fully green checkpoint head before this documentation-only correction: `da6e85dfd28f4a223ce010a6a17eac50c9ac1b12`.
 
-The subsequent checkpoint head `788b4346b8170f061b2cc29404e468b1e525a408` also passed all five gates:
-- Phase 2 baseline verification #156 — success;
-- Phase 3 Cloudflare verification #90 — success;
-- Phase 4 Neon database verification #46 — success;
-- Phase 5 database safety verification #30 — success;
-- Phase 6 verification #12 — success.
+Green evidence on that head:
+- Phase 2 baseline verification #157 — run `32963776958` — success;
+- Phase 3 Cloudflare verification #91 — run `32963776967` — success;
+- Phase 4 Neon database verification #47 — run `32963776942` — success;
+- Phase 5 database safety verification #31 — run `32963776984` — success;
+- Phase 6 verification #13 — run `32963776951` — success.
 
 The Phase 6 job also verifies:
 - migration 008 exists before migration 009;
@@ -190,8 +190,9 @@ The Phase 6 job also verifies:
 ## Audit issues found and resolved
 
 1. The first Phase 6 support CI run failed because a test regex interpreted the explanatory comment `account deletion is excluded` as if account-deletion code had been built. The assertion was corrected to test implementation identifiers only. No runtime/database code change was required for this issue.
-2. An isolated Neon test cleanup attempted to delete append-only audit evidence. The database correctly rejected the deletion and rolled the whole transaction back. The test was rerun without violating append-only audit rules.
-3. A synthetic read-only support grant remained on the isolated test branch after migration reapplication. It was identified as test data, revoked, its financial authority was disabled, and all three synthetic test users were disabled. There are now zero active synthetic users and zero active support grants on that test branch.
+2. An isolated Neon cleanup attempted to delete append-only audit evidence. The database correctly rejected deletion of audit rows. Earlier cleanup updates were already visible on the isolated test branch when the connector returned that error, so the branch was treated as partially changed rather than assumed rolled back. The synthetic identities and support grant were then explicitly neutralised without deleting audit history.
+3. The retained synthetic support grant was revoked, financial-action authority was disabled, and all synthetic test users were disabled. Verification confirmed zero active synthetic users and zero active support grants on the isolated branch.
+4. An owner self-access test initially returned false because the reused synthetic owner had already been disabled during cleanup. The security guard was working correctly. A fresh active owner identity then proved owner read/write access succeeds; that identity was disabled after the test.
 
 ## Production audit
 
