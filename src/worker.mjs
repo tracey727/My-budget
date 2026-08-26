@@ -7,7 +7,7 @@ const JSON_HEADERS = {
 
 const CURRENT_PHASE = 5;
 const EXPECTED_DATABASE = "neondb";
-const EXPECTED_MIGRATION = "006";
+const EXPECTED_MIGRATION = "007";
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_HEADERS });
