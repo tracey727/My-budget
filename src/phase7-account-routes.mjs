@@ -42,7 +42,7 @@ export function normalizePhase7SyncPayload(value) {
     const type = safeText(raw?.type, 40);
     const balance = roundMoney(raw?.balance);
     const serverId = typeof raw?.serverId === 'string' && UUID_PATTERN.test(raw.serverId) ? raw.serverId : null;
-    if (!clientId || seenClientIds.has(clientId) || !name || !ACCOUNT_TYPES.has(type) || balance === null || balance < 0) return null;
+    if (!clientId || seenClientIds.has(clientId) || !name || !ACCOUNT_TYPES.has(type) || balance === null) return null;
     seenClientIds.add(clientId);
     accounts.push({ clientId, serverId, name, type, balance });
   }
