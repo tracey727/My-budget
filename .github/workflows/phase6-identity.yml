@@ -79,6 +79,11 @@ jobs:
           grep -q 'SELECT \* FROM public.audit_events' src/worker.mjs
           grep -q 'trusted_support_grants' src/worker.mjs
 
+      - name: Confirm final Phase 6 readiness seal
+        run: |
+          grep -q 'const CURRENT_PHASE = 6' src/worker.mjs
+          grep -q 'const EXPECTED_MIGRATION = "014"' src/worker.mjs
+
       - name: Confirm managed Auth endpoint is configuration-driven
         run: |
           ! grep -Eiq 'ep-[a-z0-9-]+\.neonauth\.' src/worker.mjs wrangler.jsonc
@@ -86,3 +91,40 @@ jobs:
       - name: Confirm protected Budget engine remains untouched
         run: |
           test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
+
+      - name: Verify Phase 6 readiness live
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BRANCH="${GITHUB_HEAD_REF//\//-}"
+            BASE_URL="https://${BRANCH}-my-budget.positivity864.workers.dev"
+          else
+            BASE_URL="https://my-budget.positivity864.workers.dev"
+          fi
+
+          echo "Verifying Phase 6 readiness at ${BASE_URL}/ready"
+          body_file="$(mktemp)"
+          code=""
+
+          for attempt in $(seq 1 30); do
+            code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
+            if [ "$code" = "200" ] \
+              && grep -Fq '"phase":6' "$body_file" \
+              && grep -Fq '"assets":"ready"' "$body_file" \
+              && grep -Fq '"database":"ready"' "$body_file" \
+              && grep -Fq '"migration":"014"' "$body_file"; then
+              echo "PASS Phase 6 live readiness on attempt ${attempt}"
+              cat "$body_file"
+              rm -f "$body_file"
+              exit 0
+            fi
+            echo "Waiting for Phase 6 deployment: /ready returned ${code} on attempt ${attempt}"
+            sleep 10
+          done
+
+          echo "Phase 6 live readiness failed at ${BASE_URL}/ready" >&2
+          echo "Last HTTP status: ${code}" >&2
+          cat "$body_file" >&2 || true
+          rm -f "$body_file"
+          exit 1
