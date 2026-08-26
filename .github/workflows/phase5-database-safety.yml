@@ -1,4 +1,4 @@
-name: Phase 4 Neon database verification
+name: Phase 5 database safety verification
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  phase4-neon:
+  phase5-database-safety:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,8 +24,8 @@ jobs:
           cache: npm
       - name: Reproducible install
         run: npm ci
-      - name: Preserve Phase 2 and Phase 3 and verify Phase 4 connection contract
-        run: npm run verify:phase4
+      - name: Verify Phase 2 through Phase 5 chronologically
+        run: npm run verify:phase5
       - name: Verify generated Cloudflare types are current
         run: git diff --exit-code -- worker-configuration.d.ts
       - name: Confirm Hyperdrive binding and no raw database secret
@@ -38,7 +38,7 @@ jobs:
             echo "Raw database secret/configuration detected in deployable source" >&2
             exit 1
           fi
-      - name: Verify preserved Phase 4 database path through current Phase 5 schema
+      - name: Verify Phase 5 database readiness live
         shell: bash
         run: |
           set -euo pipefail
@@ -49,7 +49,7 @@ jobs:
             BASE_URL="https://my-budget.positivity864.workers.dev"
           fi
 
-          echo "Verifying preserved Cloudflare → Hyperdrive → Neon path at ${BASE_URL}/ready"
+          echo "Verifying Phase 5 readiness at ${BASE_URL}/ready"
           body_file="$(mktemp)"
           code=""
 
@@ -60,16 +60,16 @@ jobs:
               && grep -Fq '"assets":"ready"' "$body_file" \
               && grep -Fq '"database":"ready"' "$body_file" \
               && grep -Fq '"migration":"007"' "$body_file"; then
-              echo "PASS preserved Phase 4 database path on attempt ${attempt}"
+              echo "PASS Phase 5 live readiness on attempt ${attempt}"
               cat "$body_file"
               rm -f "$body_file"
               exit 0
             fi
-            echo "Waiting for current schema deployment: /ready returned ${code} on attempt ${attempt}"
+            echo "Waiting for Phase 5 deployment: /ready returned ${code} on attempt ${attempt}"
             sleep 10
           done
 
-          echo "Preserved Phase 4 database path verification failed at ${BASE_URL}/ready" >&2
+          echo "Phase 5 live readiness failed at ${BASE_URL}/ready" >&2
           echo "Last HTTP status: ${code}" >&2
           cat "$body_file" >&2 || true
           rm -f "$body_file"
