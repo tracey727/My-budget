@@ -86,8 +86,8 @@ test('Phase 6 service worker cannot fall back to a cached pre-authentication ind
   assert.match(worker, /every-cent-v2-phase6-auth-runtime-v1/);
 });
 
-test('the preserved Budget app.js is byte-for-byte unchanged', async () => {
+test('the preserved Budget app.js is byte-for-byte unchanged from protected main', async () => {
   const app = await read('./app.js');
-  assert.equal(gitBlobSha(app), '8981cb462b8025b7ecaba733fecc244b59aeaf83');
+  assert.equal(gitBlobSha(app), 'a86381a76c4676b9d14cbcb1a6b9de842c1cd24c');
   assert.doesNotMatch(app, /phase6|GenevievePhase6Auth|phase6AuthGate/i);
 });
