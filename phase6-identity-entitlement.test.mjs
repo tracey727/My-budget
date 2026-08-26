@@ -93,7 +93,7 @@ test('same-origin auth boundary proxies to managed Auth and is never cached', as
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
-test('owned database work is ordered BEGIN -> local actor/owner identity -> active users -> owned query -> COMMIT', async () => {
+test('owned database work is ordered identity -> active user -> session guard -> owned query -> commit', async () => {
   const calls = [];
   class RecordingClient {
     constructor(config) { calls.push({ kind: 'construct', config }); }
@@ -104,6 +104,8 @@ test('owned database work is ordered BEGIN -> local actor/owner identity -> acti
       if (compact.includes('application_user_is_active')) {
         return { rows: [{ actor_active: true, owner_active: true }] };
       }
+      if (compact.includes('FROM public.user_sessions')) return { rows: [] };
+      if (compact.includes('register_current_session')) return { rows: [{ session_id: '22222222-2222-4222-8222-222222222222' }] };
       if (compact.includes('FROM public.accounts')) return { rows: [{ id: 'account-1' }] };
       return { rows: [] };
     }
@@ -127,8 +129,44 @@ test('owned database work is ordered BEGIN -> local actor/owner identity -> acti
   assert.deepEqual(queries[1].params, [USER_ID, USER_ID, 'user']);
   assert.match(queries[2].sql, /application_user_is_active/);
   assert.deepEqual(queries[2].params, [USER_ID, USER_ID]);
-  assert.match(queries[3].sql, /FROM public\.accounts/);
-  assert.equal(queries[4].sql, 'COMMIT');
+  assert.match(queries[3].sql, /FROM public\.user_sessions/);
+  assert.equal(queries[3].params[0], USER_ID);
+  assert.match(queries[4].sql, /register_current_session/);
+  assert.match(queries[5].sql, /FROM public\.accounts/);
+  assert.equal(queries[6].sql, 'COMMIT');
+});
+
+test('revoked application session returns 401 and rolls back before any owned operation', async () => {
+  const calls = [];
+  let operationRan = false;
+  class RevokedSessionClient {
+    async connect() {}
+    async query(sql, params) {
+      const compact = String(sql).replace(/\s+/g, ' ').trim();
+      calls.push({ sql: compact, params });
+      if (compact.includes('application_user_is_active')) {
+        return { rows: [{ actor_active: true, owner_active: true }] };
+      }
+      if (compact.includes('FROM public.user_sessions')) {
+        return { rows: [{ id: '22222222-2222-4222-8222-222222222222', revoked_at: new Date().toISOString() }] };
+      }
+      if (compact.includes('register_current_session')) assert.fail('revoked session must not be re-registered');
+      return { rows: [] };
+    }
+    async end() {}
+  }
+
+  const request = new Request('https://budget.example.test/api/example', { headers: { cookie: 'session=opaque' } });
+  const result = await withAuthenticatedUserTransaction(
+    request,
+    { NEON_AUTH_URL: AUTH_URL, HYPERDRIVE: { connectionString: 'postgres://test' } },
+    async () => { operationRan = true; },
+    { ClientClass: RevokedSessionClient, fetchImpl: async () => validSessionResponse() },
+  );
+
+  assert.deepEqual(result, { ok: false, status: 401, code: 'session_revoked' });
+  assert.equal(operationRan, false);
+  assert.equal(calls.at(-1).sql, 'ROLLBACK');
 });
 
 test('inactive application identity rolls back before any owned operation', async () => {
