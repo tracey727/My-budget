@@ -42,6 +42,10 @@
     localStorage[MONEY_STORAGE_KEY] = JSON.stringify(state);
   }
 
+  function hasSetupState() {
+    return localStorage.getItem(SETUP_STORAGE_KEY) !== null;
+  }
+
   function readSetup() {
     try {
       const parsed = JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY) || 'null');
@@ -49,6 +53,14 @@
     } catch {
       return {};
     }
+  }
+
+  function writeSetup(setup) {
+    localStorage.setItem(SETUP_STORAGE_KEY, JSON.stringify({
+      ...setup,
+      version: 1,
+      updatedAt: new Date().toISOString(),
+    }));
   }
 
   function readCloudMap() {
@@ -124,6 +136,7 @@
         <article class="stat-card"><span>Debts owed</span><strong id="phase7DebtBalance">$0.00</strong></article>
       </div>
       <p class="small-copy" id="phase7BalanceNote">Internal transfers move money between your own accounts and are not counted as spending.</p>
+      <p class="small-copy" id="phase7BalanceScopeNote">This Phase 7 balance subtracts the protected and reserved amounts currently recorded. The full safe-to-spend forecast is a later chronological phase.</p>
       <p class="small-copy" id="phase7PersistenceStatus">Account balances are stored on this device until an authenticated cloud session is available.</p>`;
     anchor.insertAdjacentElement('afterend', panel);
     return panel;
@@ -176,6 +189,31 @@
     return JSON.stringify(payload);
   }
 
+  function setupAllowsCloudSync() {
+    if (!hasSetupState()) return true;
+    return readSetup().completed === true;
+  }
+
+  function restoreCloudSettingsForEstablishedUser(body, state) {
+    if (hasSetupState()) return;
+    if (!state.accounts.length && !Array.isArray(body?.accounts)) return;
+    const settings = body?.settings && typeof body.settings === 'object' ? body.settings : {};
+    const setup = {
+      version: 1,
+      completed: state.accounts.length > 0 || (Array.isArray(body?.accounts) && body.accounts.length > 0),
+      step: state.accounts.length > 0 || (Array.isArray(body?.accounts) && body.accounts.length > 0) ? 8 : 1,
+      emergencyCash: Math.max(0, Number(settings.emergencyBufferAmount) || 0),
+      accounts: [],
+      bills: [],
+      savingsGoals: [],
+      migratedCloudAccountUser: true,
+      completedAt: new Date().toISOString(),
+    };
+    if (INCOME_CYCLES.has(settings.incomeCycle)) setup.payFrequency = settings.incomeCycle;
+    if (BILL_METHODS.has(settings.budgetingMethod)) setup.billMode = settings.budgetingMethod;
+    writeSetup(setup);
+  }
+
   async function fetchCloudAccounts() {
     return fetch('/api/phase7/accounts', {
       method: 'GET',
@@ -204,9 +242,16 @@
     const body = await response.json().catch(() => null);
     const cloudAccounts = Array.isArray(body?.accounts) ? body.accounts : [];
     const state = readMoneyState();
+    const hadLocalSetup = hasSetupState();
+    restoreCloudSettingsForEstablishedUser(body, state);
+
+    if (hadLocalSetup && readSetup().completed !== true) {
+      setPersistenceStatus('Finish first-time setup before cloud account synchronisation begins.');
+      return;
+    }
+
     const cloudMap = readCloudMap();
     const hasMappingHistory = Object.keys(cloudMap).length > 0;
-
     if (!state.accounts.length && !state.transactions.length && !hasMappingHistory && cloudAccounts.length) {
       const accounts = cloudAccounts.map((account) => ({
         id: account.id,
@@ -217,7 +262,16 @@
       }));
       directWriteMoneyState({ ...state, accounts });
       writeCloudMap(Object.fromEntries(accounts.map((account) => [account.id, account.id])));
-      setPersistenceStatus('Recovered your account balances from Neon. Reloading…');
+      const restored = readSetup();
+      writeSetup({
+        ...restored,
+        completed: true,
+        step: 8,
+        emergencyCash: Math.max(0, Number(body?.settings?.emergencyBufferAmount) || Number(restored.emergencyCash) || 0),
+        migratedCloudAccountUser: true,
+        completedAt: restored.completedAt || new Date().toISOString(),
+      });
+      setPersistenceStatus('Recovered your account balances and protected emergency amount from Neon. Reloading…');
       setTimeout(() => location.reload(), 80);
       return;
     }
@@ -227,6 +281,10 @@
 
   async function syncCloudAccounts(force = false) {
     if (syncInFlight) return;
+    if (!setupAllowsCloudSync()) {
+      setPersistenceStatus('Finish first-time setup before cloud account synchronisation begins.');
+      return;
+    }
     const payload = syncPayload();
     const signature = signatureFor(payload);
     if (!force && signature === lastSyncSignature) return;
