@@ -3,6 +3,7 @@
 Date: 26 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
 Phase 5 branch: `phase5-database-safety`
+Phase 5 PR: #28
 Phase 4 parent checkpoint: `63a8c7e288473cb102bf8a9dccd67650682f8c93`
 
 ## Scope
@@ -50,7 +51,7 @@ Rollback proof:
 - branch ID: `br-soft-mountain-axryrrpf`
 - parent: production `main`
 
-Production received no Phase 5 synthetic test records during development testing.
+Production received no Phase 5 synthetic test records during development testing or promotion.
 
 ## Pre-change production audit
 
@@ -92,7 +93,7 @@ Adds the main database-safety contract:
 
 A real test on the isolated Phase 5 database exposed a defect in the first audit function: when no `app.actor_type` setting existed, SQL NULL semantics allowed a NULL actor to reach the not-null audit column.
 
-The production database was still untouched.
+The production database was still untouched when the defect was discovered.
 
 Migration 006 corrects this fail-safe rule so a missing or invalid actor context becomes `system`. The test was rerun and passed.
 
@@ -145,17 +146,62 @@ Authoritative rollback:
 
 The isolated rollback branch was migrated to the Phase 5 safety schema and rolled back to the sealed Phase 4 boundary. Neon schema comparison against its Phase 4 parent returned an empty diff after rollback.
 
-The rollback preserves historical audit rows while removing Phase 5 schema/security objects and Phase 5 migration ledger entries.
+The rollback preserves historical audit rows while removing Phase 5 schema/security objects and Phase 5 migration ledger entries `005`, `006`, and `007`.
+
+## Repository/build gate before production
+
+PR #28 first executed the repository and build verification while production was still at Phase 4.
+
+The Phase 5 workflow completed these steps successfully before the live readiness step:
+
+- reproducible `npm ci` — PASS;
+- `npm run verify:phase5` — PASS;
+- generated Cloudflare types current — PASS;
+- Hyperdrive binding and raw-secret scan — PASS.
+
+`npm run verify:phase5` nests the gates chronologically:
+
+`Phase 2 → Phase 3 → Phase 4 → Phase 5`
+
+## Production promotion
+
+After the source/build gate passed and the production preflight reconfirmed migrations `000` through `004` with zero production subscriber users/accounts/transactions, the exact tested Phase 5 migrations were promoted.
+
+Migrations `005`, `006`, and `007` were applied to Neon production in one database transaction. This prevented migration 005's test-discovered audit-context defect from existing as an exposed intermediate production state.
+
+No Phase 5 synthetic test data was inserted into production.
+
+## Production read-only audit after promotion
+
+Production returned:
+
+- database: `neondb`;
+- migrations: `000,001,002,003,004,005,006,007`;
+- RLS-protected tables: 15;
+- RLS policies: 44;
+- ownership-preserving foreign keys: 8;
+- automatic owned-record audit triggers: 14;
+- floating-point money columns: 0;
+- inspected numeric money/financial columns: 20;
+- every current financial table has required `user_id`;
+- every current financial table has `created_at` and `updated_at` coverage appropriate to mutability;
+- all current mutable financial records have archive coverage;
+- Worker DELETE privilege: false on all Phase 5 application tables;
+- production users: 0;
+- production accounts: 0;
+- production transactions: 0.
+
+Neon test-to-production schema comparison returned an empty diff after promotion.
 
 ## Worker linkage
 
 Phase 5 does not replace the Phase 4 Cloudflare/Hyperdrive connection. It extends it.
 
-The linked chain becomes:
+The linked chain is:
 
 `sealed Phase 2 subscriber runtime → Cloudflare Worker → Hyperdrive → Neon neondb → migration 007 → RLS/ownership safety`
 
-Worker readiness now fails closed unless database `neondb` contains migration `007`.
+Worker readiness fails closed unless database `neondb` contains migration `007`.
 
 `/health` remains liveness and does not depend on database readiness.
 
@@ -163,35 +209,26 @@ Worker readiness now fails closed unless database `neondb` contains migration `0
 
 The endpoint-level controlled failure test is permanent in the repository: missing database connectivity keeps `/health` live while `/ready` returns HTTP 503 without connection details.
 
-## Automated gate
+## Green PR evidence before final documentation refresh
 
-`npm run verify:phase5` runs chronologically:
+On PR head `73408ee4223381e7f18426e320ba15c5fa77157a`, after production promotion:
 
-`Phase 2 → Phase 3 → Phase 4 → Phase 5`
+- Phase 2 baseline verification run #127 (`32924700532`) — GREEN;
+- Phase 3 Cloudflare verification run #61 (`32924700511`) — GREEN;
+- Phase 4 Neon database verification run #17 (`32924700515`) — GREEN;
+- Phase 5 database safety verification run #1 (`32924700574`) — GREEN.
 
-The dedicated workflow is:
+Because this evidence file is now refreshed, the same four gates must pass again on the final PR head before merge.
 
-`.github/workflows/phase5-database-safety.yml`
+## Merge and closure rule
 
-The existing Phase 4 database workflow remains active and verifies that the original Cloudflare → Hyperdrive → Neon connection path is still intact through the current Phase 5 schema.
+Do not merge unless:
 
-## Promotion rule
-
-Do not promote Phase 5 to production unless:
-
-1. repository verification through Phase 5 passes;
-2. the test branch remains green;
-3. production is still at the expected Phase 4 parent state;
-4. migrations 005, 006 and 007 are applied to production atomically/in a controlled sequence with no partial live state;
-5. production is re-audited without test records;
-6. test and production schemas match;
-7. Cloudflare `/ready` reports Phase 5 / migration 007;
-8. all GitHub PR gates pass;
-9. the PR is merged using the expected head SHA;
-10. all post-merge `main` gates pass.
-
-Only after the final Phase 5 archive is merged may the next chronological product stage begin.
+1. the final PR head passes Phase 2, Phase 3, Phase 4 and Phase 5 gates;
+2. PR #28 is merged using the exact expected head SHA;
+3. all four workflows pass again on the resulting `main` merge commit;
+4. the final completion/archive documentation is merged before Phase 6 work begins.
 
 ## Current status
 
-**PHASE 5 — BUILT ON TEST BRANCH / DATABASE BEHAVIOUR GREEN / ROLLBACK PROVEN / PRODUCTION PROMOTION PENDING REPOSITORY GATES.**
+**PHASE 5 — BUILT / TEST DATABASE GREEN / ROLLBACK PROVEN / PRODUCTION MIGRATED AND AUDITED / PR GATES GREEN ON PRIOR HEAD / FINAL HEAD RE-VERIFICATION REQUIRED BEFORE MERGE.**
