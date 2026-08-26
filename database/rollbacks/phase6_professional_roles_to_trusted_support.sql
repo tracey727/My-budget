@@ -4,7 +4,8 @@ DELETE FROM public.schema_migrations WHERE version = '010';
 
 DROP TRIGGER IF EXISTS professional_memberships_audit_change ON public.professional_memberships;
 DROP FUNCTION IF EXISTS public.audit_professional_membership_change();
-DROP TRIGGER IF EXISTS professional_workspaces_audit_owned_change ON public.professional_workspaces;
+DROP TRIGGER IF EXISTS professional_workspaces_audit_change ON public.professional_workspaces;
+DROP FUNCTION IF EXISTS public.audit_professional_workspace_change();
 DROP TRIGGER IF EXISTS professional_workspace_create_owner_membership ON public.professional_workspaces;
 DROP FUNCTION IF EXISTS public.ensure_professional_owner_membership();
 
