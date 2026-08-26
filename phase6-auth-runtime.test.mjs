@@ -69,8 +69,29 @@ test('Vite injects the authentication screen before releasing the existing Budge
   assert.match(config, /data-phase6-auth-runtime/);
 });
 
+test('built Cloudflare artifact contains the Phase 6 gate before the preserved Budget runtime chain', async () => {
+  const index = await read('./dist/index.html');
+  assert.match(index, /data-phase6-auth-gate/);
+  assert.match(index, /data-phase6-auth-runtime/);
+  assert.match(index, /id="budgetAppShell" inert aria-hidden="true"/);
+  assert.match(index, /id="phase6SignInForm"/);
+  assert.match(index, /id="phase6SignUpForm"/);
+  assert.match(index, /id="phase6MagicLinkForm"/);
+  assert.match(index, /\/auth\/get-session/);
+  assert.match(index, /\/auth\/sign-in\/magic-link/);
+
+  const authPosition = index.indexOf('data-phase6-auth-runtime');
+  const dataPosition = index.indexOf('/phase2-data-runtime.js');
+  const extendedPosition = index.indexOf('/phase2-subscriptions-savings-runtime.js');
+  const appPosition = index.indexOf('/app.js?v=phase3-seven-view-runtime-v3');
+  assert.ok(authPosition >= 0, 'Phase 6 auth runtime missing from built index');
+  assert.ok(authPosition < dataPosition, 'Phase 6 auth runtime must precede Phase 2 data runtime');
+  assert.ok(dataPosition < extendedPosition && extendedPosition < appPosition, 'preserved runtime order must remain Phase 2 data -> subscriptions/savings -> app.js');
+});
+
 test('Phase 6 service worker cannot fall back to a cached pre-authentication index', async () => {
   const worker = await read('./service-worker.js');
+  const builtWorker = await read('./dist/service-worker.js');
   const staticStart = worker.indexOf('const STATIC_ASSETS = [');
   const staticEnd = worker.indexOf('];', staticStart);
   const staticBlock = worker.slice(staticStart, staticEnd);
@@ -84,6 +105,7 @@ test('Phase 6 service worker cannot fall back to a cached pre-authentication ind
   assert.match(worker, /fetch\(event\.request, \{ cache: 'no-store' \}\)/);
   assert.doesNotMatch(worker, /caches\.match\(['"]\/index\.html['"]\)/);
   assert.match(worker, /every-cent-v2-phase6-auth-runtime-v1/);
+  assert.equal(builtWorker, worker, 'deployed service worker must match the audited Phase 6 source');
 });
 
 test('the preserved Budget app.js is byte-for-byte unchanged from protected main', async () => {
