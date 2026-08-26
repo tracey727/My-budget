@@ -12,12 +12,14 @@ Cloudflare production URL: `https://my-budget.positivity864.workers.dev`
 
 **Phase 3 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
-**Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED after this documentation-only closure is merged**
+**Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED**
 
 Phase 4 production connection PR: #24
 Phase 4 implementation head: `6117b6b0e5d59d5399e3942f86b75250438f7c71`
 Phase 4 production merge commit: `393143b776541659a200eb05686883964e386c63`
+Phase 4 archive merge commit: `97730100088207bdb02a339e8dbcd27a29e14111`
 Detailed Phase 4 completion archive: `docs/PHASE4_COMPLETION_ARCHIVE.md`
+Trigger-count audit correction: `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`
 Database foundation checkpoint: `docs/PHASE4_DATABASE_CHECKPOINT.md`
 Connection handoff/history: `docs/PHASE4_CONNECTION_HANDOFF.md`
 Migration workflow: `database/README.md`
@@ -93,11 +95,13 @@ Final read-only Neon production audit after the Phase 4 connection merge:
 - migrations `000,001,002,003,004` — PASS
 - migration `004` present — PASS
 - foreign keys: 22
-- triggers: 15
+- user-defined triggers: 14 — PASS
 - indexes: 40
 - Worker CONNECT to `neondb` — PASS
 - Worker USAGE on `public` — PASS
 - Worker SELECT on `public.schema_migrations` — PASS
+
+The 14 user-defined triggers are the expected live set: 13 `updated_at` maintenance triggers on tables that carry an `updated_at` field, plus the append-only protection trigger on `audit_events`. No functional trigger is missing. Earlier historical Phase 4 documents that recorded `15` triggers are superseded on this audit point by `docs/PHASE4_TRIGGER_COUNT_CORRECTION.md`; the database was not mutated to make the documentation match.
 
 The prior verified development-to-production schema comparison was empty.
 
@@ -154,6 +158,8 @@ Post-merge `main` verification:
 - Phase 2 baseline verification run #121 (`32922303305`) — GREEN
 - Phase 3 Cloudflare verification run #55 (`32922303334`) — GREEN, including live production root and `/health`
 - Phase 4 Neon database verification run #11 (`32922303361`) — GREEN, including live production `/ready`
+
+The Phase 4 archive closure then merged as `97730100088207bdb02a339e8dbcd27a29e14111`, with post-archive Phase 2, Phase 3 and Phase 4 gates all GREEN.
 
 The Cloudflare Git integration performed the production deployment. No uncontrolled manual production deploy was used.
 
@@ -381,12 +387,12 @@ Baseline → Proposed action → Action completed → Evidence → Later result 
 
 # Advancement rule
 
-This documentation-only Phase 4 closure branch must pass the normal Phase 2, Phase 3 and Phase 4 gates and be merged through protected `main`.
+**Phase 4 is COMPLETE / LIVE / GREEN / ARCHIVED.**
 
-After that merge and one final `main` verification:
+The trigger-count correction is documentation-only and does not change the production schema, Worker code, Hyperdrive configuration, or Phase 4 runtime contract. It must pass the normal Phase 2, Phase 3 and Phase 4 gates before merge.
 
-**Phase 4 — COMPLETE / LIVE / GREEN / ARCHIVED.**
+After that correction is merged and the same gates remain GREEN, the next permitted build is:
 
-**Next permitted build: Phase 5 — Identity, user scope and permissions.**
+**Phase 5 — Identity, user scope and permissions.**
 
 Do not start Phase 6 or any later phase until Phase 5 is itself built, linked, verified, GREEN and archived.
