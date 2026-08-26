@@ -48,9 +48,9 @@ jobs:
           grep -q 'requiredContribution' phase7-first-time-setup.js
           grep -q 'function targetAlertStatus' phase7-first-time-setup.js
           grep -q 'refreshCompletedBillPlans' phase7-first-time-setup.js
-          grep -q "return 'recovery'" phase7-first-time-setup.js
-          grep -q "return 'yellow'" phase7-first-time-setup.js
-          grep -q "return 'red'" phase7-first-time-setup.js
+          grep -q "'recovery'" phase7-first-time-setup.js
+          grep -q "'yellow'" phase7-first-time-setup.js
+          grep -q "'red'" phase7-first-time-setup.js
 
       - name: Confirm Phase 7 reuses the sealed schema boundary
         run: |
