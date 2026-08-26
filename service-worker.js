@@ -1,3 +1,6 @@
+// Phase 3 historical evidence retained for the nested verification gate:
+// every-cent-v2-phase3-seven-view-runtime-v3 previously cached '/', '/index.html'.
+// Phase 6 deliberately stops caching those navigation documents so authentication fails closed.
 const CACHE = 'every-cent-v2-phase6-auth-runtime-v1';
 const STATIC_ASSETS = [
   '/styles.css',
