@@ -1,0 +1,43 @@
+name: Phase 6 authentication verification
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  phase6-authentication:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Reproducible install
+        run: npm ci
+      - name: Preserve Phases 2 through 5 and verify Phase 6 authentication runtime
+        run: npm run verify:phase6-auth
+      - name: Confirm no browser-side Neon or database endpoint is embedded
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -REi 'neonauth\.|postgres(ql)?://' phase6-auth-runtime.js vite.config.mjs; then
+            echo "Direct Neon/database endpoint detected in browser authentication source" >&2
+            exit 1
+          fi
+      - name: Confirm protected Budget engine remains untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git hash-object app.js)"
+          expected="a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
+          test "$actual" = "$expected"
