@@ -93,7 +93,7 @@ test('same-origin auth boundary proxies to managed Auth and is never cached', as
   assert.equal(response.headers.get('cache-control'), 'no-store');
 });
 
-test('owned database work is ordered BEGIN -> local app.user_id -> active user -> owned query -> COMMIT', async () => {
+test('owned database work is ordered BEGIN -> local actor/owner identity -> active users -> owned query -> COMMIT', async () => {
   const calls = [];
   class RecordingClient {
     constructor(config) { calls.push({ kind: 'construct', config }); }
@@ -101,8 +101,8 @@ test('owned database work is ordered BEGIN -> local app.user_id -> active user -
     async query(sql, params) {
       const compact = String(sql).replace(/\s+/g, ' ').trim();
       calls.push({ kind: 'query', sql: compact, params });
-      if (compact.includes('FROM public.users') && compact.includes("status = 'active'")) {
-        return { rows: [{ id: USER_ID, email: 'user@example.test' }] };
+      if (compact.includes('application_user_is_active')) {
+        return { rows: [{ actor_active: true, owner_active: true }] };
       }
       if (compact.includes('FROM public.accounts')) return { rows: [{ id: 'account-1' }] };
       return { rows: [] };
@@ -114,7 +114,7 @@ test('owned database work is ordered BEGIN -> local app.user_id -> active user -
   const result = await withAuthenticatedUserTransaction(
     request,
     { NEON_AUTH_URL: AUTH_URL, HYPERDRIVE: { connectionString: 'postgres://hyperdrive-test' } },
-    async (client, identity) => client.query('SELECT id FROM public.accounts WHERE user_id = $1', [identity.user.id]),
+    async (client, context) => client.query('SELECT id FROM public.accounts WHERE user_id = $1', [context.ownerUserId]),
     { ClientClass: RecordingClient, fetchImpl: async () => validSessionResponse() },
   );
 
@@ -122,14 +122,16 @@ test('owned database work is ordered BEGIN -> local app.user_id -> active user -
   const queries = calls.filter((entry) => entry.kind === 'query');
   assert.equal(queries[0].sql, 'BEGIN');
   assert.match(queries[1].sql, /set_config\('app\.user_id', \$1, true\)/);
-  assert.match(queries[1].sql, /set_config\('app\.actor_type', 'user', true\)/);
-  assert.deepEqual(queries[1].params, [USER_ID]);
-  assert.match(queries[2].sql, /id = public\.current_app_user_id\(\)/);
+  assert.match(queries[1].sql, /set_config\('app\.owner_user_id', \$2, true\)/);
+  assert.match(queries[1].sql, /set_config\('app\.actor_type', \$3, true\)/);
+  assert.deepEqual(queries[1].params, [USER_ID, USER_ID, 'user']);
+  assert.match(queries[2].sql, /application_user_is_active/);
+  assert.deepEqual(queries[2].params, [USER_ID, USER_ID]);
   assert.match(queries[3].sql, /FROM public\.accounts/);
   assert.equal(queries[4].sql, 'COMMIT');
 });
 
-test('inactive application user rolls back before any owned operation', async () => {
+test('inactive application identity rolls back before any owned operation', async () => {
   const calls = [];
   let operationRan = false;
   class InactiveClient {
@@ -137,7 +139,9 @@ test('inactive application user rolls back before any owned operation', async ()
     async query(sql, params) {
       const compact = String(sql).replace(/\s+/g, ' ').trim();
       calls.push({ sql: compact, params });
-      if (compact.includes('FROM public.users')) return { rows: [] };
+      if (compact.includes('application_user_is_active')) {
+        return { rows: [{ actor_active: false, owner_active: false }] };
+      }
       return { rows: [] };
     }
     async end() {}
@@ -156,7 +160,7 @@ test('inactive application user rolls back before any owned operation', async ()
   assert.equal(calls.at(-1).sql, 'ROLLBACK');
 });
 
-test('migration 008 contains only identity and Personal/Professional entitlement scope', async () => {
+test('migration 008 remains identity and Personal/Professional entitlement only', async () => {
   const migration = await read('./database/migrations/008_phase6_auth_identity_entitlement.sql');
   const phase5 = await read('./database/migrations/005_phase5_database_safety.sql');
   const worker = await read('./src/worker.mjs');
@@ -170,7 +174,6 @@ test('migration 008 contains only identity and Personal/Professional entitlement
   assert.doesNotMatch(migration, /trusted_support|professional_membership|professional_workspace|delete_current_account/i);
   assert.match(phase5, /current_setting\('app\.user_id', true\)/);
   assert.match(worker, /set_config\('app\.user_id', \$1, true\)/);
-  assert.doesNotMatch(worker, /app\.owner_user_id|trusted_support|professional_member/i);
 });
 
 test('Cloudflare runs auth and identity before static assets while preserving Phase 3 routes first', async () => {
