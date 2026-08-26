@@ -1,0 +1,111 @@
+name: Phase 7 verification
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  phase7:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Reproducible install
+        run: npm ci
+
+      - name: Preserve Phases 2 through 6 and verify Phase 7 chronologically
+        run: npm run verify:phase7
+
+      - name: Confirm all eight first-time setup screens remain present in order
+        run: |
+          grep -q 'function screen1(' phase7-first-time-setup.js
+          grep -q 'function screen2(' phase7-first-time-setup.js
+          grep -q 'function screen3(' phase7-first-time-setup.js
+          grep -q 'function screen4(' phase7-first-time-setup.js
+          grep -q 'function screen5(' phase7-first-time-setup.js
+          grep -q 'function screen6(' phase7-first-time-setup.js
+          grep -q 'function screen7(' phase7-first-time-setup.js
+          grep -q 'function screen8(' phase7-first-time-setup.js
+          grep -q 'How often do you get paid?' phase7-first-time-setup.js
+          grep -q 'When do you get paid next?' phase7-first-time-setup.js
+          grep -q 'YOUR FIRST MONEY PLAN' phase7-first-time-setup.js
+
+      - name: Confirm Smooth and target bill methods are functional
+        run: |
+          grep -q 'smoothContribution' phase7-first-time-setup.js
+          grep -q 'requiredContribution' phase7-first-time-setup.js
+          grep -q 'function targetAlertStatus' phase7-first-time-setup.js
+          grep -q 'refreshCompletedBillPlans' phase7-first-time-setup.js
+          grep -q "return 'recovery'" phase7-first-time-setup.js
+          grep -q "return 'yellow'" phase7-first-time-setup.js
+          grep -q "return 'red'" phase7-first-time-setup.js
+
+      - name: Confirm Phase 7 reuses the sealed schema boundary
+        run: |
+          test "$(find database/migrations -maxdepth 1 -type f -name '015_*.sql' | wc -l)" -eq 0
+          grep -q 'const CURRENT_PHASE = 6' src/worker.mjs
+          grep -q 'const EXPECTED_MIGRATION = "014"' src/worker.mjs
+
+      - name: Confirm protected Budget engine remains untouched
+        run: |
+          test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
+
+      - name: Verify Phase 7 setup asset and preserved readiness live
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            BRANCH="${GITHUB_HEAD_REF//\//-}"
+            BASE_URL="https://${BRANCH}-my-budget.positivity864.workers.dev"
+          else
+            BASE_URL="https://my-budget.positivity864.workers.dev"
+          fi
+
+          echo "Verifying Phase 7 subscriber runtime at ${BASE_URL}"
+          asset_file="$(mktemp)"
+          ready_file="$(mktemp)"
+          index_file="$(mktemp)"
+          asset_code=""
+          ready_code=""
+          index_code=""
+
+          for attempt in $(seq 1 30); do
+            index_code="$(curl --location --silent --show-error --output "$index_file" --write-out '%{http_code}' "${BASE_URL}/" || true)"
+            asset_code="$(curl --location --silent --show-error --output "$asset_file" --write-out '%{http_code}' "${BASE_URL}/phase7-first-time-setup.js?v=phase7-first-time-setup-v1" || true)"
+            ready_code="$(curl --location --silent --show-error --output "$ready_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
+
+            if [ "$index_code" = "200" ] \
+              && grep -Fq '/phase7-first-time-setup.js' "$index_file" \
+              && [ "$asset_code" = "200" ] \
+              && grep -Fq 'How often do you get paid?' "$asset_file" \
+              && grep -Fq 'YOUR FIRST MONEY PLAN' "$asset_file" \
+              && [ "$ready_code" = "200" ] \
+              && grep -Fq '"phase":6' "$ready_file" \
+              && grep -Fq '"database":"ready"' "$ready_file" \
+              && grep -Fq '"migration":"014"' "$ready_file"; then
+              echo "PASS Phase 7 live setup and preserved Phase 6/014 readiness on attempt ${attempt}"
+              rm -f "$asset_file" "$ready_file" "$index_file"
+              exit 0
+            fi
+
+            echo "Waiting for Phase 7 deployment: index=${index_code} asset=${asset_code} ready=${ready_code} attempt=${attempt}"
+            sleep 10
+          done
+
+          echo "Phase 7 live verification failed at ${BASE_URL}" >&2
+          echo "Last HTTP status: index=${index_code} asset=${asset_code} ready=${ready_code}" >&2
+          cat "$ready_file" >&2 || true
+          rm -f "$asset_file" "$ready_file" "$index_file"
+          exit 1
