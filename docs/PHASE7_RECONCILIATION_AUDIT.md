@@ -84,7 +84,7 @@ Good regression gate for onboarding, plan integrity, backup, core-balance UI/API
 
 ### `docs/PHASE7_FIRST_TIME_SETUP_CHECKPOINT.md`
 
-Now compact and correctly audit-blocked. It points to this file.
+Compact and correctly audit-blocked. It points to this file.
 
 ### `docs/PHASE7_RECONCILIATION_AUDIT.md`
 
@@ -178,7 +178,7 @@ Recovery restores account balances + emergency buffer but not local bill-reserve
 
 **Correction:** fail conservative. Either persist/recover minimal verified protected aggregate or withhold spendable until protection is restored/confirmed. Do not pull full later bill/savings persistence forward.
 
-## BLOCKER D — browser money state is not authenticated-user-bound before upload
+## BLOCKER D — local browser money state is not authenticated-user-bound before upload
 
 Global localStorage money/map can survive sign-out. A different authenticated user can receive new records derived from the previous user's local device state even though RLS correctly blocks cross-user server-row access.
 
@@ -206,7 +206,7 @@ Current point:
 4. Substantial implementation present.
 5. Audited head `cd859dad…` was 55 ahead/0 behind/21 files and all six Phase 2→7 workflows passed.
 6. Manual audit found four material defects not caught by CI.
-7. Later commits are documentation checkpoint corrections only, so old green is regression history.
+7. Later commits are documentation checkpoint corrections only; old green is regression history.
 8. PR #36 stays Draft/unmerged.
 9. Protect main remains Phase 2→6 only; do not add Phase 7 yet.
 10. Next action begins by re-fetching live branch head/main.
