@@ -139,15 +139,21 @@ test('Plan-integrity bridge corrects due-date funding, stale pay dates and first
   assert.match(planBridge, /setTimeout\(refreshCommittedPlan, 0\)/);
 });
 
-test('Backup and restore preserve Phase 7 setup settings and remain compatible with legacy backups', () => {
+test('Backup and restore preserve setup plus authenticated-user binding and block ambiguous restore', () => {
   assert.match(backupBridge, /const SETUP_STORAGE_KEY = 'genevieve-first-time-setup-v1'/);
+  assert.match(backupBridge, /const CLOUD_STATE_KEY = 'genevieve-phase7-account-cloud-map-v1'/);
   assert.match(backupBridge, /const phase7Setup = readSetupState\(\)/);
+  assert.match(backupBridge, /const phase7CloudBinding = readCloudState\(\)/);
   assert.match(backupBridge, /phase7Setup,/);
+  assert.match(backupBridge, /phase7CloudBinding,/);
   assert.match(backupBridge, /Object\.prototype\.hasOwnProperty\.call\(parsed, 'phase7Setup'\)/);
+  assert.match(backupBridge, /Object\.prototype\.hasOwnProperty\.call\(parsed, 'phase7CloudBinding'\)/);
   assert.match(backupBridge, /sanitizeSetupState\(parsed\.phase7Setup\)/);
+  assert.match(backupBridge, /currentCloudBinding\.userId !== restoredCloudBinding\.userId/);
+  assert.match(backupBridge, /Legacy backup is not user-bound/);
   assert.match(backupBridge, /localStorage\.setItem\(SETUP_STORAGE_KEY/);
   assert.match(backupBridge, /localStorage\.removeItem\(SETUP_STORAGE_KEY\)/);
-  assert.match(backupBridge, /Legacy backups pre-date Phase 7/);
+  assert.match(backupBridge, /Restore blocked: this backup is not bound to the current signed-in account/);
 });
 
 test('Core-balance bridge keeps transfers as money movement and uses authenticated same-origin persistence', () => {

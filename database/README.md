@@ -15,7 +15,7 @@ Production and test must remain separate Neon branches.
 - application role: `genevieve_budget_worker`
 - application connection: Cloudflare Worker → Hyperdrive → Neon
 
-### Phase 5 test database
+### Isolated proof branches
 
 - branch: `phase5-database-safety-test`
 - branch ID: `br-withered-fire-axt9yppr`
@@ -24,7 +24,11 @@ Production and test must remain separate Neon branches.
 
 Synthetic Phase 5 test users and financial records are confined to the test branch. They must never be copied into production.
 
-A second temporary rollback branch was used to prove restoration to the Phase 4 schema boundary. Temporary rollback branches may be deleted after their evidence is archived.
+Phase 6 used separate migration and rollback branches recorded in the Phase 6 completion archive.
+
+Phase 7 migration 015 was proven on temporary branch `phase7-corruption-repair-015-proof` (`br-flat-hat-ax3v0ggd`), created directly from production migration 014. It contained synthetic proof users only. Forward schema, restricted-role RLS, immutable opening balance, revision/protection snapshots, explicit archive auditing and exact rollback were tested there. The schema diff after rollback to its production parent was empty, and the temporary branch was then deleted.
+
+Temporary proof branches may be deleted after their evidence is archived.
 
 Database credentials and connection strings must never be committed to this repository.
 
@@ -64,8 +68,27 @@ Database credentials and connection strings must never be committed to this repo
    - fail-safe audit actor handling when application actor context is absent
 8. `007_phase5_financial_settings_archive.sql`
    - completes soft-archive coverage for financial_settings
+9. `008_phase6_auth_identity_entitlement.sql`
+   - managed Auth identity and entitlement foundation
+10. `009_phase6_trusted_support_permissions.sql`
+    - trusted-support permission separation
+11. `010_phase6_professional_roles.sql`
+    - bounded Professional workspace roles and authority
+12. `011_phase6_account_lifecycle_sessions_export.sql`
+    - session registry, account lifecycle and export controls
+13. `012_phase6_export_audit_id_type.sql`
+    - export audit identifier correction
+14. `013_phase6_account_deletion_authority.sql`
+    - controlled account-deletion authority
+15. `014_phase6_lifecycle_audit_hardening.sql`
+    - one-way revocation and lifecycle audit hardening
+16. `015_phase7_account_balance_persistence.sql`
+    - immutable opening-balance enforcement
+    - separate current-balance snapshot and timestamp
+    - authenticated-user client mapping and revision control
+    - conservative bill/protected-savings recovery snapshot
 
-The current Phase 5 readiness marker is migration `007`.
+Production remains at migration `014` until the exact tested Phase 7 migration is promoted. The composed Phase 7 Worker readiness boundary is migration `015` and must not be deployed before that promotion.
 
 ## Phase 5 database-safety contract
 
@@ -97,7 +120,7 @@ Mutable records retain `created_at` and `updated_at` timestamps. Phase 5 adds `u
 
 `audit_events` remains append-only. Phase 5 adds automatic audit triggers for owned mutable records. A missing or invalid actor context is recorded as `system`, never as NULL.
 
-## Rollback procedure
+## Rollback procedures
 
 Authoritative rollback file:
 
@@ -106,6 +129,12 @@ Authoritative rollback file:
 Rollback is an explicit maintenance operation, not an application feature. The rollback removes Phase 5 schema/security objects and migration ledger entries `005`, `006`, and `007`, while retaining historical audit rows.
 
 The rollback procedure was tested on an isolated Neon branch and compared against its Phase 4 parent. The schema diff after rollback was empty.
+
+Phase 7 rollback file:
+
+`database/rollbacks/phase7_account_balance_persistence_to_phase6.sql`
+
+It removes only migration 015 objects and returns the schema to the sealed Phase 6/014 boundary. The exact rollback was tested after representative writes and archives; its schema diff to the 014 parent was empty.
 
 ## Safe migration workflow
 
@@ -118,7 +147,7 @@ For every future schema change:
 5. Audit tables, ownership, relationships, required fields, unique constraints, numeric money types, indexes, triggers, policies and privileges.
 6. Run representative synthetic tests on the test branch only, including negative cross-user and failure cases.
 7. Verify rollback on an isolated branch when the change is reversible by schema rollback.
-8. Run `npm run verify:phase5`, which nests Phase 2 → Phase 3 → Phase 4 → Phase 5 verification.
+8. Run the current chronological verifier. For Phase 7 this is `npm run verify:phase7`, which nests Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 verification.
 9. Apply the exact tested migrations to production only after all pre-production gates are green.
 10. Re-audit production without inserting test records.
 11. Compare test and production schemas; after promotion, the expected schema diff is empty.
@@ -134,4 +163,4 @@ These remain deliberately unbuilt until the later professional stage:
 
 ## Current boundary
 
-Phase 4 remains the sealed Cloudflare → Hyperdrive → Neon connection layer. Phase 5 extends that foundation with database safety and user isolation before any identity-dependent application screens or persistence endpoints are built.
+Phase 4 remains the sealed Cloudflare → Hyperdrive → Neon connection layer. Phase 5 preserves database safety and user isolation. Phase 6 preserves authenticated identity, lifecycle, support and Professional authority. Phase 7 adds only the bounded account/current-balance and conservative protection snapshots required for Core Accounts & Balances; it does not pull Phase 8 transaction persistence or Phase 13 full Safe-to-Spend forward.

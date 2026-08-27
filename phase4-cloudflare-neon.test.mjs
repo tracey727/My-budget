@@ -98,7 +98,7 @@ test("endpoint-level failure proof keeps health live while readiness fails close
   assert.deepEqual(await health.json(), {
     ok: true,
     service: "genevieve-budget",
-    phase: 6,
+    phase: 7,
     runtime: "cloudflare-workers",
   });
 
@@ -107,7 +107,7 @@ test("endpoint-level failure proof keeps health live while readiness fails close
   assert.deepEqual(await ready.json(), {
     ok: false,
     service: "genevieve-budget",
-    phase: 6,
+    phase: 7,
     assets: "ready",
     database: "unavailable",
     migration: null,

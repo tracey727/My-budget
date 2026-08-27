@@ -13,7 +13,7 @@ const phase7RuntimeNames = [setupRuntimeName, planRuntimeName, backupRuntimeName
 
 await Promise.all(phase7RuntimeNames.map((runtimeName) => access(resolve(dist, runtimeName), constants.R_OK)));
 
-const [index, setupRuntime, planRuntime, backupRuntime, balanceRuntime, serviceWorker, sourceApp, sealedWorker, workerEntry, accountRoutes] = await Promise.all([
+const [index, setupRuntime, planRuntime, backupRuntime, balanceRuntime, serviceWorker, sourceApp, sealedWorker, workerEntry, accountRoutes, readiness, migration015, rollback015] = await Promise.all([
   readFile(resolve(dist, 'index.html'), 'utf8'),
   readFile(resolve(dist, setupRuntimeName), 'utf8'),
   readFile(resolve(dist, planRuntimeName), 'utf8'),
@@ -24,6 +24,9 @@ const [index, setupRuntime, planRuntime, backupRuntime, balanceRuntime, serviceW
   readFile(resolve(root, 'src/worker-phase6-sealed.mjs'), 'utf8'),
   readFile(resolve(root, 'src/worker.mjs'), 'utf8'),
   readFile(resolve(root, 'src/phase7-account-routes.mjs'), 'utf8'),
+  readFile(resolve(root, 'src/phase7-readiness.mjs'), 'utf8'),
+  readFile(resolve(root, 'database/migrations/015_phase7_account_balance_persistence.sql'), 'utf8'),
+  readFile(resolve(root, 'database/rollbacks/phase7_account_balance_persistence_to_phase6.sql'), 'utf8'),
 ]);
 
 const dataRuntime = index.indexOf('/phase2-data-runtime.js');
@@ -70,6 +73,7 @@ for (const fragment of [
   'genevieve-first-time-setup-v1',
   'fullBackup',
   'restoreFullBackup',
+  'phase7CloudBinding',
   "Object.prototype.hasOwnProperty.call(parsed, 'phase7Setup')",
   'localStorage.removeItem(SETUP_STORAGE_KEY)',
 ]) {
@@ -79,6 +83,9 @@ for (const fragment of [
 for (const fragment of [
   '/api/phase7/accounts',
   '/api/phase7/accounts/sync',
+  'syncMode: \'upsert_only\'',
+  'Nothing will upload without your confirmation.',
+  'ARCHIVE_ACCOUNT',
   'Spendable balance',
   'Protected / reserved',
   'Internal transfers move money between your own accounts and are not counted as spending.',
@@ -92,9 +99,9 @@ for (const fragment of [
   '/api/phase7/accounts/sync',
   'public.current_app_user_id()',
   'public.financial_settings',
-  'public.bill_provisions',
-  'public.savings_goals',
-  'archived_at = COALESCE(archived_at, now())',
+  'current_balance_snapshot',
+  'phase7_user_binding_mismatch',
+  "value.confirm !== 'ARCHIVE_ACCOUNT'",
 ]) {
   if (!accountRoutes.includes(fragment)) throw new Error(`Phase 7 account route module missing security/persistence fragment: ${fragment}`);
 }
@@ -124,5 +131,12 @@ if (sealedWorkerHash !== expectedSealedWorkerHash) {
 }
 if (!workerEntry.includes("export * from './worker-phase6-sealed.mjs'")) throw new Error('Phase 7 Worker entry does not re-export the sealed Phase 6 module');
 if (!workerEntry.includes('handlePhase7AccountRequest')) throw new Error('Phase 7 Worker entry does not compose the account persistence routes');
+if (!workerEntry.includes('checkPhase7Readiness')) throw new Error('Phase 7 Worker entry does not advance the composed readiness boundary');
+if (!readiness.includes("const EXPECTED_MIGRATION = '015'")) throw new Error('Phase 7 readiness is not sealed to migration 015');
+if (!migration015.includes("VALUES ('015'")) throw new Error('Phase 7 migration 015 is not recorded chronologically');
+if (!migration015.includes('current_balance_snapshot numeric(14,2)')) throw new Error('Phase 7 migration lacks the separate current-balance snapshot');
+if (!migration015.includes('CREATE TRIGGER accounts_preserve_opening_balance')) throw new Error('Phase 7 migration does not enforce immutable opening balances');
+if (/SET opening_balance\s*=/.test(migration015)) throw new Error('Phase 7 migration mutates immutable opening balances');
+if (!rollback015.includes("version = '015'")) throw new Error('Phase 7 rollback does not remove migration 015');
 
 console.log('Phase 7 production artifact verification passed: first-time setup, due-date plan integrity, backup continuity, core account balances and authenticated Neon account persistence are linked after Phase 2 while protected app.js and the sealed Phase 6 Worker remain hash-pinned.');

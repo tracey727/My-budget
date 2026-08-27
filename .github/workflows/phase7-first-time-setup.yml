@@ -67,6 +67,8 @@ jobs:
           grep -q 'sanitizeSetupState' phase7-backup-bridge.js
           grep -q "hasOwnProperty.call(parsed, 'phase7Setup')" phase7-backup-bridge.js
           grep -q 'Legacy backups pre-date Phase 7' phase7-backup-bridge.js
+          grep -q 'phase7CloudBinding' phase7-backup-bridge.js
+          grep -q 'Legacy backup is not user-bound' phase7-backup-bridge.js
 
       - name: Confirm authoritative Phase 7 core accounts and balances scope
         run: |
@@ -74,18 +76,27 @@ jobs:
           grep -q 'Protected / reserved' phase7-core-balances-bridge.js
           grep -q 'Internal transfers move money between your own accounts and are not counted as spending.' phase7-core-balances-bridge.js
           grep -q 'Finish first-time setup before cloud account synchronisation begins.' phase7-core-balances-bridge.js
-          grep -q 'protected emergency amount from Neon' phase7-core-balances-bridge.js
+          grep -q 'Nothing will upload without your confirmation.' phase7-core-balances-bridge.js
+          grep -q "syncMode: 'upsert_only'" phase7-core-balances-bridge.js
+          grep -q 'ARCHIVE_ACCOUNT' phase7-core-balances-bridge.js
           grep -q '/api/phase7/accounts/sync' phase7-core-balances-bridge.js
           grep -q '/api/phase7/accounts' src/phase7-account-routes.mjs
           grep -q 'public.current_app_user_id()' src/phase7-account-routes.mjs
           grep -q 'public.financial_settings' src/phase7-account-routes.mjs
-          grep -q 'archived_at = COALESCE(archived_at, now())' src/phase7-account-routes.mjs
+          grep -q 'current_balance_snapshot' src/phase7-account-routes.mjs
+          grep -q 'phase7_user_binding_mismatch' src/phase7-account-routes.mjs
+          grep -q "value.confirm !== 'ARCHIVE_ACCOUNT'" src/phase7-account-routes.mjs
           test "$(git hash-object src/worker-phase6-sealed.mjs)" = "670159e8b820f597ed2376c246df04e69a244988"
           test "$(git hash-object app.js)" = "a86381a76c4676b9d14cbcb1a6b9de842c1cd24c"
 
-      - name: Confirm Phase 7 reuses the sealed schema boundary
+      - name: Confirm Phase 7 advances chronologically to migration 015
         run: |
-          test "$(find database/migrations -maxdepth 1 -type f -name '015_*.sql' | wc -l)" -eq 0
+          test "$(find database/migrations -maxdepth 1 -type f -name '015_*.sql' | wc -l)" -eq 1
+          grep -q "VALUES ('015'" database/migrations/015_phase7_account_balance_persistence.sql
+          grep -q 'current_balance_snapshot numeric(14,2)' database/migrations/015_phase7_account_balance_persistence.sql
+          grep -q 'CREATE TRIGGER accounts_preserve_opening_balance' database/migrations/015_phase7_account_balance_persistence.sql
+          grep -q "version = '015'" database/rollbacks/phase7_account_balance_persistence_to_phase6.sql
+          grep -q "const EXPECTED_MIGRATION = '015'" src/phase7-readiness.mjs
           grep -q 'const CURRENT_PHASE = 6' src/worker-phase6-sealed.mjs
           grep -q 'const EXPECTED_MIGRATION = "014"' src/worker-phase6-sealed.mjs
 
@@ -144,10 +155,10 @@ jobs:
               && [ "$api_code" = "401" ] \
               && grep -Fq 'authentication_required' "$api_file" \
               && [ "$ready_code" = "200" ] \
-              && grep -Fq '"phase":6' "$ready_file" \
+              && grep -Fq '"phase":7' "$ready_file" \
               && grep -Fq '"database":"ready"' "$ready_file" \
-              && grep -Fq '"migration":"014"' "$ready_file"; then
-              echo "PASS reconciled Phase 7 live setup, balances, authenticated API boundary and preserved Phase 6/014 readiness on attempt ${attempt}"
+              && grep -Fq '"migration":"015"' "$ready_file"; then
+              echo "PASS reconciled Phase 7 live setup, balances, authenticated API boundary and Phase 7/015 readiness on attempt ${attempt}"
               rm -f "$setup_file" "$plan_file" "$backup_file" "$balance_file" "$ready_file" "$index_file" "$api_file"
               exit 0
             fi

@@ -13,7 +13,7 @@ Sealed Phase 6 Worker blob: `670159e8b820f597ed2376c246df04e69a244988`
 
 ## Status
 
-**PHASE 7 — CORE ACCOUNTS & BALANCES — DATA-INTEGRITY AUDIT BLOCKED / DRAFT / NOT MERGED / NOT ARCHIVED.**
+**PHASE 7 — CORE ACCOUNTS & BALANCES — CORRUPTION REPAIR IMPLEMENTED / ISOLATED DATABASE PROOF GREEN / DRAFT / NOT MERGED / NOT ARCHIVED.**
 
 **Do not merge PR #36. Do not add `phase7` to Protect main. Do not start Phase 8.**
 
@@ -80,7 +80,7 @@ Full `Actually Safe to Spend` remains Phase 13.
 - Phase 6 Worker preserved exact;
 - protected `app.js` preserved exact.
 
-# Merge blockers
+# Repaired merge blockers
 
 ## A — current balance overwrites `opening_balance`
 
@@ -88,7 +88,7 @@ Current Phase 7 sync writes computed current balance into `public.accounts.openi
 
 This violates the sealed meaning of opening balance and is not forward-compatible with later transaction persistence.
 
-**Fix:** preserve opening balance and design the smallest separate owned current-balance snapshot mechanism. Current schema has no such field, so the chosen recovery design likely requires genuine Phase 7 migration 015. If confirmed: numeric snapshot + appropriate timestamp/version, retain ownership/RLS/audit/archive, complete 015→014 rollback, isolated Neon forward/reverse proof, production/readiness update only after verified promotion.
+**Repaired:** migration 015 adds a separate numeric current-balance snapshot and timestamp. A database trigger makes the original opening balance immutable. The Worker updates current snapshots only.
 
 ## B — one device omission can archive valid cloud accounts
 
@@ -96,19 +96,33 @@ Current full-snapshot sync soft-archives active server accounts absent from one 
 
 Unsafe for stale/second device, reset, older restore or incomplete local truth.
 
-**Fix:** sync becomes non-destructive upsert. Remote soft archive only through explicit owned user account-removal action after confirmation. Add stale-device/reset/restore/explicit-archive tests.
+**Repaired:** sync is revisioned and upsert-only. Omission performs no archive. Remote archive requires a separate authenticated, revisioned, confirmed endpoint and remains soft/audited.
 
 ## C — cloud recovery can overstate spendable
 
 Account recovery restores account balances + emergency buffer, but not local bill-reserve/protected-savings data. Missing protection can be treated as zero.
 
-**Fix:** fail conservative. Either recover minimal verified protected aggregate or withhold spendable until protection is restored/confirmed. Do not pull full later bill/savings persistence forward.
+**Repaired:** the bounded emergency/bill/protected-savings recovery snapshot carries an explicit completeness flag. Spendable is `null`/Unavailable whenever that flag is false.
 
 ## D — local browser money state is not authenticated-user-bound
 
 Global localStorage money/cloud map can survive sign-out. A different authenticated user can receive inserts derived from previous local device data even though server RLS correctly blocks direct cross-user rows.
 
-**Fix:** resolve current app user, bind/namespace local cloud metadata/state before upload, make legacy local adoption explicit/safe, fail closed on shared-device account switching/restore. Add cross-account device tests.
+**Repaired:** device snapshots and cloud mappings are authenticated-user-bound and namespaced. Account switching separates local money before any upload. Legacy unbound data requires explicit confirmation and cannot upload when cloud data already exists. Backups carry and validate the same binding.
+
+# Repair and proof evidence
+
+- remote Phase 7 head was re-fetched and remained `410a61b94ee59a489e92ea95d6a5bd4c981dbda7` before repair;
+- local Phase 7 behavioral suite: 30/30 green, including executable shared-device/account-switch and explicit legacy-adoption simulations;
+- migration 015 applied exactly on isolated Neon branch `phase7-corruption-repair-015-proof` (`br-flat-hat-ax3v0ggd`) from production `br-old-boat-axqvorbe` at migration 014;
+- production baseline contained zero users, accounts and transactions and no Phase 7 columns;
+- migration schema retained RLS and Worker select/insert/update while DELETE remained denied;
+- Worker-role tests proved immutable opening balance, separate current balance, revision/protection persistence, cross-user isolation, active client-ID uniqueness and audited soft archive;
+- exact 015→014 rollback after representative writes produced an empty schema diff to the production parent;
+- the temporary proof branch was deleted after rollback proof, removing all synthetic records;
+- protected `app.js` and sealed Phase 6 Worker remain hash-pinned and unchanged.
+
+Production migration and Phase 7 Worker deployment are still pending. This proof advances the build through Step 7B; it is not merge authority.
 
 # Directions to self — exact build and point
 
@@ -124,7 +138,7 @@ Current point:
 6. Later commits are docs-only checkpoint corrections; prior green is regression history.
 7. PR #36 stays Draft/unmerged.
 8. Protect main remains Phase 2→6 only.
-9. **Next work is Step 7A; not merge work.**
+9. Step 7A and Step 7B are implemented/proven locally; next work is Step 7C whole-diff/final local audit, then Step 7D only if green.
 
 # Directions to self — next chronological sequence
 
@@ -234,10 +248,10 @@ Post-merge all checks/live Cloudflare/Neon/hashes; docs-only Phase 7 archive PR;
 
 **Phase 2→7 CI at audited `cd859dad…`: GREEN regression evidence.**
 
-**Phase 7 cloud persistence/data integrity: RED / BLOCKED.**
+**Phase 7 cloud persistence/data integrity repair: GREEN in code and isolated Neon proof.**
 
 **Merge decision: DO NOT MERGE.**
 
-**Next permitted work: Step 7A persistence-contract hardening.**
+**Next permitted work: Step 7C whole-diff gate, then controlled Step 7D production promotion.**
 
 **Phase 8 prohibited until Phase 7 is corrected, final exact-head green, merged, post-merge green and archived.**

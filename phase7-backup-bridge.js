@@ -3,6 +3,8 @@
 
   const MONEY_STORAGE_KEY = 'every-cent-money-tracker-v1';
   const SETUP_STORAGE_KEY = 'genevieve-first-time-setup-v1';
+  const CLOUD_STATE_KEY = 'genevieve-phase7-account-cloud-map-v1';
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const PAY_FREQUENCIES = new Set(['weekly', 'fortnightly', 'monthly', 'irregular']);
   const BILL_MODES = new Set(['smooth', 'target']);
 
@@ -46,6 +48,32 @@
     try {
       const parsed = JSON.parse(localStorage.getItem(SETUP_STORAGE_KEY) || 'null');
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function sanitizeCloudState(value) {
+    if (!value || value.version !== 2 || !UUID_PATTERN.test(String(value.userId || ''))) return null;
+    if (!Number.isSafeInteger(value.revision) || value.revision < 0) return null;
+    const accounts = {};
+    if (value.accounts && typeof value.accounts === 'object' && !Array.isArray(value.accounts)) {
+      for (const [clientId, mapping] of Object.entries(value.accounts)) {
+        if (!clientId || !UUID_PATTERN.test(String(mapping?.serverId || ''))) continue;
+        accounts[clientId] = {
+          serverId: mapping.serverId,
+          openingBalance: Number.isFinite(Number(mapping.openingBalance))
+            ? Math.round(Number(mapping.openingBalance) * 100) / 100
+            : 0,
+        };
+      }
+    }
+    return { version: 2, userId: value.userId, revision: value.revision, accounts };
+  }
+
+  function readCloudState() {
+    try {
+      return sanitizeCloudState(JSON.parse(localStorage.getItem(CLOUD_STATE_KEY) || 'null'));
     } catch {
       return null;
     }
@@ -101,10 +129,12 @@
     event.stopImmediatePropagation();
     const state = readMoneyState();
     const phase7Setup = readSetupState();
+    const phase7CloudBinding = readCloudState();
     const payload = {
       exportedAt: new Date().toISOString(),
       ...state,
       phase7Setup,
+      phase7CloudBinding,
     };
     downloadFile(
       `every-cent-backup-${todayIso()}.json`,
@@ -128,6 +158,19 @@
       const parsed = JSON.parse(await file.text());
       if (!Array.isArray(parsed.accounts) || !Array.isArray(parsed.transactions) || !Array.isArray(parsed.subscriptions)) {
         throw new Error('Invalid backup');
+      }
+
+      const currentCloudBinding = readCloudState();
+      const hasCloudBinding = Object.prototype.hasOwnProperty.call(parsed, 'phase7CloudBinding');
+      const restoredCloudBinding = hasCloudBinding ? sanitizeCloudState(parsed.phase7CloudBinding) : null;
+      if (hasCloudBinding && parsed.phase7CloudBinding !== null && !restoredCloudBinding) {
+        throw new Error('Invalid cloud binding');
+      }
+      if (currentCloudBinding && restoredCloudBinding && currentCloudBinding.userId !== restoredCloudBinding.userId) {
+        throw new Error('Different signed-in account');
+      }
+      if (currentCloudBinding && !hasCloudBinding) {
+        throw new Error('Legacy backup is not user-bound');
       }
 
       directWriteMoneyState({
@@ -154,10 +197,20 @@
         localStorage.removeItem(SETUP_STORAGE_KEY);
       }
 
+      if (restoredCloudBinding) {
+        localStorage.setItem(CLOUD_STATE_KEY, JSON.stringify(restoredCloudBinding));
+      } else {
+        localStorage.removeItem(CLOUD_STATE_KEY);
+      }
+
       showToast('Backup restored. Reloading…');
       setTimeout(() => location.reload(), 250);
-    } catch {
-      showToast('That file is not a valid Every Cent backup.');
+    } catch (error) {
+      if (error?.message === 'Different signed-in account' || error?.message === 'Legacy backup is not user-bound') {
+        showToast('Restore blocked: this backup is not bound to the current signed-in account.');
+      } else {
+        showToast('That file is not a valid Every Cent backup.');
+      }
     } finally {
       event.target.value = '';
     }
