@@ -3,7 +3,7 @@
 Date: 27 August 2026, AEST (Queensland)
 Repository: `tracey727/My-budget`
 Protected base branch: `main`
-Authoritative protected `main`: `156a36e9ba1b6a2452012c6915341f0184baa284`
+Authoritative protected `main` at this audit: `156a36e9ba1b6a2452012c6915341f0184baa284`
 Phase 7 branch: `phase7-first-time-setup`
 Phase 7 PR: #36 — DRAFT / NOT MERGED
 Protect-main ruleset: `21530843`
@@ -17,38 +17,38 @@ Sealed Phase 6 Worker Git blob: `670159e8b820f597ed2376c246df04e69a244988`
 
 **DO NOT MERGE PR #36. DO NOT ADD `phase7` TO PROTECT MAIN YET. DO NOT START PHASE 8.**
 
-This file is the current continuation authority for Phase 7. `docs/PHASE7_FIRST_TIME_SETUP_CHECKPOINT.md` carries the same compact audit-blocked status and points here for the controlling detail.
+This file is the durable current continuation authority. The compact `docs/PHASE7_FIRST_TIME_SETUP_CHECKPOINT.md` points here and carries the same blocked status.
 
-Because every documentation correction changes the branch SHA, **never copy a head SHA from this prose and assume it is current. Re-fetch the live branch before every next action.** The final Phase 2→7 merge gate must always be tied to the live exact head after the final corrective commit.
+Do not assume any recorded branch-head SHA remains current. Re-fetch live state before every next action.
 
-## Chronology repaired before this audit
+## Chronology and reconciliation
 
-The old Phase 7 branch was originally based on Phase 6 archive boundary:
+The old Phase 7 branch began from the Phase 6 archive boundary `06ec1c00e618c2a0a0a59f0bc9324a02d3a045e0`.
 
-`06ec1c00e618c2a0a0a59f0bc9324a02d3a045e0`
+After the Phase 6 build-archive correction merged through protected main as PR #38, authoritative main became `156a36e9ba1b6a2452012c6915341f0184baa284`.
 
-After the documentation-only Phase 6 build-archive correction merged through protected `main` as PR #38, authoritative `main` became:
-
-`156a36e9ba1b6a2452012c6915341f0184baa284`
-
-The Phase 7 branch was reconciled without rewriting history by normal two-parent merge commit:
-
-`35bbda5b575cb5c8e7bf65f4b5c0b767f714db5f`
-
-Parents:
-
-1. previous Phase 7 head `720cd88c8c0a9e4a8ade52aaeb7ba9dd7f28b51b`;
-2. authoritative `main` `156a36e9ba1b6a2452012c6915341f0184baa284`.
+Phase 7 was reconciled without history rewrite by normal two-parent merge commit `35bbda5b575cb5c8e7bf65f4b5c0b767f714db5f`, with parents old Phase 7 head `720cd88c8c0a9e4a8ade52aaeb7ba9dd7f28b51b` and current main `156a36e9ba1b6a2452012c6915341f0184baa284`.
 
 No force push was used.
 
-A later Phase 7 implementation candidate was recorded at:
+A substantial implementation candidate existed at `5ae338e2870055575216b7ddba7e5c369f8295f9`.
 
-`5ae338e2870055575216b7ddba7e5c369f8295f9`
+At audited exact head `cd859dad2830d47298ac57331627d72e27668d36`, the branch was 55 commits ahead / 0 behind main / 21 changed files and all six Phase 2→7 workflows passed. Manual audit then found four material data-integrity defects not covered by the tests. Later commits only correct documentation/checkpoint status, so `cd859dad…` is regression evidence, not merge authority.
 
-At audited head `cd859dad2830d47298ac57331627d72e27668d36`, the branch was 55 commits ahead and 0 behind current main with 21 changed files. All six Phase 2→7 workflows passed there. Manual audit then found the four material data-integrity defects below. Later commits are documentation-only checkpoint corrections and therefore make `cd859dad…` regression evidence rather than current merge authority.
+## Authoritative Phase 7 scope
 
-## Exact implementation paths audited
+Protected `docs/BUILD_ARCHIVE.md` defines Phase 7 as **Core accounts and balances**:
+
+1. persistent multiple accounts/assets;
+2. credit cards, loans, BNPL and debts;
+3. internal transfers between the user's own accounts are not spending;
+4. spendable balance is separated from protected/reserved balance.
+
+The eight-screen First-Time Setup remains the onboarding entry component.
+
+Full `Actually Safe to Spend` remains Phase 13. Do not pull later income/obligation/forecast logic forward.
+
+## Complete audited path list
 
 1. `.github/workflows/phase6-identity.yml`
 2. `.github/workflows/phase7-first-time-setup.yml`
@@ -72,327 +72,159 @@ At audited head `cd859dad2830d47298ac57331627d72e27668d36`, the branch was 55 co
 20. `src/worker-phase6-sealed.mjs`
 21. `src/worker.mjs`
 
-At the implementation audit point:
+## File-by-file audit decisions
 
-- no Phase 8 implementation existed;
-- no migration `015` existed;
-- protected `app.js` was unchanged;
-- exact Phase 6 Worker was preserved in a sealed module;
-- Phase 7 remained Draft/unmerged.
+### `.github/workflows/phase6-identity.yml`
 
-## Authoritative Phase 7 scope
+Acceptable compatibility adaptation. It still runs `verify:phase6`, proves migrations 008→014, trusted-support/Professional separation, exact sealed Phase 6 Worker hash, exact `app.js` hash and live Phase 6 `/ready` at migration 014. Do not weaken it.
 
-Protected `docs/BUILD_ARCHIVE.md` defines Phase 7 as:
+### `.github/workflows/phase7-first-time-setup.yml`
 
-**Phase 7 — Core accounts and balances**
+Good regression gate for onboarding, plan integrity, backup, core-balance UI/API fragments, self-scope SQL fragments, hashes, Cloudflare assets, unauthenticated 401 and preserved readiness. Defect: it does not behaviorally test the four unsafe sync/recovery cases below.
 
-Required responsibilities:
+### `docs/PHASE7_FIRST_TIME_SETUP_CHECKPOINT.md`
 
-1. persistent multiple accounts/assets;
-2. credit cards, loans, BNPL and debts;
-3. internal transfers between user's own accounts are not spending;
-4. spendable balance is separated from protected/reserved balance.
+Now compact and correctly audit-blocked. It points to this file.
 
-The eight-screen First-Time Setup remains the onboarding entry component. Full `Actually Safe to Spend` remains Phase 13 and must not be pulled forward.
-
-# Complete file audit
-
-## `.github/workflows/phase6-identity.yml`
-
-Acceptable compatibility adaptation:
-
-- still runs `verify:phase6`;
-- still proves 008→014 chronology and Phase 6 security roles/lifecycle;
-- hash-pins the sealed former Phase 6 Worker;
-- hash-pins protected `app.js`;
-- verifies live Phase 6 `/ready` at migration 014.
-
-Do not weaken this workflow to make Phase 7 pass.
-
-## `.github/workflows/phase7-first-time-setup.yml`
-
-Good current coverage:
-
-- all eight onboarding screens;
-- Smooth/target and plan-integrity fragments;
-- backup continuity;
-- core-balance UI/API fragments;
-- self-scope SQL fragments;
-- no migration 015 in current implementation;
-- sealed Worker/app hashes;
-- four Phase 7 assets live on Cloudflare preview;
-- unauthenticated API 401;
-- preserved `/ready` Phase 6 / migration 014.
-
-Defect: current gate does not exercise the four failure modes below. It proves unsafe code can run, not that multi-device/recovery semantics are safe.
-
-## `docs/PHASE7_FIRST_TIME_SETUP_CHECKPOINT.md`
-
-Now correctly marked data-integrity audit blocked. It is the compact checkpoint; this audit controls detail.
-
-## `docs/PHASE7_RECONCILIATION_AUDIT.md`
+### `docs/PHASE7_RECONCILIATION_AUDIT.md`
 
 Current durable continuation authority.
 
-## `package.json`
+### `package.json`
 
-Sound:
+Sound nested verification structure. `test:phase7` runs setup + core balances and `verify:phase7` remains after `verify:phase6`. No dependency-version change.
 
-- `test:phase7` runs setup + core balances;
-- `verify:phase7` is nested after `verify:phase6`;
-- no dependency-version change.
+### `phase3-cloudflare.test.mjs`
 
-## `phase3-cloudflare.test.mjs`
+Acceptable: adapts source assertions to Phase 7 Worker composition while preserving sealed Phase 6 health/readiness/static behavior.
 
-Acceptable: recognises Phase 7 Worker composition while checking sealed Phase 6 health/readiness/static behavior.
+### `phase6-identity-entitlement.test.mjs`
 
-## `phase6-identity-entitlement.test.mjs`
+Acceptable: behavior still goes through composed Worker exports; static Phase 6 source assertions target the sealed Worker.
 
-Acceptable: behavioral imports pass through composed Worker; static Phase 6 source checks target the sealed Worker.
+### `phase6-lifecycle-roles.test.mjs`
 
-## `phase6-lifecycle-roles.test.mjs`
+Acceptable: lifecycle/static checks target exact sealed Phase 6 source. Do not weaken.
 
-Acceptable: lifecycle/static source assertions inspect the exact sealed Worker. Do not weaken.
+### `phase7-backup-bridge.js`
 
-## `phase7-backup-bridge.js`
+Good setup/legacy local backup continuity. Concern: cloud ownership/mapping metadata has no safe authenticated-user-bound restore contract yet.
 
-Good local setup/legacy backup continuity.
+### `phase7-core-balances-bridge.js`
 
-Concern: cloud ownership/mapping metadata does not yet have a safe authenticated-user-bound backup/restore contract. Must be fixed with browser ownership binding.
+Good bounded UI and same-origin persistence bridge, but blocked because it treats local device state as full cloud truth, lacks authenticated-user binding, can show spendable after incomplete protection recovery, and sends computed current balance to the server field problem below.
 
-## `phase7-core-balances-bridge.js`
+### `phase7-core-balances.mjs`
 
-Good:
+Pure arithmetic is sound for bounded Phase 7: sealed transaction model reuse, transfer-not-spending, liabilities, liquid assets, protected aggregate and spendable classification. Do not label it full Safe-to-Spend.
 
-- Spendable vs Protected / reserved display;
-- asset/debt separation;
-- transfer-not-spending wording;
-- full Safe-to-Spend deferred;
-- same-origin credentialed API;
-- incomplete-onboarding sync guard;
-- device data retained on cloud failure;
-- account recovery path.
+### `phase7-core-balances.test.mjs`
 
-Blocked because it:
+Good existing tests for transfer movement, spending exclusion, liabilities, protected arithmetic, payload validation, self-scoped read and unauthenticated fail-closed. Missing behavioral tests for opening-balance immutability, multi-device omission, reset/restore, explicit archive, authenticated-user local binding and incomplete-protection recovery.
 
-- treats one device local list as full cloud truth;
-- lacks authenticated-user binding of local state/map;
-- can recover accounts/emergency while missing bill/protected-savings state and still show spendable;
-- sends computed current balances to server code that writes them into `opening_balance`.
+### `phase7-first-time-setup-model.mjs`
 
-## `phase7-core-balances.mjs`
+Sound. Preserve exact bounded onboarding/planning role.
 
-Pure arithmetic is sound for bounded Phase 7:
+### `phase7-first-time-setup.js`
 
-- reuses sealed transaction model;
-- transfers preserve combined asset position;
-- monthly spend counts only expense;
-- credit/loan/BNPL liabilities;
-- liquid bank/savings/cash;
-- protected/reserved = emergency + bill reserve + protected savings;
-- bounded spendable = liquid minus already-recorded protected/reserved.
+Sound onboarding entry: eight screens, incomplete state isolation, Screen-8 financial commit, multiple liabilities, bill methods, emergency/savings and established-user bypass. Not source of current server defects.
 
-Do not rename this full Safe-to-Spend.
+### `phase7-first-time-setup.test.mjs`
 
-## `phase7-core-balances.test.mjs`
+Good preserved onboarding regression coverage plus Phase 7 linkage. Keep it.
 
-Good current tests:
+### `phase7-plan-integrity-bridge.js`
 
-- transfer movement + no spending;
-- liabilities;
-- protected arithmetic;
-- payload validation;
-- self-scoped read;
-- unauthenticated API fail-closed;
-- incomplete onboarding/emergency-recovery source guards.
+Sound preserved due-date/pay-date/target support. Do not expand into later phases.
 
-Missing mandatory tests:
+### `scripts/link-phase7-first-time-setup.mjs`
 
-- opening-balance immutability;
-- multi-device stale snapshot;
-- local reset/restore not remote delete;
-- explicit archive only;
-- authenticated-user local ownership binding;
-- conservative incomplete-protection recovery;
-- safe backup/restore of cloud binding/mapping.
+Structurally correct order: `Phase 2 data → Phase 2 subscriptions/savings → setup → plan integrity → backup → core balances → protected app.js`. Four Phase 7 assets cached; app.js untouched.
 
-## `phase7-first-time-setup-model.mjs`
+### `scripts/verify-phase7-dist.mjs`
 
-Sound and preserved. Do not expand into later phases.
+Good static artifact/hash/order verification. It cannot replace behavioral sync safety tests.
 
-## `phase7-first-time-setup.js`
+### `src/phase7-account-routes.mjs`
 
-Sound onboarding entry:
+Good authenticated transaction boundary, self-scope, validation, sealed account types, protected-data reads, RLS/audit inheritance and no physical DELETE. Critical defects: current computed balance is written into `accounts.opening_balance`; omitted local accounts are auto-soft-archived.
 
-- one screen at a time;
-- incomplete setup isolated;
-- financial commit only Screen 8;
-- multiple accounts/liabilities;
-- Smooth/target/emergency/savings;
-- established-user bypass;
-- preserves existing money-store fields.
+### `src/worker-phase6-sealed.mjs`
 
-Not source of current server defects.
+Must remain exact blob `670159e8b820f597ed2376c246df04e69a244988`.
 
-## `phase7-first-time-setup.test.mjs`
+### `src/worker.mjs`
 
-Good preserved onboarding regression coverage plus core-balance linkage. Keep it.
+Acceptable small composition entrypoint: Phase 7 account routes first, delegate all else to sealed Phase 6, re-export Phase 6 named exports. Keep bounded.
 
-## `phase7-plan-integrity-bridge.js`
-
-Sound preserved Phase 7 planning support. Do not turn into Phase 11/12/13.
-
-## `scripts/link-phase7-first-time-setup.mjs`
-
-Structurally correct runtime order:
-
-`Phase 2 data → Phase 2 subscriptions/savings → setup → plan integrity → backup → core balances → protected app.js`
-
-All four Phase 7 assets are cached; app.js remains untouched.
-
-## `scripts/verify-phase7-dist.mjs`
-
-Good artifact/hash/order verification. Needs behavioral safety tests elsewhere; static fragments cannot prove safe sync semantics.
-
-## `src/phase7-account-routes.mjs`
-
-Good:
-
-- uses sealed Phase 6 authenticated transaction boundary;
-- no caller-authoritative user_id;
-- SQL self-scope;
-- sealed account types;
-- payload validation;
-- reads settings/bill reserves/protected savings;
-- no physical DELETE;
-- RLS/audit inheritance.
-
-Critical defects:
-
-1. current computed `balance` is written into `accounts.opening_balance`;
-2. accounts omitted from one local full snapshot are auto-soft-archived.
-
-## `src/worker-phase6-sealed.mjs`
-
-Must remain exact blob:
-
-`670159e8b820f597ed2376c246df04e69a244988`
-
-## `src/worker.mjs`
-
-Acceptable small composition entrypoint:
-
-- Phase 7 account routes first;
-- delegates all else to sealed Phase 6;
-- re-exports Phase 6 named exports.
-
-Keep bounded.
-
-# Merge blockers
+# Four merge blockers
 
 ## BLOCKER A — current balance overwrites original opening balance
 
-Sealed Phase 2 contract says opening balance remains the starting point for every account.
+Sealed Phase 2 says opening balance remains the starting point. Current Phase 7 sync writes computed current balance into `public.accounts.opening_balance`. This conflicts with later transaction persistence and can double-count/corrupt history.
 
-Sealed current balance calculation is opening balance plus linked transaction effects.
+**Correction:** preserve opening balance and design a separate owned current-balance snapshot. Current schema lacks such a field, so the chosen cloud-recovery design likely needs a genuine Phase 7 migration 015. If confirmed: numeric snapshot, appropriate timestamp/version, preserve RLS/audit/archive, complete 015→014 rollback, isolated Neon forward/reverse proof, production/readiness update only after verified promotion.
 
-Phase 7 currently writes current computed balance into `public.accounts.opening_balance`. This will conflict with later transaction persistence and can double-count/corrupt history.
+## BLOCKER B — one device omission can archive valid cloud accounts
 
-### Required correction
+Current full-snapshot sync archives active server accounts absent locally. Unsafe for stale/second device, local reset, older restore or incomplete local truth.
 
-Preserve opening balance semantics. Design the smallest separate owned current-balance snapshot storage. The existing schema lacks a separate snapshot field, so the chosen recovery design likely requires a genuine Phase 7 schema extension.
-
-If final design confirms this:
-
-- migration `015` only;
-- numeric snapshot, no floating point;
-- timestamp/version as needed;
-- preserve ownership/RLS/audit/archive;
-- complete 015→014 rollback;
-- isolated Neon forward/reverse proof;
-- production/readiness boundary only updated after verified promotion.
-
-## BLOCKER B — omission from one device can archive valid cloud accounts
-
-Current full-snapshot sync soft-archives active server accounts missing locally.
-
-Unsafe for stale/second device, reset, older restore or incomplete cloud truth.
-
-### Required correction
-
-Sync must be non-destructive upsert. Remote archive only through explicit owned account-removal action after user confirmation.
-
-Tests: stale device, empty local state, older restore, explicit single archive, existing used-account restrictions.
+**Correction:** make sync non-destructive upsert. Remote archive only through explicit owned account-removal action after user confirmation. Add stale-device/reset/restore/explicit-archive tests.
 
 ## BLOCKER C — cloud recovery can overstate spendable
 
-Recovery brings account balances + emergency buffer but not local bill reserves/protected savings. Missing protection can be treated as zero and inflate spendable.
+Recovery restores account balances + emergency buffer but not local bill-reserve/protected-savings records. Missing protection can be treated as zero and inflate spendable.
 
-### Required correction
+**Correction:** fail conservative. Either persist/recover minimal verified protected aggregate or withhold spendable until protection is restored/confirmed. Do not pull full later bill/savings persistence forward.
 
-Fail conservative. Either persist/recover minimal verified protected aggregate or withhold spendable until protection is restored/confirmed. Do not drag full later bill/savings persistence forward.
+## BLOCKER D — browser money state is not authenticated-user-bound before upload
 
-## BLOCKER D — local browser money state is not authenticated-user-bound
+Global localStorage money/map can survive sign-out. A different authenticated user can receive new records derived from the previous user's local device state even though RLS correctly blocks cross-user server-row access.
 
-Global localStorage money/map can survive sign-out. A different signed-in user can receive inserts derived from the previous user's local state even though RLS correctly blocks cross-user server-row access.
-
-### Required correction
-
-Resolve current authenticated user and bind/namespace local cloud mapping/state before upload. Legacy unbound data adoption must be explicit/safe. Shared-device switching and restore must fail closed against cross-account upload.
+**Correction:** resolve current application user, bind/namespace cloud mapping/state before upload, make legacy local adoption explicit/safe, and fail closed on shared-device account switching/restore. Add cross-account device tests.
 
 # Verified foundations — do not rewrite
 
-- sealed transaction transfer logic;
-- Phase 2 account-opening-balance contract;
-- existing account/transaction schema ownership constraints;
+- sealed Phase 2 transfer logic;
+- opening-balance semantic contract;
+- existing account/transaction ownership constraints;
 - Phase 5 RLS/cross-user/soft-archive/audit;
-- migration 008 managed-user financial_settings creation;
+- migration 008 managed-user `financial_settings` creation;
 - exact sealed Phase 6 Worker;
 - exact protected `app.js`.
 
-# Directions to self — what build are we doing?
+# Directions to self — build and exact point
 
-**GENEVIEVE Budget Phase 7 — Core Accounts & Balances.**
+Build: **GENEVIEVE Budget Phase 7 — Core Accounts & Balances**, preserving First-Time Setup as onboarding entry.
 
-Keep the existing First-Time Setup as onboarding entry.
+Current point:
 
-Scope:
-
-- multiple owned asset/liability accounts;
-- persistent account/balance state;
-- credit/loan/BNPL handling;
-- transfers never spending;
-- bounded spendable vs protected/reserved.
-
-Not Phase 8 transaction intelligence/persistence, not later payday/bill/forecast/full Safe-to-Spend phases.
-
-# Directions to self — exact point reached
-
-1. Phase 1→6 are protected/live/green/archived.
-2. Main at audit: `156a36e9ba1b6a2452012c6915341f0184baa284`.
-3. Phase 7 reconciled normally with main; no force push.
-4. Substantial Phase 7 implementation exists.
-5. At audited exact head `cd859dad2830d47298ac57331627d72e27668d36`, branch was 55 ahead / 0 behind / 21 files and all six Phase 2→7 checks passed.
-6. Manual audit found four material defects not caught by those checks.
-7. Later commits corrected documentation/checkpoint status only; old green head is regression evidence, not current merge authority.
+1. Phase 1→6 protected/live/green/archived.
+2. Main at audit `156a36e9ba1b6a2452012c6915341f0184baa284`.
+3. Phase 7 reconciled normally; no force push.
+4. Substantial implementation present.
+5. Audited head `cd859dad…` was 55 ahead/0 behind/21 files and all six Phase 2→7 workflows passed.
+6. Manual audit found four material defects not caught by CI.
+7. Later commits are documentation checkpoint corrections only, so old green is regression history.
 8. PR #36 stays Draft/unmerged.
-9. Protect main still requires Phase 2→6 only; do not add phase7 yet.
-10. **Next action must begin by re-fetching the live branch head and main.**
+9. Protect main remains Phase 2→6 only; do not add Phase 7 yet.
+10. Next action begins by re-fetching live branch head/main.
 
-# Directions to self — next chronological work
+# Directions to self — next chronological sequence
 
 ## Step 7A — persistence-contract hardening
 
-1. re-fetch main/head and stop if concurrent change appears;
-2. design separate current-balance snapshot storage preserving opening_balance;
-3. add migration 015 only if final design confirms necessity;
+1. re-fetch main/head and stop on concurrent change;
+2. design separate current-balance snapshot preserving `opening_balance`;
+3. add migration 015 only if final design confirms need;
 4. add complete 015→014 rollback;
 5. add failing-first opening-balance test;
 6. make sync upsert-only;
-7. add explicit owned soft-archive route/action;
-8. bind browser/cloud state to authenticated user before upload;
+7. add explicit owned soft-archive action;
+8. bind browser/cloud state to authenticated user;
 9. make incomplete protection recovery conservative;
-10. harden backup/restore for user binding/cloud mapping;
+10. harden backup/restore for user binding/cloud map;
 11. run Phase 7 tests before Neon promotion work.
 
 ## Step 7B — isolated Neon proof if 015 exists
@@ -404,51 +236,25 @@ Not Phase 8 transaction intelligence/persistence, not later payday/bill/forecast
 - prove cross-user denial;
 - prove opening balance unchanged;
 - rollback 015→014;
-- require clean expected schema comparison;
-- record Neon branch ID/evidence;
+- require clean intended schema comparison;
+- record branch ID/evidence;
 - no production promotion on failure.
 
 ## Step 7C — whole-diff re-audit
 
-After isolated proof green, re-audit every Phase 7 changed file and ensure no Phase 8, app.js or sealed-worker drift; verify all four blocker tests.
+After isolated proof: audit entire diff; confirm no Phase 8; verify app.js/sealed worker; verify all four blocker tests and no omission-based archive.
 
 ## Step 7D — production promotion if 015 required
 
-- pre-promotion recovery branch from production 014;
-- verify production 014/no synthetic data;
-- apply 015;
-- verify schema;
-- update readiness boundary only after DB promotion is proven;
-- verify Cloudflare→Hyperdrive→Neon;
-- never claim 015 without direct verification.
+Pre-promotion recovery branch from production 014; verify production/no synthetic data; apply 015; verify schema; update readiness only after DB proof; verify Cloudflare→Hyperdrive→Neon; never claim 015 before direct verification.
 
-## Step 7E — final exact-head merge gate
+## Step 7E — final exact-head Phase 2→7 gate
 
-- docs/PR body to exact final head;
-- branch 0 behind main;
-- phase2, cloudflare-phase3, phase4-neon, phase5-database-safety, phase6, phase7 all green on one exact head;
-- inspect job logs;
-- live Cloudflare/API verification;
-- direct Neon boundary verification;
-- no synthetic data;
-- final whole-diff audit;
-- only then add phase7 to Protect main;
-- verify ruleset no bypass;
-- only then mark PR Ready;
-- re-read main/head immediately before merge;
-- merge only exact expected head.
+Update docs/PR to exact final head; ensure 0 behind; run `phase2`, `cloudflare-phase3`, `phase4-neon`, `phase5-database-safety`, `phase6`, `phase7` on one exact head; inspect logs; verify live Cloudflare/API and Neon boundary; no synthetic data; final whole-diff audit; only then add `phase7` to Protect main; verify no bypass; only then mark PR Ready; re-read main/head immediately before exact-head merge.
 
 ## Step 7F — post-merge/archive
 
-- post-merge all required checks;
-- live Cloudflare;
-- Neon production snapshot/migration;
-- app.js/sealed worker hashes;
-- docs-only Phase 7 archive PR;
-- update BUILD_ARCHIVE through Phase 7;
-- protected checks on archive;
-- merge + post-archive verify;
-- only then Phase 8.
+Post-merge required checks, Cloudflare, Neon and hashes; docs-only Phase 7 archive PR; update BUILD_ARCHIVE through Phase 7; protected archive checks; merge + post-archive verification; only then scope Phase 8.
 
 # Non-negotiable anti-break rules
 
@@ -459,22 +265,22 @@ After isolated proof green, re-audit every Phase 7 changed file and ensure no Ph
 - one bounded correction at a time;
 - app.js immutable;
 - sealed Phase 6 Worker immutable;
-- never weaken earlier gates;
+- do not weaken earlier gates;
 - no parallel transaction/balance engine;
-- opening_balance is starting basis, not snapshot;
-- omission is not archive permission;
+- opening_balance stays starting basis;
+- omission is not archive authority;
 - remote archive requires explicit owned action;
 - browser cloud state must be user-bound;
-- incomplete protection = conservative, never inflated spendable;
+- incomplete protected data = conservative, never inflated spendable;
 - transfers never spending;
 - no physical financial DELETE;
 - bounded Phase 7 balance is not full Safe-to-Spend;
-- prefer balance snapshot over pulling Phase 8 transactions forward;
+- prefer balance snapshot over pulling Phase 8 transaction history forward;
 - migration only for genuine need;
 - if 015, isolated rollback proof mandatory;
 - no production/readiness claim without direct verification;
-- every head change invalidates old green as merge authority;
-- do not require phase7 in Protect main until stable/final green;
+- any head change invalidates prior green as merge authority;
+- do not add phase7 to Protect main until stable final green;
 - no merge/Phase 8 until Phase 7 corrected, final green, merged, post-merge green and archived.
 
 # Memory / resume order
@@ -487,9 +293,7 @@ After isolated proof green, re-audit every Phase 7 changed file and ensure no Ph
 6. **`docs/PHASE7_RECONCILIATION_AUDIT.md` last — current authority**
 7. live PR #36 whole diff
 8. ruleset `21530843`
-9. live Neon production/test branches before DB claims
-
-Recorded SHAs are evidence only. Re-fetch live state.
+9. live Neon production/test branches before database claims
 
 # Audit decision
 
@@ -507,12 +311,7 @@ Recorded SHAs are evidence only. Re-fetch live state.
 
 **Phase 7 cloud persistence/data integrity: RED / BLOCKED.**
 
-Blockers:
-
-1. current balance overwrites `opening_balance`;
-2. snapshot omission can archive valid cloud accounts;
-3. cloud recovery can overstate spendable with incomplete protected data;
-4. browser money/cloud-map state is not authenticated-user-bound.
+Blockers: opening-balance corruption risk; omission-based cloud archive; incomplete-protection spendable overstatement; missing authenticated-user binding of browser cloud state.
 
 **Merge decision: DO NOT MERGE.**
 
