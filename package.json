@@ -14,8 +14,9 @@
     "test:phase6-support": "node --test phase6-trusted-support.test.mjs",
     "test:phase6-lifecycle": "node --test phase6-lifecycle-roles.test.mjs",
     "test:phase6": "npm run test:phase6-identity && npm run test:phase6-support && npm run test:phase6-lifecycle",
+    "test:phase7": "node --test phase7-first-time-setup.test.mjs phase7-core-balances.test.mjs",
     "check:source": "node scripts/check-source.mjs",
-    "build": "vite build && node scripts/copy-subscriber-assets.mjs",
+    "build": "vite build && node scripts/copy-subscriber-assets.mjs && node scripts/link-phase7-first-time-setup.mjs",
     "build:react-preservation": "vite build --config vite.react.config.mjs",
     "audit:deps": "npm audit --audit-level=high",
     "verify:phase2": "npm run check:source && npm run test:phase2 && npm run build && node scripts/verify-dist.mjs && npm run build:react-preservation && npm run audit:deps",
@@ -26,6 +27,7 @@
     "verify:phase5": "npm run verify:phase4 && npm run test:phase5",
     "verify:phase6-identity": "npm run verify:phase5 && npm run test:phase6-identity",
     "verify:phase6": "npm run verify:phase5 && npm run test:phase6",
+    "verify:phase7": "npm run verify:phase6 && node scripts/verify-phase7-dist.mjs && npm run test:phase7",
     "preview": "vite preview"
   },
   "dependencies": {

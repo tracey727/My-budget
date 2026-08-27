@@ -69,7 +69,7 @@ test('professional role migration defines exactly the six authorised roles and s
 });
 
 test('professional permission failures remain explicit 403 outcomes instead of database outages', async () => {
-  const worker = await read('./src/worker.mjs');
+  const worker = await read('./src/worker-phase6-sealed.mjs');
   assert.match(worker, /EXPLICIT_PERMISSION_FAILURES/);
   assert.match(worker, /professional_authority_required/);
   assert.match(worker, /professional_entitlement_required/);
@@ -88,7 +88,7 @@ test('professional roles remain fail-closed and non-destructive', async () => {
 test('session/device registry stores a hash and migration 014 makes revocation one-way', async () => {
   const lifecycle = await read('./database/migrations/011_phase6_account_lifecycle_sessions_export.sql');
   const hardening = await read('./database/migrations/014_phase6_lifecycle_audit_hardening.sql');
-  const worker = await read('./src/worker.mjs');
+  const worker = await read('./src/worker-phase6-sealed.mjs');
   assert.match(lifecycle, /auth_session_hash text NOT NULL/);
   assert.doesNotMatch(lifecycle, /auth_session_token|raw_session/i);
   assert.match(worker, /crypto\.subtle\.digest\("SHA-256"/);
@@ -106,7 +106,7 @@ test('account deletion is soft, archives owned Professional workspaces and revok
   const lifecycle = await read('./database/migrations/011_phase6_account_lifecycle_sessions_export.sql');
   const authority = await read('./database/migrations/013_phase6_account_deletion_authority.sql');
   const hardening = await read('./database/migrations/014_phase6_lifecycle_audit_hardening.sql');
-  const worker = await read('./src/worker.mjs');
+  const worker = await read('./src/worker-phase6-sealed.mjs');
   assert.match(worker, /body\?\.confirm !== "DELETE"/);
   assert.match(lifecycle, /CREATE OR REPLACE FUNCTION public\.delete_current_account/);
   assert.match(authority, /SECURITY DEFINER/);
@@ -129,7 +129,7 @@ test('account deletion is soft, archives owned Professional workspaces and revok
 test('data export is self-scoped, complete for Phase 6 lifecycle data, audited, and uses bigint audit ids', async () => {
   const lifecycle = await read('./database/migrations/011_phase6_account_lifecycle_sessions_export.sql');
   const correction = await read('./database/migrations/012_phase6_export_audit_id_type.sql');
-  const worker = await read('./src/worker.mjs');
+  const worker = await read('./src/worker-phase6-sealed.mjs');
   assert.match(worker, /\/api\/account\/export/);
   assert.match(worker, /SELECT \* FROM public\.users/);
   assert.match(worker, /trusted_support_grants/);

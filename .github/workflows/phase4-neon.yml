@@ -38,7 +38,7 @@ jobs:
             echo "Raw database secret/configuration detected in deployable source" >&2
             exit 1
           fi
-      - name: Verify preserved Phase 4 database path through current Phase 6 schema
+      - name: Verify preserved Phase 4 database path through current Phase 7 schema
         shell: bash
         run: |
           set -euo pipefail
@@ -56,16 +56,16 @@ jobs:
           for attempt in $(seq 1 30); do
             code="$(curl --location --silent --show-error --output "$body_file" --write-out '%{http_code}' "${BASE_URL}/ready" || true)"
             if [ "$code" = "200" ] \
-              && grep -Fq '"phase":6' "$body_file" \
+              && grep -Fq '"phase":7' "$body_file" \
               && grep -Fq '"assets":"ready"' "$body_file" \
               && grep -Fq '"database":"ready"' "$body_file" \
-              && grep -Fq '"migration":"014"' "$body_file"; then
+              && grep -Fq '"migration":"015"' "$body_file"; then
               echo "PASS preserved Phase 4 database path on attempt ${attempt}"
               cat "$body_file"
               rm -f "$body_file"
               exit 0
             fi
-            echo "Waiting for current Phase 6 schema deployment: /ready returned ${code} on attempt ${attempt}"
+            echo "Waiting for current Phase 7 schema deployment: /ready returned ${code} on attempt ${attempt}"
             sleep 10
           done
 

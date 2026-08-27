@@ -201,7 +201,7 @@ test('inactive application identity rolls back before any owned operation', asyn
 test('migration 008 remains identity and Personal/Professional entitlement only', async () => {
   const migration = await read('./database/migrations/008_phase6_auth_identity_entitlement.sql');
   const phase5 = await read('./database/migrations/005_phase5_database_safety.sql');
-  const worker = await read('./src/worker.mjs');
+  const worker = await read('./src/worker-phase6-sealed.mjs');
 
   assert.match(migration, /CREATE TABLE public\.user_entitlements/);
   assert.match(migration, /product_mode IN \('personal', 'professional'\)/);
