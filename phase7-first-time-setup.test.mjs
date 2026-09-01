@@ -69,6 +69,13 @@ test('First money plan sums smooth contributions without treating emergency cash
   assert.equal(plan.savingsGoals.length, 1);
 });
 
+test('First money plan carries the expected income amount, defaulting safely when unset', () => {
+  const withIncome = buildFirstMoneyPlan({ payFrequency: 'weekly', nextPayDate: '2026-09-04', incomeAmount: 1250.5 });
+  assert.equal(withIncome.incomeAmount, 1250.5);
+  const withoutIncome = buildFirstMoneyPlan({ payFrequency: 'weekly', nextPayDate: '2026-09-04' });
+  assert.equal(withoutIncome.incomeAmount, 0);
+});
+
 test('First money plan is due-date aware when dated bills are supplied', () => {
   const plan = buildFirstMoneyPlan({
     payFrequency: 'fortnightly',

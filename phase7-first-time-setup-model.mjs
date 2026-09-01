@@ -132,6 +132,7 @@ export function buildFirstMoneyPlan(setup) {
     .map((bill) => deriveBillPlan(bill, billMode, payFrequency, nextPayDate));
   const savingsGoals = Array.isArray(setup?.savingsGoals) ? setup.savingsGoals : [];
   const emergencyCash = roundMoney(setup?.emergencyCash);
+  const incomeAmount = roundMoney(setup?.incomeAmount);
   const regularPerPayBills = billMode === 'smooth' && payFrequency !== 'irregular'
     ? roundMoney(bills.reduce((sum, bill) => sum + bill.requiredContribution, 0))
     : null;
@@ -141,6 +142,7 @@ export function buildFirstMoneyPlan(setup) {
     payFrequency,
     nextPayDate,
     billMode,
+    incomeAmount,
     accounts,
     bills,
     savingsGoals,

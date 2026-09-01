@@ -8,6 +8,7 @@ const ASSETS = [
   '/phase2-subscriptions-savings-runtime.js',
   '/dashboard-health-bridge.js',
   '/review-followup-bridge.js',
+  '/income-plan-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'
