@@ -87,8 +87,8 @@ jobs:
           grep -q 'phase7_user_binding_mismatch' src/phase7-account-routes.mjs
           grep -q "value.confirm !== 'ARCHIVE_ACCOUNT'" src/phase7-account-routes.mjs
           test "$(git hash-object src/worker-phase6-sealed.mjs)" = "670159e8b820f597ed2376c246df04e69a244988"
-          # Pin updated 1 Sept 2026: intentional brand-name text change (Every Cent -> Genevieve App).
-          test "$(git hash-object app.js)" = "b46943dff98ecededc4a65f65837e29acb0ff1f5"
+          # Pin updated 2 Sept 2026: intentional fix adding 'bnpl' to LIABILITY_TYPES.
+          test "$(git hash-object app.js)" = "9e26d57dba3196821b39305f12021feadba5dbe1"
 
       - name: Confirm Phase 7 advances chronologically to migration 015
         run: |

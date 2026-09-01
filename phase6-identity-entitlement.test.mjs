@@ -223,8 +223,10 @@ test('Cloudflare runs auth and identity before static assets while preserving Ph
 });
 
 test('protected Budget engine remains byte-for-byte unchanged', async () => {
-  // Pin updated 1 Sept 2026: intentional brand-name text change (Every Cent -> Genevieve App),
-  // recorded in docs/BUILD_ARCHIVE.md. No behavioural logic in this file was touched.
+  // Pin updated 2 Sept 2026: intentional fix adding 'bnpl' to LIABILITY_TYPES
+  // (previously only 'credit'/'loan', so a BNPL account's balance was
+  // miscounted as an asset instead of a debt), recorded in
+  // docs/BUILD_ARCHIVE.md.
   const app = await read('./app.js');
-  assert.equal(gitBlobSha(app), 'b46943dff98ecededc4a65f65837e29acb0ff1f5');
+  assert.equal(gitBlobSha(app), '9e26d57dba3196821b39305f12021feadba5dbe1');
 });

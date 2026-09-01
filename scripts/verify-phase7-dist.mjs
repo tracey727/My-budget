@@ -118,9 +118,11 @@ function gitBlobHash(text) {
   return createHash('sha1').update(header).update(text, 'utf8').digest('hex');
 }
 
-// Pin updated 1 Sept 2026: intentional brand-name text change (Every Cent -> Genevieve App),
-// recorded in docs/BUILD_ARCHIVE.md. No behavioural logic in this file was touched.
-const expectedProtectedAppHash = 'b46943dff98ecededc4a65f65837e29acb0ff1f5';
+// Pin updated 2 Sept 2026: intentional fix adding 'bnpl' to LIABILITY_TYPES
+// (previously only 'credit'/'loan', so a BNPL account's balance was
+// miscounted as an asset instead of a debt), recorded in
+// docs/BUILD_ARCHIVE.md.
+const expectedProtectedAppHash = '9e26d57dba3196821b39305f12021feadba5dbe1';
 const sourceHash = gitBlobHash(sourceApp);
 if (sourceHash !== expectedProtectedAppHash) {
   throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);

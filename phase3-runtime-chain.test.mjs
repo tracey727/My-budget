@@ -50,6 +50,19 @@ test("account to transaction chain stays linked and prevents ambiguous saves", a
   assert.match(app, /if\s*\(type\s*===\s*['"]transfer['"]\s*&&\s*\(!toAccountId\s*\|\|\s*toAccountId\s*===\s*accountId\)\)/);
 });
 
+test("app.js treats BNPL accounts as liabilities, matching transaction-model.mjs and debt-commitments-bridge.js", async () => {
+  // app.js keeps its own LIABILITY_TYPES set rather than importing
+  // transaction-model.mjs's (it's a plain browser script, not built as a
+  // module), so the two sets have to be kept in sync by hand. This
+  // previously drifted: app.js omitted 'bnpl', so a BNPL account's balance
+  // was added to "Assets" instead of "Debts" in the Accounts view's own
+  // computedBalance()/accountPosition() and assets/debts/net-position
+  // summary, even though transaction-model.mjs and debt-commitments-bridge.js
+  // both already treated BNPL correctly.
+  const app = await text("./app.js");
+  assert.match(app, /const LIABILITY_TYPES = new Set\(\['credit', 'loan', 'bnpl'\]\)/);
+});
+
 test("production build applies every Phase 3 subscriber patch before deployment", async () => {
   const copyScript = await text("./scripts/copy-subscriber-assets.mjs");
   assert.match(copyScript, /phase2-subscriptions-savings-runtime\.js/);
