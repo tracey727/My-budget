@@ -196,6 +196,40 @@
           <article class="stat-card"><span>Net position</span><strong id="netPositionTotal">$0.00</strong></article>
         </section>
         <div id="accountList" class="stack-list large-list empty-state">Add your bank account, savings, cash, credit card or loan.</div>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">DEBT REPAYMENTS</p>
+              <h3>What you're committed to paying</h3>
+            </div>
+          </div>
+          <p class="muted small-copy">Add a credit card, loan or BNPL account above first, then record what you're committed to paying it down by each pay.</p>
+          <div class="annualiser">
+            <label>Debt account
+              <select id="debtCommitmentAccount"></select>
+            </label>
+            <label>Required payment
+              <input type="number" min="0" step="0.01" id="debtCommitmentAmount" placeholder="0.00" />
+            </label>
+            <label>How often?
+              <select id="debtCommitmentFrequency">
+                <option value="fortnightly">Fortnightly</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            <label>Next due date
+              <input type="date" id="debtCommitmentDueDate" />
+            </label>
+            <button type="button" class="primary-button" id="debtCommitmentSave">Add repayment</button>
+          </div>
+          <div class="annual-result">
+            <span>Required this pay cycle</span>
+            <strong id="debtCommitmentTotal">$0.00</strong>
+          </div>
+          <div id="debtCommitmentList" class="stack-list empty-state">No debt repayments recorded yet.</div>
+        </section>
       </section>
 
       <section class="view" id="reviewView" data-view="review">
@@ -467,5 +501,6 @@
   <script src="/dashboard-health-bridge.js" defer></script>
   <script src="/review-followup-bridge.js" defer></script>
   <script src="/income-plan-bridge.js" defer></script>
+  <script src="/debt-commitments-bridge.js" defer></script>
 </body>
 </html>

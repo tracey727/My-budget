@@ -8,6 +8,7 @@ const assets = [
   "dashboard-health-bridge.js",
   "review-followup-bridge.js",
   "income-plan-bridge.js",
+  "debt-commitments-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",

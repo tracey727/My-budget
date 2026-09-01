@@ -473,3 +473,18 @@ User chose to build personal-side depth first, in roadmap order. Before Safe-to-
 - Verified: `npm test` (150/150 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
 
 **Next up:** debt-repayment commitment tracking (the second Safe-to-Spend input), then the Safe-to-Spend engine itself.
+
+## Addendum — 1 September 2026 (5)
+
+**Change recorded: debt-repayment commitment tracking.**
+
+Closes the second and final input gap for the Safe-to-Spend engine (Phase 13). Debt accounts (credit/loan/BNPL) already existed as static balance trackers, but nothing recorded what the user is actually committed to repaying each pay cycle.
+
+This is genuinely new persistent data (`debtCommitments`), not a derived view -- so, following the exact same architecture already used to protect `bills` (owned/preserved by `phase2-data-runtime.js`'s chained `setItem` patch) and `savingsGoals` (owned/preserved by `phase2-subscriptions-savings-runtime.js`'s chained patch), `debt-commitments-bridge.js` adds a fourth chained patch, loaded after all the others, that restores the field whenever a write doesn't know it exists. `app.js` is not modified.
+
+- Added `debt-commitments-bridge.js` with its own account-scoped form (liability accounts only: credit, loan, BNPL) on the existing Accounts view: required payment, frequency (weekly/fortnightly/monthly), next due date. Converts between frequencies via annual-cost math (same technique bills already use) to show one combined "required this pay cycle" total.
+- Manually verified end-to-end in a local dist preview, including the specific failure mode this session already found once for bills: seeded a debt account and a repayment commitment, confirmed the form, total and list rendered correctly, then **simulated exactly what app.js's `saveState()` does** (a raw write containing only `{version, accounts, transactions, subscriptions}`, no knowledge of `debtCommitments`) and confirmed the commitment survived that write untouched -- proving the new chained-patch protection actually works, not just that it looks right on paper.
+- New test file `debt-commitments-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (154/154 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).
