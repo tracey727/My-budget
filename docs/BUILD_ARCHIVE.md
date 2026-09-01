@@ -441,3 +441,18 @@ Closes a gap in the existing Green/Yellow/Red/Recovery alert system (see docs/PR
 - Verified: `npm test` (141/141 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green.
 
 **Not yet built (separate, larger pieces of work, tracked for follow-up):** the 30-day scheduled re-check for transactions marked "Maybe"/Unsure, and the "back to zero" professional-side clarification.
+
+## Addendum — 1 September 2026 (3)
+
+**Change recorded: 30-day follow-up review for transactions marked Unsure.**
+
+Closes the second gap noted in the code map: the app previously showed a monthly Unsure/Waste total but never scheduled a follow-up decision, so an "Unsure" judgement could sit forever without being resolved. Per docs/PRODUCT_CONTRACT.md's expense-review flow (Yes / No / Maybe), a Maybe/Unsure item is meant to sit for about a month before the user is asked to make a real decision.
+
+- Added `review-followup-bridge.js`, a third bridge file (same pattern as `dashboard-health-bridge.js` and the existing `phase7-*-bridge.js` files). The review window is derived purely from each transaction's own date -- no new field is written to storage until the user actually acts, keeping the bridge read-mostly and app.js untouched.
+- Adds two new panels to the existing "Money review" tab: "Ready for a second look" (Unsure transactions 30+ days old, each with two one-tap actions -- "Yes, keep it" sets worth to `worth`, "No, it was a waste" sets it to `waste`) and "Still thinking it over" (Unsure transactions under 30 days old, showing days remaining, no actions yet).
+- Manually verified end-to-end in a local dist preview: seeded a 45-day-old Unsure transaction and a 3-day-old one, confirmed the due/pending split and day-count math, clicked "Yes, keep it", and confirmed the transaction's `worth` field updated correctly in storage with every other field intact and the item correctly disappearing from the due list.
+- Wired into `scripts/copy-subscriber-assets.mjs`, `service-worker.js`'s cache list, and `scripts/verify-dist.mjs`'s required-artifact and reference-order checks.
+- New test file `review-followup-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (145/145 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Still not yet built:** the "back to zero" professional-side clarification (awaiting the user's answer on what that phrase means), and full end-to-end confirmation that bill kitties are wired all the way through the setup flow.
