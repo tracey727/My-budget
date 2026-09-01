@@ -10,7 +10,7 @@
   ];
   const WORTH_LABELS = { essential: 'Essential', worth: 'Worth it', unsure: 'Unsure', waste: 'Waste' };
   const ACCOUNT_LABELS = { bank: 'Bank', savings: 'Savings', cash: 'Cash', credit: 'Credit card', loan: 'Loan / debt', investment: 'Investment', other: 'Other' };
-  const LIABILITY_TYPES = new Set(['credit', 'loan']);
+  const LIABILITY_TYPES = new Set(['credit', 'loan', 'bnpl']);
 
   let state = loadState();
   let activeView = 'dashboard';

@@ -96,8 +96,8 @@ jobs:
 
       - name: Confirm protected Budget engine remains untouched
         run: |
-          # Pin updated 1 Sept 2026: intentional brand-name text change (Every Cent -> Genevieve App).
-          test "$(git hash-object app.js)" = "b46943dff98ecededc4a65f65837e29acb0ff1f5"
+          # Pin updated 2 Sept 2026: intentional fix adding 'bnpl' to LIABILITY_TYPES.
+          test "$(git hash-object app.js)" = "9e26d57dba3196821b39305f12021feadba5dbe1"
 
       - name: Verify sealed Phase 6 remains live under Phase 7 readiness
         shell: bash
