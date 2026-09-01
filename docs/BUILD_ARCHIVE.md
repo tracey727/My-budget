@@ -503,4 +503,18 @@ Manual end-to-end browser verification (seeding realistic income/bill/debt/savin
 
 **Personal-side depth remaining:** forecasting / cash-flow warnings (Phase 14), deeper debt planning — interest scenarios and repayment planning (Phase 16), household continuity (Phase 18), accessibility modes (Phase 19).
 
+## Addendum — 1 September 2026 (7)
+
+**Change recorded: forecast and cash-flow warning engine (Phase 14).**
+
+Added `forecast-bridge.js` and a new "This month's forecast" dashboard panel, directly below Safe-to-Spend. Derives a monthly-equivalent budget using the same `amountPerFrequency` conversion technique Safe-to-Spend and debt-commitments-bridge already use (targeting `'monthly'` instead of the user's own pay cycle), then compares it against month-to-date spending and linearly projects end-of-month spending from the current daily rate (`spent / dayOfMonth * daysInMonth`). Matches the roadmap's four bullets for this phase: budget vs actual, projected end-of-month spending, shortfall prediction, and recovery actions.
+
+- When the projection exceeds budget, shows concrete recovery actions rather than just a warning: a suggested daily spending pace for the remaining days of the month to get back on budget, plus the month's Waste and Unsure transaction totals (surfaced from the existing `worth` tagging, same field `review-followup-bridge.js` already uses) as places to look for room.
+- Read-only bridge; writes nothing to storage. `app.js` is not modified.
+- Manually verified end-to-end in a local dist preview across all three states: no income set, on track (low month-to-date spend), and a shortfall scenario (seeded a large day-one spend, confirmed the projected total, the daily-pace suggestion and the Waste/Unsure totals all matched hand-computed expected values, and confirmed the panel live-updates when transactions change).
+- New test file `forecast-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (170/170 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Next up:** Phase 16 — deeper debt planning (interest scenarios, repayment planning; commitment tracking itself already shipped).
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).
