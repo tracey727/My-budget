@@ -13,6 +13,7 @@ const assets = [
   "forecast-bridge.js",
   "household-continuity-bridge.js",
   "accessibility-bridge.js",
+  "professional-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
