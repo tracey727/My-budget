@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-react/
+.wrangler-dry-run/
+.wrangler/
+*.log
+.DS_Store

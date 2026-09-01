@@ -1,4 +1,4 @@
-# Every Cent — Money Tracker
+# Genevieve App — Money Tracker
 
 A beginner-friendly personal money tracker built as a static web app. It can be deployed directly from GitHub to Vercel with no build step.
 
