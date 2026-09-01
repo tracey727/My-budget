@@ -535,4 +535,19 @@ While reviewing app.js's own liability handling for the account-balance replicat
 
 **Personal-side depth remaining:** household continuity (Phase 18), accessibility modes (Phase 19).
 
+## Addendum — 1 September 2026 (9)
+
+**Change recorded: household continuity — fee/interest monitoring and account-change checklist (Phase 18).**
+
+Added `household-continuity-bridge.js` covering two of Phase 18's three bullets (backup/export already shipped via `phase7-backup-bridge.js`):
+
+- **Fee and interest monitoring**: flags expense transactions whose merchant/category text matches common fee/interest wording (fee, interest, overdraft, surcharge, penalty, late payment, dishonour), totals them for the current calendar year, and lists them for review. There is no existing UI-exposed "fee" category or tag in the transaction model to key off precisely, and adding one would mean extending `app.js`'s `CATEGORIES` list — hash-protected, avoided per the established rule — so this uses a keyword heuristic over the free text the user already types, and is worded as "possible" throughout rather than presented as a confirmed classification.
+- **Direct-debit/account-change checklist**: pick any account from a dropdown and see everything currently linked to it — bills, subscriptions, debt repayment commitments, and transactions marked recurring (reusing the existing `recurringStatus` field) — so nothing gets missed before switching banks or closing an account.
+- Read-only bridge; writes nothing to storage. `app.js` is not modified.
+- Manually verified end-to-end in a local dist preview: seeded an account-keeping-fee transaction, an overdraft charge, a recurring Netflix payment and an unrelated grocery expense, confirmed the fee monitor totaled only the two fee-like transactions ($23.50) and correctly excluded the rest, and confirmed switching the account selector showed the linked bill/subscription/recurring-transaction for one account and the debt commitment for another.
+- New test file `household-continuity-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (180/180 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Personal-side depth remaining:** accessibility modes (Phase 19) — the last item before moving to the Professional suite (Phases 20-24, not started).
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).

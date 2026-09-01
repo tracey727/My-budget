@@ -264,6 +264,35 @@
           </div>
           <div id="debtCommitmentList" class="stack-list empty-state">No debt repayments recorded yet.</div>
         </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">FEES &amp; INTEREST</p>
+              <h3>Possible fees and interest this year</h3>
+            </div>
+          </div>
+          <p class="muted small-copy">Based on the wording of your transactions -- not a confirmed classification. Worth checking whether any of these can be avoided or negotiated away.</p>
+          <div class="annual-result">
+            <span>Possible fees &amp; interest this year</span>
+            <strong id="feeMonitorTotal">$0.00</strong>
+          </div>
+          <div id="feeMonitorList" class="stack-list empty-state">No transactions look like fees or interest so far this year.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">SWITCHING OR CLOSING AN ACCOUNT</p>
+              <h3>What's linked to this account</h3>
+            </div>
+          </div>
+          <p class="muted small-copy">Before you switch banks or close an account, check what's currently tied to it so nothing gets missed.</p>
+          <label>Account
+            <select id="continuityAccount"></select>
+          </label>
+          <div id="continuityChecklist" class="stack-list empty-state">Add an account to see what is linked to it.</div>
+        </section>
       </section>
 
       <section class="view" id="reviewView" data-view="review">
@@ -538,5 +567,6 @@
   <script src="/debt-commitments-bridge.js" defer></script>
   <script src="/safe-to-spend-bridge.js" defer></script>
   <script src="/forecast-bridge.js" defer></script>
+  <script src="/household-continuity-bridge.js" defer></script>
 </body>
 </html>
