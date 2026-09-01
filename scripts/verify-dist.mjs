@@ -9,6 +9,7 @@ const required = [
   "phase2-subscriptions-savings-runtime.js",
   "dashboard-health-bridge.js",
   "review-followup-bridge.js",
+  "income-plan-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
@@ -40,13 +41,15 @@ const subscriptionsSavingsRuntime = index.indexOf("/phase2-subscriptions-savings
 const appRuntime = index.indexOf("/app.js");
 const healthBridgeRuntime = index.indexOf("/dashboard-health-bridge.js");
 const reviewFollowupRuntime = index.indexOf("/review-followup-bridge.js");
+const incomePlanRuntime = index.indexOf("/income-plan-bridge.js");
 if (dataRuntime < 0) throw new Error("built index.html no longer references /phase2-data-runtime.js");
 if (subscriptionsSavingsRuntime < 0) throw new Error("built index.html no longer references /phase2-subscriptions-savings-runtime.js");
 if (appRuntime < 0) throw new Error("built index.html no longer references the supported /app.js subscriber entry");
 if (healthBridgeRuntime < 0) throw new Error("built index.html no longer references /dashboard-health-bridge.js");
 if (reviewFollowupRuntime < 0) throw new Error("built index.html no longer references /review-followup-bridge.js");
-if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime && appRuntime < healthBridgeRuntime && healthBridgeRuntime < reviewFollowupRuntime)) {
-  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js -> dashboard-health-bridge.js -> review-followup-bridge.js");
+if (incomePlanRuntime < 0) throw new Error("built index.html no longer references /income-plan-bridge.js");
+if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime && appRuntime < healthBridgeRuntime && healthBridgeRuntime < reviewFollowupRuntime && reviewFollowupRuntime < incomePlanRuntime)) {
+  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js -> dashboard-health-bridge.js -> review-followup-bridge.js -> income-plan-bridge.js");
 }
 
 for (const fragment of ["transactionUserResponse", "transactionRecurringStatus", "transactionProfessionalProjectLink", "billDialog", "bnpl"]) {

@@ -456,3 +456,20 @@ Closes the second gap noted in the code map: the app previously showed a monthly
 - Verified: `npm test` (145/145 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
 
 **Still not yet built:** the "back to zero" professional-side clarification (awaiting the user's answer on what that phrase means), and full end-to-end confirmation that bill kitties are wired all the way through the setup flow.
+
+## Addendum — 1 September 2026 (4)
+
+**Change recorded: expected recurring income tracking.**
+
+Full gap audit against the archive's own Phases 8-28 roadmap (requested by the user) found that most of Phases 7-8, 11, 12 and 17 are already substantially built, but the roadmap text was never updated to reflect it. Genuinely missing: the full Safe-to-Spend engine (Phase 13), forecasting (14), debt planning (16), household continuity (18), accessibility modes (19), the entire Professional suite (20-24, not started at all), the Verified Savings Ledger (25), deeper reporting (26), and a formal security audit (27).
+
+User chose to build personal-side depth first, in roadmap order. Before Safe-to-Spend (Phase 13) can be built honestly, it needs two missing inputs it depends on: an expected income amount (Phase 9's "next-income calculation" was only half-built -- the app knew *when* the user is paid but not *how much*) and debt-repayment commitment tracking (part of Phase 16, not yet started). This change closes the income gap.
+
+- Extended `phase7-first-time-setup-model.mjs`'s `buildFirstMoneyPlan` with a new `incomeAmount` field (defaults safely to 0 when unset; existing tests unaffected). This file is not hash-protected, so it was extended directly rather than via a bridge.
+- Added `income-plan-bridge.js`, a fourth bridge file following the established pattern. Reads and writes the existing `genevieve-first-time-setup-v1` key directly (unlike the money-tracker key, it has no protective merge patch to work around).
+- New "Your regular income" panel on the dashboard: an editable amount-per-pay input, a read-only pay-frequency label sourced from the existing setup data, and a combined "next pay: $X on [date]" readout.
+- Manually verified end-to-end in a local dist preview: entered an amount, saved, confirmed the readout updated to "$1,450.00 on 10 Sept", and confirmed the storage write added only the `incomeAmount` field with every other setup field (`payFrequency`, `nextPayDate`, `payAnchorDay`, `billMode`, `completed`, `step`) intact.
+- New test file `income-plan-bridge.test.mjs`, plus one new test added to the existing `phase7-first-time-setup.test.mjs` covering the model change.
+- Verified: `npm test` (150/150 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Next up:** debt-repayment commitment tracking (the second Safe-to-Spend input), then the Safe-to-Spend engine itself.

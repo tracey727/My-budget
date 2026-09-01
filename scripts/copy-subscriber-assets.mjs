@@ -7,6 +7,7 @@ const assets = [
   "phase2-subscriptions-savings-runtime.js",
   "dashboard-health-bridge.js",
   "review-followup-bridge.js",
+  "income-plan-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
