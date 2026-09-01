@@ -9,6 +9,7 @@ const assets = [
   "review-followup-bridge.js",
   "income-plan-bridge.js",
   "debt-commitments-bridge.js",
+  "safe-to-spend-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
@@ -40,7 +41,7 @@ deployedApp = deployedApp.replace(navigateNeedle, navigateReplacement);
 const navClickNeedle = "    $$('.nav-button').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.view)));\n";
 const navClickReplacement = `    $$('.nav-button').forEach(btn => btn.addEventListener('click', event => {\n      navigate(btn.dataset.view);\n      if (event.detail > 0) btn.blur();\n      const resetHorizontalViewport = () => {\n        document.documentElement.scrollLeft = 0;\n        document.body.scrollLeft = 0;\n        window.scrollTo(0, window.scrollY);\n      };\n      resetHorizontalViewport();\n      requestAnimationFrame(resetHorizontalViewport);\n      setTimeout(resetHorizontalViewport, 80);\n    }));\n`;
 if (!deployedApp.includes(navClickNeedle)) throw new Error("Cloudflare iPhone nav-focus patch target not found in app.js");
-deployedApp = deployedApp.replace(navClickNeedle, navClickReplacement);
+deployedApp = deployedApp.replace(navClickNeedle, () => navClickReplacement);
 
 // Keep the previously approved account-creation wording intact after the
 // dialog is opened. The source runtime resets this heading dynamically, so the

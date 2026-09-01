@@ -90,3 +90,16 @@ test("backup restore CSV and offline asset chain include the expanded data contr
   assert.match(worker, /phase2-data-runtime\.js/);
   assert.match(copyScript, /"phase2-data-runtime\.js"/);
 });
+
+test("readState and writeState carry savingsGoals and debtCommitments through the native-bypass migration write", async () => {
+  const runtime = await text("./phase2-data-runtime.js");
+  // migrateStoredState() runs unconditionally at load and writes via
+  // nativeSetItem.call(...), bypassing every later-loaded protection layer
+  // (savingsGoals, debtCommitments) entirely -- so this file's own readState/
+  // writeState must know about those fields directly, or the very first write
+  // of every page load silently wipes them before any other script even runs.
+  assert.match(runtime, /savingsGoals: Array\.isArray\(parsed\.savingsGoals\) \? parsed\.savingsGoals : \[\]/);
+  assert.match(runtime, /debtCommitments: Array\.isArray\(parsed\.debtCommitments\) \? parsed\.debtCommitments : \[\]/);
+  assert.match(runtime, /savingsGoals: Array\.isArray\(state\.savingsGoals\) \? state\.savingsGoals : \[\]/);
+  assert.match(runtime, /debtCommitments: Array\.isArray\(state\.debtCommitments\) \? state\.debtCommitments : \[\]/);
+});

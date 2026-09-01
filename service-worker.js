@@ -10,6 +10,7 @@ const ASSETS = [
   '/review-followup-bridge.js',
   '/income-plan-bridge.js',
   '/debt-commitments-bridge.js',
+  '/safe-to-spend-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'

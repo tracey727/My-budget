@@ -30,6 +30,21 @@
 
     <main>
       <section class="view active" id="dashboardView" data-view="dashboard">
+        <section class="panel" id="safeToSpendPanel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">ACTUALLY SAFE TO SPEND</p>
+              <h2 id="safeToSpendHeadline">Set your income to see this</h2>
+            </div>
+          </div>
+          <p class="muted small-copy" id="safeToSpendSubtext">Income minus your bills, debt repayments and savings commitments — not just your bank balance.</p>
+          <div class="stats-grid compact" id="safeToSpendBreakdown" style="display:none;">
+            <article class="stat-card"><span>This week</span><strong id="safeToSpendWeek">$0.00</strong></article>
+            <article class="stat-card"><span>Today</span><strong id="safeToSpendToday">$0.00</strong></article>
+          </div>
+          <div id="safeToSpendDetail" class="muted small-copy"></div>
+        </section>
+
         <div class="hero-grid">
           <article class="hero-card balance-card">
             <span class="card-label">Money position</span>
@@ -502,5 +517,6 @@
   <script src="/review-followup-bridge.js" defer></script>
   <script src="/income-plan-bridge.js" defer></script>
   <script src="/debt-commitments-bridge.js" defer></script>
+  <script src="/safe-to-spend-bridge.js" defer></script>
 </body>
 </html>

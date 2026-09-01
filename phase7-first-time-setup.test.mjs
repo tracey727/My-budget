@@ -163,6 +163,14 @@ test('Backup and restore preserve setup plus authenticated-user binding and bloc
   assert.match(backupBridge, /Restore blocked: this backup is not bound to the current signed-in account/);
 });
 
+test('Restoring a backup preserves debtCommitments instead of silently dropping them', () => {
+  // restoreFullBackup() writes the money-tracker state back with an explicit
+  // field list (not a spread of the parsed backup), so any field added after
+  // this list was written -- like debtCommitments -- must be listed here too,
+  // or restoring any backup wipes it even though it was present in the file.
+  assert.match(backupBridge, /debtCommitments: Array\.isArray\(parsed\.debtCommitments\) \? parsed\.debtCommitments : \[\]/);
+});
+
 test('Core-balance bridge keeps transfers as money movement and uses authenticated same-origin persistence', () => {
   assert.match(balanceBridge, /Internal transfers move money between your own accounts and are not counted as spending\./);
   assert.match(balanceBridge, /\/api\/phase7\/accounts/);

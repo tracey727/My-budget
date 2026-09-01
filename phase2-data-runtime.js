@@ -57,10 +57,12 @@
         accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [],
         transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
         subscriptions: Array.isArray(parsed.subscriptions) ? parsed.subscriptions : [],
-        bills: Array.isArray(parsed.bills) ? parsed.bills : []
+        bills: Array.isArray(parsed.bills) ? parsed.bills : [],
+        savingsGoals: Array.isArray(parsed.savingsGoals) ? parsed.savingsGoals : [],
+        debtCommitments: Array.isArray(parsed.debtCommitments) ? parsed.debtCommitments : []
       };
     } catch {
-      return { version: 1, accounts: [], transactions: [], subscriptions: [], bills: [] };
+      return { version: 1, accounts: [], transactions: [], subscriptions: [], bills: [], savingsGoals: [], debtCommitments: [] };
     }
   }
 
@@ -98,7 +100,9 @@
       accounts: Array.isArray(state.accounts) ? state.accounts : [],
       transactions: Array.isArray(state.transactions) ? state.transactions : [],
       subscriptions: Array.isArray(state.subscriptions) ? state.subscriptions : [],
-      bills: Array.isArray(state.bills) ? state.bills.map(normalizeBill) : []
+      bills: Array.isArray(state.bills) ? state.bills.map(normalizeBill) : [],
+      savingsGoals: Array.isArray(state.savingsGoals) ? state.savingsGoals : [],
+      debtCommitments: Array.isArray(state.debtCommitments) ? state.debtCommitments : []
     };
     nativeSetItem.call(localStorage, STORAGE_KEY, JSON.stringify(next));
   }
