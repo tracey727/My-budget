@@ -53,10 +53,11 @@
         transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
         subscriptions: Array.isArray(parsed.subscriptions) ? parsed.subscriptions : [],
         bills: Array.isArray(parsed.bills) ? parsed.bills : [],
-        savingsGoals: Array.isArray(parsed.savingsGoals) ? parsed.savingsGoals : []
+        savingsGoals: Array.isArray(parsed.savingsGoals) ? parsed.savingsGoals : [],
+        debtCommitments: Array.isArray(parsed.debtCommitments) ? parsed.debtCommitments : []
       };
     } catch {
-      return { version: 1, accounts: [], transactions: [], subscriptions: [], bills: [], savingsGoals: [] };
+      return { version: 1, accounts: [], transactions: [], subscriptions: [], bills: [], savingsGoals: [], debtCommitments: [] };
     }
   }
 
@@ -67,7 +68,8 @@
       transactions: Array.isArray(state.transactions) ? state.transactions : [],
       subscriptions: Array.isArray(state.subscriptions) ? state.subscriptions.map(normalizeSubscription) : [],
       bills: Array.isArray(state.bills) ? state.bills : [],
-      savingsGoals: Array.isArray(state.savingsGoals) ? state.savingsGoals.map(normalizeSavingsGoal) : []
+      savingsGoals: Array.isArray(state.savingsGoals) ? state.savingsGoals.map(normalizeSavingsGoal) : [],
+      debtCommitments: Array.isArray(state.debtCommitments) ? state.debtCommitments : []
     };
     // Web Storage named-property assignment intentionally bypasses the two
     // staged setItem wrappers while preserving the complete combined state.

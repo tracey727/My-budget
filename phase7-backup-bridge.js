@@ -180,6 +180,7 @@
         subscriptions: parsed.subscriptions,
         bills: Array.isArray(parsed.bills) ? parsed.bills : [],
         savingsGoals: Array.isArray(parsed.savingsGoals) ? parsed.savingsGoals : [],
+        debtCommitments: Array.isArray(parsed.debtCommitments) ? parsed.debtCommitments : [],
       });
 
       if (Object.prototype.hasOwnProperty.call(parsed, 'phase7Setup')) {

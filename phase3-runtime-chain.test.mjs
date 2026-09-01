@@ -68,6 +68,27 @@ test("production build applies every Phase 3 subscriber patch before deployment"
   assert.match(copyScript, /document\.addEventListener\('click', activateFromEvent, true\)/);
 });
 
+test("nav-click build patch uses a replacer function, not a string, to avoid $-pattern collapsing", async () => {
+  const copyScript = await text("./scripts/copy-subscriber-assets.mjs");
+  // navClickReplacement starts with the literal text "$$('.nav-button')". When the second
+  // argument to String.prototype.replace is a STRING (not a function), "$$" is a special
+  // pattern token meaning "insert one literal $" -- so a plain string replace silently
+  // collapses "$$('.nav-button')" to "$('.nav-button')" in the built dist/app.js, which
+  // throws "$(...).forEach is not a function" at runtime. Passing a replacer function
+  // bypasses $-pattern substitution entirely.
+  assert.match(copyScript, /deployedApp = deployedApp\.replace\(navClickNeedle, \(\) => navClickReplacement\);/);
+
+  const needleMatch = copyScript.match(/const navClickNeedle = "((?:[^"\\]|\\.)*)";/);
+  const replacementMatch = copyScript.match(/const navClickReplacement = `((?:[^`\\]|\\.)*)`;/);
+  assert.ok(needleMatch && replacementMatch, "could not locate navClickNeedle/navClickReplacement literals");
+  const needle = JSON.parse(`"${needleMatch[1]}"`);
+  const replacement = replacementMatch[1].replace(/\\`/g, "`").replace(/\\\$/g, "$").replace(/\\n/g, "\n");
+  const sample = `before\n${needle}after`;
+  const result = sample.replace(needle, () => replacement);
+  assert.equal(result, `before\n${replacement}after`);
+  assert.match(result, /\$\$\('\.nav-button'\)/);
+});
+
 test("Phase 2 and Phase 3 production artifact gates remain separate", async () => {
   const [packageJson, phase2Verifier, phase3Verifier, worker] = await Promise.all([
     text("./package.json"),

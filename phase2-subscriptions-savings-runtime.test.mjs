@@ -76,3 +76,15 @@ test("production copy and service worker both include the extended runtime", asy
   assert.match(copyScript, /"phase2-subscriptions-savings-runtime\.js"/);
   assert.match(worker, /\/phase2-subscriptions-savings-runtime\.js/);
 });
+
+test("readState and directWriteState carry debtCommitments through the named-property migration write", async () => {
+  const runtime = await text("./phase2-subscriptions-savings-runtime.js");
+  // migrateExtendedState() runs unconditionally at load and calls
+  // directWriteState(), which writes via bracket-notation assignment,
+  // bypassing debt-commitments-bridge.js's own setItem protection entirely
+  // (that bridge loads after this file). Without an explicit debtCommitments
+  // field here, every page load silently drops it before debt-commitments-
+  // bridge.js gets a chance to see the write.
+  assert.match(runtime, /debtCommitments: Array\.isArray\(parsed\.debtCommitments\) \? parsed\.debtCommitments : \[\]/);
+  assert.match(runtime, /debtCommitments: Array\.isArray\(state\.debtCommitments\) \? state\.debtCommitments : \[\]/);
+});
