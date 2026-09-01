@@ -579,4 +579,19 @@ Flagged during the debt payoff planning work (Addendum 8) rather than fixed on t
 
 **Remaining follow-up:** the user's clarification on what "back to zero" means for the professional side has now been given (a control that resets a project/cost-centre's running numbers to $0 for a new period) — see the memory note saved alongside this session. The Professional suite itself (Phases 20-24) has not been started.
 
+## Addendum — 2 September 2026 (12)
+
+**Change recorded: Professional entities and project accounting (Phase 20) — the Professional suite begins.**
+
+User asked to keep building the roadmap in chronological order, so this starts Phase 20 straight after the personal-side depth work and the BNPL follow-up. Added a new "Professional" nav tab and `professional-bridge.js`, covering every structure named in the roadmap: businesses, divisions, projects, workstreams, cost centres, funding pools and their own accounts, plus transaction allocation across that hierarchy.
+
+- **Independent storage key** (`every-cent-professional-v1`), entirely unrelated to the personal money-tracker state. No chained `setItem` patch was needed — nothing else reads or writes this key, unlike `bills`/`savingsGoals`/`debtCommitments` which had to be threaded through several files this session because they live inside the shared personal-side key.
+- **`app.js` was not touched.** Its `navigate(view)` function is generic over `data-view` attributes rather than hardcoding specific view names, so a brand-new nav button and view section just work — confirmed by a test asserting `app.js` contains no mention of "professional" at all.
+- Projects and cost centres show a running allocated total computed from transactions (matched by cost centre, or directly by project for transactions with no specific cost centre), compared against a project's approved budget. This is intentionally just structure and allocation — Phase 21 (committed/paid/owing, invoices, revenue) and Phase 22 (budget-vs-actual forecasting, Green/Yellow/Red monitoring) build the analysis on top of this.
+- Manually verified end-to-end in a local dist preview: created a business, a $5,000-budget project, a cost centre under it, a $10,000 professional bank account, then recorded a $1,200 expense allocated to that cost centre. Confirmed the project showed "$1,200 of $5,000 allocated," the cost centre showed "$1,200 allocated," and the account balance dropped to $8,800 — all exactly as expected. Confirmed it survives a full reload, stays completely isolated from personal-side state, and causes no regression to existing personal features (checked Safe-to-Spend still renders correctly in the same session).
+- New test file `professional-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (192/192 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**Next up:** Phase 21 — Professional commitments, invoices and revenue (committed vs paid vs owing, revenue expected/received, available uncommitted cash).
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).

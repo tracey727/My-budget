@@ -29,6 +29,7 @@
       <button class="nav-button" data-view="subscriptions">Subscriptions</button>
       <button class="nav-button" data-view="accounts">Accounts</button>
       <button class="nav-button" data-view="review">Review</button>
+      <button class="nav-button" data-view="professional">Professional</button>
     </nav>
 
     <main>
@@ -392,6 +393,170 @@
           <p class="muted small-copy">This version stores your data in this browser on this device. Keep backups if the information matters to you.</p>
         </section>
       </section>
+
+      <section class="view" id="professionalView" data-view="professional">
+        <div class="section-heading sticky-heading">
+          <div>
+            <p class="eyebrow">BUSINESS, PROJECT AND COST-CENTRE ACCOUNTING</p>
+            <h2>Professional</h2>
+          </div>
+        </div>
+
+        <section class="panel">
+          <div class="section-heading"><div><p class="eyebrow">STRUCTURE</p><h3>Businesses</h3></div></div>
+          <div class="annualiser">
+            <label>Business name
+              <input type="text" id="proBusinessName" placeholder="e.g. Acme Consulting" />
+            </label>
+            <button type="button" class="primary-button" id="proBusinessSave">Add business</button>
+          </div>
+          <div id="proBusinessList" class="stack-list empty-state">No businesses added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Divisions</h3></div></div>
+          <p class="muted small-copy">Optional grouping within a business (e.g. a department or region).</p>
+          <div class="annualiser">
+            <label>Business
+              <select id="proDivisionBusiness"></select>
+            </label>
+            <label>Division name
+              <input type="text" id="proDivisionName" placeholder="e.g. Operations" />
+            </label>
+            <button type="button" class="primary-button" id="proDivisionSave">Add division</button>
+          </div>
+          <div id="proDivisionList" class="stack-list empty-state">No divisions added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Projects</h3></div></div>
+          <div class="annualiser">
+            <label>Business
+              <select id="proProjectBusiness"></select>
+            </label>
+            <label>Division (optional)
+              <select id="proProjectDivision"></select>
+            </label>
+            <label>Project name
+              <input type="text" id="proProjectName" placeholder="e.g. Website redesign" />
+            </label>
+            <label>Approved budget
+              <input type="number" min="0" step="0.01" id="proProjectBudget" placeholder="0.00" />
+            </label>
+            <button type="button" class="primary-button" id="proProjectSave">Add project</button>
+          </div>
+          <div id="proProjectList" class="stack-list empty-state">No projects added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Workstreams</h3></div></div>
+          <p class="muted small-copy">Optional grouping within a project.</p>
+          <div class="annualiser">
+            <label>Project
+              <select id="proWorkstreamProject"></select>
+            </label>
+            <label>Workstream name
+              <input type="text" id="proWorkstreamName" placeholder="e.g. Design phase" />
+            </label>
+            <button type="button" class="primary-button" id="proWorkstreamSave">Add workstream</button>
+          </div>
+          <div id="proWorkstreamList" class="stack-list empty-state">No workstreams added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Cost centres</h3></div></div>
+          <div class="annualiser">
+            <label>Project
+              <select id="proCostCentreProject"></select>
+            </label>
+            <label>Workstream (optional)
+              <select id="proCostCentreWorkstream"></select>
+            </label>
+            <label>Cost centre name
+              <input type="text" id="proCostCentreName" placeholder="e.g. Contractor fees" />
+            </label>
+            <button type="button" class="primary-button" id="proCostCentreSave">Add cost centre</button>
+          </div>
+          <div id="proCostCentreList" class="stack-list empty-state">No cost centres added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Funding pools</h3></div></div>
+          <p class="muted small-copy">Money set aside for a business, separate from any one project's budget.</p>
+          <div class="annualiser">
+            <label>Business
+              <select id="proFundingPoolBusiness"></select>
+            </label>
+            <label>Pool name
+              <input type="text" id="proFundingPoolName" placeholder="e.g. Contingency reserve" />
+            </label>
+            <label>Amount
+              <input type="number" min="0" step="0.01" id="proFundingPoolAmount" placeholder="0.00" />
+            </label>
+            <button type="button" class="primary-button" id="proFundingPoolSave">Add funding pool</button>
+          </div>
+          <div id="proFundingPoolList" class="stack-list empty-state">No funding pools added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Professional accounts</h3></div></div>
+          <p class="muted small-copy">Kept separate from your personal accounts.</p>
+          <div class="annualiser">
+            <label>Business
+              <select id="proAccountBusiness"></select>
+            </label>
+            <label>Account name
+              <input type="text" id="proAccountName" placeholder="e.g. Business transaction account" />
+            </label>
+            <label>Type
+              <select id="proAccountType">
+                <option value="bank">Bank</option>
+                <option value="credit">Credit card</option>
+                <option value="loan">Loan</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>Opening balance
+              <input type="number" step="0.01" id="proAccountBalance" placeholder="0.00" />
+            </label>
+            <button type="button" class="primary-button" id="proAccountSave">Add account</button>
+          </div>
+          <div id="proAccountList" class="stack-list empty-state">No professional accounts added yet.</div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading"><div><h3>Record a transaction</h3></div></div>
+          <p class="muted small-copy">Allocate money in or out across the business/project/cost-centre hierarchy.</p>
+          <div class="annualiser">
+            <label>Type
+              <select id="proTransactionType">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </label>
+            <label>Amount
+              <input type="number" min="0" step="0.01" id="proTransactionAmount" placeholder="0.00" />
+            </label>
+            <label>Date
+              <input type="date" id="proTransactionDate" />
+            </label>
+            <label>Account
+              <select id="proTransactionAccount"></select>
+            </label>
+            <label>Project (optional)
+              <select id="proTransactionProject"></select>
+            </label>
+            <label>Cost centre (optional)
+              <select id="proTransactionCostCentre"></select>
+            </label>
+            <label class="full">Description
+              <input type="text" id="proTransactionDescription" placeholder="What was this for?" />
+            </label>
+            <button type="button" class="primary-button" id="proTransactionSave">Record transaction</button>
+          </div>
+          <div id="proTransactionList" class="stack-list empty-state">No transactions recorded yet.</div>
+        </section>
+      </section>
     </main>
   </div>
 
@@ -572,5 +737,6 @@
   <script src="/forecast-bridge.js" defer></script>
   <script src="/household-continuity-bridge.js" defer></script>
   <script src="/accessibility-bridge.js" defer></script>
+  <script src="/professional-bridge.js" defer></script>
 </body>
 </html>

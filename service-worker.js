@@ -14,6 +14,7 @@ const ASSETS = [
   '/forecast-bridge.js',
   '/household-continuity-bridge.js',
   '/accessibility-bridge.js',
+  '/professional-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'
