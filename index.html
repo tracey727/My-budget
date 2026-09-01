@@ -45,6 +45,22 @@
           <div id="safeToSpendDetail" class="muted small-copy"></div>
         </section>
 
+        <section class="panel" id="forecastPanel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">THIS MONTH'S FORECAST</p>
+              <h2 id="forecastHeadline">Set your income to see this</h2>
+            </div>
+          </div>
+          <p class="muted small-copy" id="forecastSubtext">Projects your end-of-month spending from what you've spent so far, so shortfalls show up before month end, not after.</p>
+          <div class="stats-grid compact" id="forecastBreakdown" style="display:none;">
+            <article class="stat-card"><span>Budgeted this month</span><strong id="forecastBudget">$0.00</strong></article>
+            <article class="stat-card"><span>Spent so far</span><strong id="forecastActual">$0.00</strong></article>
+            <article class="stat-card"><span>Projected total</span><strong id="forecastProjected">$0.00</strong></article>
+          </div>
+          <div id="forecastRecovery" class="muted small-copy"></div>
+        </section>
+
         <div class="hero-grid">
           <article class="hero-card balance-card">
             <span class="card-label">Money position</span>
@@ -518,5 +534,6 @@
   <script src="/income-plan-bridge.js" defer></script>
   <script src="/debt-commitments-bridge.js" defer></script>
   <script src="/safe-to-spend-bridge.js" defer></script>
+  <script src="/forecast-bridge.js" defer></script>
 </body>
 </html>
