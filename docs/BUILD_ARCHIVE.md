@@ -413,3 +413,15 @@ After that documentation correction is merged and post-merge verification is GRE
 **Phase 7 — Core accounts and balances.**
 
 Phase 7 is not started by this document.
+
+## Addendum — 1 September 2026
+
+Note for whoever next reconciles this archive: the repository's git history (`Merge Phase 7 — core accounts and balances`, migration 015) shows Phase 7 has already been merged to `main`, and the local test/build/verify-phase7-dist gates all pass. This archive was not updated at that time and still reads as if Phase 7 were future work above. That reconciliation is out of scope for the change below and is left for a dedicated documentation-correction pass, per the project's own advancement rule.
+
+**Change recorded (documentation-only impact, no financial logic touched):**
+
+- Renamed the product from "Every Cent" to "Genevieve App" (trademark pending) in all user-visible text: `index.html` (title, meta description, `<h1>`, help-dialog heading), `manifest.webmanifest` (`name`/`short_name`), the "invalid backup" toast message in `app.js`, `phase2-data-runtime.js`, `phase2-subscriptions-savings-runtime.js`, and `phase7-backup-bridge.js`, the live-deployment smoke-test string in `.github/workflows/cloudflare-phase3.yml`, and `README.md`.
+- Deliberately left all internal `localStorage`/service-worker cache key strings (e.g. `every-cent-money-tracker-v1`) unchanged, to avoid any silent data-loss risk for existing local user data. These are internal identifiers never shown to a user.
+- Updated the two hash pins protecting `app.js` (`phase6-identity-entitlement.test.mjs`, `scripts/verify-phase7-dist.mjs`) to match the new blob hash, since the change was intentional and user-authorised.
+- Fixed a pre-existing, Windows-only path bug in `scripts/check-source.mjs` (`new URL(...).pathname` producing a doubled drive letter); switched to `fileURLToPath`. Unrelated to the rename; found while verifying this change locally on Windows.
+- Verified: `npm test` (138/138 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green.

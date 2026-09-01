@@ -209,7 +209,7 @@
       if (error?.message === 'Different signed-in account' || error?.message === 'Legacy backup is not user-bound') {
         showToast('Restore blocked: this backup is not bound to the current signed-in account.');
       } else {
-        showToast('That file is not a valid Every Cent backup.');
+        showToast('That file is not a valid Genevieve App backup.');
       }
     } finally {
       event.target.value = '';

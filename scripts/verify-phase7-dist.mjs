@@ -118,7 +118,9 @@ function gitBlobHash(text) {
   return createHash('sha1').update(header).update(text, 'utf8').digest('hex');
 }
 
-const expectedProtectedAppHash = 'a86381a76c4676b9d14cbcb1a6b9de842c1cd24c';
+// Pin updated 1 Sept 2026: intentional brand-name text change (Every Cent -> Genevieve App),
+// recorded in docs/BUILD_ARCHIVE.md. No behavioural logic in this file was touched.
+const expectedProtectedAppHash = 'b46943dff98ecededc4a65f65837e29acb0ff1f5';
 const sourceHash = gitBlobHash(sourceApp);
 if (sourceHash !== expectedProtectedAppHash) {
   throw new Error(`protected app.js changed: expected Git blob ${expectedProtectedAppHash}, got ${sourceHash}`);

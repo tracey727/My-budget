@@ -468,7 +468,7 @@
       saveState();
       showToast('Backup restored.');
     } catch {
-      showToast('That file is not a valid Every Cent backup.');
+      showToast('That file is not a valid Genevieve App backup.');
     }
   }
 

@@ -1,8 +1,9 @@
 import { readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { extname, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(new URL("../", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const ignoredDirectories = new Set([".git", "node_modules", "dist", "dist-react"]);
 const files = [];
 
