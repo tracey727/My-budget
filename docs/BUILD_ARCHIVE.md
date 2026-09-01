@@ -550,4 +550,18 @@ Added `household-continuity-bridge.js` covering two of Phase 18's three bullets 
 
 **Personal-side depth remaining:** accessibility modes (Phase 19) — the last item before moving to the Professional suite (Phases 20-24, not started).
 
+## Addendum — 2 September 2026 (10)
+
+**Change recorded: Simple mode — a low-cognitive-load accessibility toggle (Phase 19).**
+
+Added `accessibility-bridge.js` and a toggle button in the topbar (next to Help). Covers this phase's first roadmap bullet ("Simple / low-cognitive-load mode"). The second bullet, trusted-support access with restricted permissions, is already enforced server-side by the Phase 6 authority checks in `src/worker.mjs` (`trusted_support_can`, `withAuthorizedOwnerTransaction`) — confirmed by reading `phase6-trusted-support.test.mjs` before starting this phase, so no client-side duplication was needed there.
+
+- Toggling Simple mode adds a `simple-mode` class to `<body>`, which hides every element marked `data-simple-hide="true"` in `index.html` (the Forecast panel, the Fees & Interest panel, the account-change checklist panel, the "Spending by category" panel, and the Safe-to-Spend detail line) and increases text/button size for what remains.
+- Preference is stored under its own independent key (`genevieve-accessibility-v1`), not the money-tracker key — nothing else needs to read it and there's no field to protect against being dropped by an unrelated write, so no chained `setItem` patch was needed.
+- Manually verified in a local dist preview: toggling on hides the forecast panel and the safe-to-spend detail line, the preference survives a full page reload, and toggling back off restores the normal view, with no console errors in either state.
+- New test file `accessibility-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (185/185 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+**This completes the personal-side depth roadmap the user asked for (Phases 13-19).** Remaining roadmap items are the Professional suite (Phases 20-24, not started at all), the Verified Savings Ledger (25), deeper reporting (26), and a formal security audit (27) — plus two outstanding follow-ups flagged along the way: the BNPL liability-type gap in `app.js` (Addendum 8), and never getting the user's clarification on what "back to zero" means for the professional side (asked once early in this project, never answered).
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).
