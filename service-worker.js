@@ -9,6 +9,7 @@ const ASSETS = [
   '/dashboard-health-bridge.js',
   '/review-followup-bridge.js',
   '/income-plan-bridge.js',
+  '/debt-commitments-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'
