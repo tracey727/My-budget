@@ -12,6 +12,7 @@ const ASSETS = [
   '/debt-commitments-bridge.js',
   '/safe-to-spend-bridge.js',
   '/forecast-bridge.js',
+  '/household-continuity-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'
