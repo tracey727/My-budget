@@ -7,6 +7,7 @@ const required = [
   "app.js",
   "phase2-data-runtime.js",
   "phase2-subscriptions-savings-runtime.js",
+  "dashboard-health-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
@@ -36,11 +37,13 @@ const [index, runtime, extendedRuntime, worker] = await Promise.all([
 const dataRuntime = index.indexOf("/phase2-data-runtime.js");
 const subscriptionsSavingsRuntime = index.indexOf("/phase2-subscriptions-savings-runtime.js");
 const appRuntime = index.indexOf("/app.js");
+const healthBridgeRuntime = index.indexOf("/dashboard-health-bridge.js");
 if (dataRuntime < 0) throw new Error("built index.html no longer references /phase2-data-runtime.js");
 if (subscriptionsSavingsRuntime < 0) throw new Error("built index.html no longer references /phase2-subscriptions-savings-runtime.js");
 if (appRuntime < 0) throw new Error("built index.html no longer references the supported /app.js subscriber entry");
-if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime)) {
-  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js");
+if (healthBridgeRuntime < 0) throw new Error("built index.html no longer references /dashboard-health-bridge.js");
+if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime && appRuntime < healthBridgeRuntime)) {
+  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js -> dashboard-health-bridge.js");
 }
 
 for (const fragment of ["transactionUserResponse", "transactionRecurringStatus", "transactionProfessionalProjectLink", "billDialog", "bnpl"]) {

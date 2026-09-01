@@ -5,6 +5,7 @@ const assets = [
   "app.js",
   "phase2-data-runtime.js",
   "phase2-subscriptions-savings-runtime.js",
+  "dashboard-health-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",

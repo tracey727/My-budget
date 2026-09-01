@@ -6,6 +6,7 @@ const ASSETS = [
   '/app.js',
   '/phase2-data-runtime.js',
   '/phase2-subscriptions-savings-runtime.js',
+  '/dashboard-health-bridge.js',
   '/styles.css?v=phase3-seven-view-runtime-v3',
   '/app.js?v=phase3-seven-view-runtime-v3',
   '/manifest.webmanifest'

@@ -425,3 +425,19 @@ Note for whoever next reconciles this archive: the repository's git history (`Me
 - Updated the two hash pins protecting `app.js` (`phase6-identity-entitlement.test.mjs`, `scripts/verify-phase7-dist.mjs`) to match the new blob hash, since the change was intentional and user-authorised.
 - Fixed a pre-existing, Windows-only path bug in `scripts/check-source.mjs` (`new URL(...).pathname` producing a doubled drive letter); switched to `fileURLToPath`. Unrelated to the rename; found while verifying this change locally on Windows.
 - Verified: `npm test` (138/138 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green.
+
+## Addendum — 1 September 2026 (2)
+
+**Change recorded: dashboard-level overall health indicator.**
+
+Closes a gap in the existing Green/Yellow/Red/Recovery alert system (see docs/PRODUCT_CONTRACT.md): the four-state logic already existed per-bill (`targetAlertStatus` in `phase7-plan-integrity-bridge.js`) but was never rolled up into a single overall indicator on the dashboard itself.
+
+- Added `dashboard-health-bridge.js`, a new bridge file following the exact same pattern as the existing `phase7-*-bridge.js` files: it reads the shared `every-cent-money-tracker-v1` storage key and layers its own DOM updates on top, without modifying `app.js`. This was a deliberate choice — `scripts/copy-subscriber-assets.mjs` applies several targeted build-time patches directly to the deployed copy of `app.js` (Cloudflare/iPhone-specific fixes), so new dashboard logic was added as an independent, loaded-last script instead of touching that file a second time.
+- Rolls up all unpaid bills' `alertStatus` (worst-wins: recovery > red > yellow > green) into a new "Overall status" card on the dashboard, with explanatory, non-shaming copy per the product contract's tone requirement.
+- Also extends the existing "Potential waste this month" card's hint text with a simple annualised projection (current month's Waste + Unsure total × 12), so a user can see roughly what a habit costs per year, not just per month.
+- `app.js`'s protected hash is untouched by this change (verified via `verify-phase7-dist.mjs`).
+- Wired into `scripts/copy-subscriber-assets.mjs`, `service-worker.js`'s cache list, and `scripts/verify-dist.mjs`'s required-artifact and reference-order checks.
+- New test file `dashboard-health-bridge.test.mjs`, matching the project's existing source-pattern-matching test style.
+- Verified: `npm test` (141/141 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green.
+
+**Not yet built (separate, larger pieces of work, tracked for follow-up):** the 30-day scheduled re-check for transactions marked "Maybe"/Unsure, and the "back to zero" professional-side clarification.
