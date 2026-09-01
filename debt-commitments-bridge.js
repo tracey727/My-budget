@@ -13,11 +13,21 @@
   // stop debtCommitments being silently dropped whenever app.js or the
   // other runtimes save a write that doesn't know the field exists.
   // app.js itself is not modified.
+  //
+  // Extended 1 Sept 2026 (Phase 16 -- debt planning): each commitment can
+  // now record an interest rate, and the list shows a payoff projection
+  // (months to clear, payoff month, total interest at the current payment)
+  // plus a "what if" scenario for paying a bit more. All of this is a
+  // projection from the numbers entered, not a guarantee -- language
+  // throughout uses "projected"/"would" to avoid misrepresenting a future
+  // possibility as money already saved.
 
   const STORAGE_KEY = 'every-cent-money-tracker-v1';
   const LIABILITY_TYPES = new Set(['credit', 'loan', 'bnpl']);
   const REPAYMENT_FREQUENCIES = new Set(['weekly', 'fortnightly', 'monthly']);
   const PAY_PERIODS_PER_YEAR = { weekly: 52, fortnightly: 26, monthly: 12 };
+  const EXTRA_MONTHLY_PAYMENT_SCENARIO = 50;
+  const MAX_AMORTIZATION_MONTHS = 600;
 
   function uid(prefix) {
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -43,6 +53,7 @@
       requiredPayment: parseAmount(commitment.requiredPayment),
       frequency: REPAYMENT_FREQUENCIES.has(commitment.frequency) ? commitment.frequency : 'fortnightly',
       nextDueDate: String(commitment.nextDueDate || ''),
+      interestRate: parseAmount(commitment.interestRate ?? 0),
       createdAt: String(commitment.createdAt || new Date().toISOString()),
     };
   }
@@ -85,6 +96,63 @@
     return accounts.filter(a => a && LIABILITY_TYPES.has(a.type));
   }
 
+  // Mirrors app.js's own computedBalance() for a liability account: opening
+  // balance plus every transaction against it, with income/expense sign
+  // flipped because paying down a liability is an expense that *reduces*
+  // what's owed. Replicated here because this bridge is a separate script
+  // with no access to app.js's internal state.
+  function accountBalance(account, transactions) {
+    if (!account) return 0;
+    let balance = parseAmount(account.openingBalance);
+    for (const t of transactions) {
+      const amount = parseAmount(t?.amount);
+      if (t?.type === 'income' && t.accountId === account.id) balance -= amount;
+      if (t?.type === 'expense' && t.accountId === account.id) balance += amount;
+      if (t?.type === 'transfer') {
+        if (t.accountId === account.id) balance += amount;
+        if (t.toAccountId === account.id) balance -= amount;
+      }
+    }
+    return Math.round(balance * 100) / 100;
+  }
+
+  // Month-by-month amortization: applies interest, then the payment, and
+  // stops when the balance clears or MAX_AMORTIZATION_MONTHS is reached
+  // (treated as "won't pay off with this payment" -- covers both a zero/low
+  // payment and a payment that doesn't even cover the interest accruing).
+  function amortize(principal, monthlyPayment, annualRatePercent) {
+    if (principal <= 0) return { months: 0, totalInterest: 0, payoffPossible: true };
+    if (monthlyPayment <= 0) return { months: null, totalInterest: null, payoffPossible: false };
+    const monthlyRate = (Number(annualRatePercent) || 0) / 100 / 12;
+    let balance = principal;
+    let totalInterest = 0;
+    for (let month = 1; month <= MAX_AMORTIZATION_MONTHS; month += 1) {
+      const interest = balance * monthlyRate;
+      totalInterest += interest;
+      balance = balance + interest - monthlyPayment;
+      if (balance <= 0) {
+        return { months: month, totalInterest: Math.round(totalInterest * 100) / 100, payoffPossible: true };
+      }
+    }
+    return { months: null, totalInterest: null, payoffPossible: false };
+  }
+
+  function monthsFromNow(months) {
+    const date = new Date();
+    date.setMonth(date.getMonth() + months);
+    return date.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+  }
+
+  function payoffPlan(commitment, principal) {
+    const monthlyPayment = amountPerFrequency(commitment.requiredPayment, commitment.frequency, 'monthly');
+    const current = amortize(principal, monthlyPayment, commitment.interestRate);
+    if (!current.payoffPossible) {
+      return { current, scenario: null };
+    }
+    const scenario = amortize(principal, monthlyPayment + EXTRA_MONTHLY_PAYMENT_SCENARIO, commitment.interestRate);
+    return { current, scenario: scenario.payoffPossible ? scenario : null };
+  }
+
   function renderAccountOptions() {
     const select = document.getElementById('debtCommitmentAccount');
     if (!select) return;
@@ -99,6 +167,28 @@
 
   function accountName(accounts, accountId) {
     return accounts.find(a => a.id === accountId)?.name || 'Unknown account';
+  }
+
+  function payoffSummaryHtml(commitment, account, transactions) {
+    const principal = account ? accountBalance(account, transactions) : 0;
+    if (principal <= 0) return '<p class="row-meta">Nothing owed on this account right now.</p>';
+
+    const { current, scenario } = payoffPlan(commitment, principal);
+    const rateLabel = commitment.interestRate > 0 ? ` at ${commitment.interestRate}% interest` : ' (no interest rate set)';
+
+    if (!current.payoffPossible) {
+      return `<p class="row-meta">At ${money(commitment.requiredPayment)} ${escapeHtml(commitment.frequency)}${rateLabel}, this balance is projected to never clear -- the payment doesn't cover the interest accruing. A higher payment or a lower rate would be needed.</p>`;
+    }
+
+    const lines = [`Projected payoff: ${monthsFromNow(current.months)} (${current.months} month${current.months === 1 ? '' : 's'} away)${rateLabel}, with about ${money(current.totalInterest)} in interest along the way.`];
+    if (scenario) {
+      const monthsSooner = current.months - scenario.months;
+      const interestSaved = Math.round((current.totalInterest - scenario.totalInterest) * 100) / 100;
+      if (monthsSooner > 0) {
+        lines.push(`Paying an extra ${money(EXTRA_MONTHLY_PAYMENT_SCENARIO)} a month would clear it ${monthsSooner} month${monthsSooner === 1 ? '' : 's'} sooner and could save around ${money(interestSaved)} in interest -- a possibility, not money already saved.`);
+      }
+    }
+    return `<p class="row-meta">${lines.join(' ')}</p>`;
   }
 
   function render() {
@@ -123,18 +213,22 @@
         return;
       }
       listEl.className = 'stack-list';
-      listEl.innerHTML = commitments.map(c => `
+      listEl.innerHTML = commitments.map(c => {
+        const account = state.accounts.find(a => a.id === c.accountId);
+        return `
         <div class="list-row">
           <span>
             <span class="row-title">${escapeHtml(accountName(state.accounts, c.accountId))}</span>
-            <span class="row-meta">${escapeHtml(c.frequency)}${c.nextDueDate ? ` • next due ${escapeHtml(c.nextDueDate)}` : ''}</span>
+            <span class="row-meta">${escapeHtml(c.frequency)}${c.nextDueDate ? ` • next due ${escapeHtml(c.nextDueDate)}` : ''}${c.interestRate > 0 ? ` • ${c.interestRate}% interest` : ''}</span>
           </span>
           <span class="row-amount expense">${money(c.requiredPayment)}</span>
         </div>
+        ${payoffSummaryHtml(c, account, state.transactions)}
         <div style="display:flex; gap:8px; margin: -4px 0 12px;">
           <button type="button" class="secondary-button" data-debt-remove="${escapeHtml(c.id)}">Remove</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
       listEl.querySelectorAll('[data-debt-remove]').forEach(btn => {
         btn.addEventListener('click', () => {
           const remaining = readFullState().debtCommitments.filter(c => c.id !== btn.dataset.debtRemove);
@@ -153,13 +247,16 @@
       const amount = parseAmount(document.getElementById('debtCommitmentAmount')?.value);
       const frequency = document.getElementById('debtCommitmentFrequency')?.value || 'fortnightly';
       const nextDueDate = document.getElementById('debtCommitmentDueDate')?.value || '';
+      const interestRate = parseAmount(document.getElementById('debtCommitmentInterestRate')?.value);
       if (!accountId) return;
       if (amount <= 0) return;
       const commitments = readFullState().debtCommitments;
-      commitments.push(normalizeDebtCommitment({ accountId, requiredPayment: amount, frequency, nextDueDate }));
+      commitments.push(normalizeDebtCommitment({ accountId, requiredPayment: amount, frequency, nextDueDate, interestRate }));
       writeDebtCommitments(commitments);
       const amountInput = document.getElementById('debtCommitmentAmount');
       if (amountInput) amountInput.value = '';
+      const interestInput = document.getElementById('debtCommitmentInterestRate');
+      if (interestInput) interestInput.value = '';
     });
   }
 

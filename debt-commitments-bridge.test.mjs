@@ -26,10 +26,35 @@ test('Accounts view exposes a debt-repayment form and list wired to the bridge',
   assert.match(index, /id="debtCommitmentAmount"/);
   assert.match(index, /id="debtCommitmentFrequency"/);
   assert.match(index, /id="debtCommitmentDueDate"/);
+  assert.match(index, /id="debtCommitmentInterestRate"/);
   assert.match(index, /id="debtCommitmentSave"/);
   assert.match(index, /id="debtCommitmentTotal"/);
   assert.match(index, /id="debtCommitmentList"/);
   assert.match(index, /<script src="\/income-plan-bridge\.js" defer><\/script>\s*<script src="\/debt-commitments-bridge\.js" defer><\/script>/);
+});
+
+test('Debt commitments record an interest rate and normalize it safely', () => {
+  assert.match(runtime, /interestRate: parseAmount\(commitment\.interestRate \?\? 0\)/);
+  assert.match(runtime, /const interestRate = parseAmount\(document\.getElementById\('debtCommitmentInterestRate'\)\?\.value\)/);
+});
+
+test('Payoff projection amortizes month by month and detects a payment too low to ever clear the balance', () => {
+  assert.match(runtime, /function amortize/);
+  assert.match(runtime, /const monthlyRate = \(Number\(annualRatePercent\) \|\| 0\) \/ 100 \/ 12/);
+  assert.match(runtime, /if \(monthlyPayment <= 0\) return \{ months: null, totalInterest: null, payoffPossible: false \}/);
+  assert.match(runtime, /MAX_AMORTIZATION_MONTHS/);
+  assert.match(runtime, /never clear/);
+});
+
+test('Payoff projection replicates account balance from opening balance and transactions, mirroring app.js', () => {
+  assert.match(runtime, /function accountBalance/);
+  assert.match(runtime, /if \(t\?\.type === 'income' && t\.accountId === account\.id\) balance -= amount/);
+  assert.match(runtime, /if \(t\?\.type === 'expense' && t\.accountId === account\.id\) balance \+= amount/);
+});
+
+test('A "pay more" scenario is projected, not presented as money already saved', () => {
+  assert.match(runtime, /EXTRA_MONTHLY_PAYMENT_SCENARIO/);
+  assert.match(runtime, /a possibility, not money already saved/);
 });
 
 test('Debt commitments bridge is linked into the build, service worker cache and dist verification', () => {
