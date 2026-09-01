@@ -78,5 +78,5 @@ jobs:
             return 1
           }
 
-          verify_endpoint "/" "Genevieve App"
+          verify_endpoint "/" "Every Cent"
           verify_endpoint "/health" '"service":"genevieve-budget"'
