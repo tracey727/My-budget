@@ -564,4 +564,19 @@ Added `accessibility-bridge.js` and a toggle button in the topbar (next to Help)
 
 **This completes the personal-side depth roadmap the user asked for (Phases 13-19).** Remaining roadmap items are the Professional suite (Phases 20-24, not started at all), the Verified Savings Ledger (25), deeper reporting (26), and a formal security audit (27) — plus two outstanding follow-ups flagged along the way: the BNPL liability-type gap in `app.js` (Addendum 8), and never getting the user's clarification on what "back to zero" means for the professional side (asked once early in this project, never answered).
 
+## Addendum — 2 September 2026 (11)
+
+**Change recorded: fix BNPL accounts being counted as assets instead of debts in `app.js` (follow-up from Addendum 8).**
+
+Flagged during the debt payoff planning work (Addendum 8) rather than fixed on the spot, since it required touching the hash-pinned `app.js`. The user picked it up as a standalone task.
+
+`app.js`'s own `LIABILITY_TYPES` set only included `'credit'` and `'loan'`, omitting `'bnpl'` — unlike `transaction-model.mjs` and `debt-commitments-bridge.js`, which both already treat BNPL correctly. Because `app.js` is a plain browser script rather than a built module, it keeps its own separate copy of this set instead of importing `transaction-model.mjs`'s, and the two had drifted out of sync. This meant a BNPL account's balance was added to "Assets" instead of "Debts" in `computedBalance()`/`accountPosition()` and the Accounts view's own assets/debts/net-position summary.
+
+- Added `'bnpl'` to `app.js`'s `LIABILITY_TYPES` (line 13) and a regression test in `phase3-runtime-chain.test.mjs`.
+- Updated the git-blob-SHA hash pin in all four locations that move together for any `app.js` change: `phase6-identity-entitlement.test.mjs`, `scripts/verify-phase7-dist.mjs`, and the embedded `git hash-object app.js` checks in `.github/workflows/phase6-identity.yml` and `phase7-first-time-setup.yml`. New hash: `9e26d57dba3196821b39305f12021feadba5dbe1`.
+- Manually verified in a local dist preview: seeded a checking account ($1,000) and a BNPL account ($300 owed), confirmed Assets shows $1,000, Debts shows $300, and Net position shows $700 (previously would have shown Assets $1,300, Debts $0, Net position $1,300).
+- Verified: `npm test` (186/186 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green, including both hash-pin checks against the new hash.
+
+**Remaining follow-up:** the user's clarification on what "back to zero" means for the professional side has now been given (a control that resets a project/cost-centre's running numbers to $0 for a new period) — see the memory note saved alongside this session. The Professional suite itself (Phases 20-24) has not been started.
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).
