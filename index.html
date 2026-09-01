@@ -17,7 +17,10 @@
         <h1>Genevieve App</h1>
         <p class="tagline">Know what you have. Know where it went. Decide if it was worth it.</p>
       </div>
-      <button class="icon-button" id="helpButton" aria-label="Open help">?</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="icon-button" id="simpleModeToggle" aria-label="Toggle simple mode" aria-pressed="false">A+</button>
+        <button class="icon-button" id="helpButton" aria-label="Open help">?</button>
+      </div>
     </header>
 
     <nav class="primary-nav" aria-label="Main navigation">
@@ -42,10 +45,10 @@
             <article class="stat-card"><span>This week</span><strong id="safeToSpendWeek">$0.00</strong></article>
             <article class="stat-card"><span>Today</span><strong id="safeToSpendToday">$0.00</strong></article>
           </div>
-          <div id="safeToSpendDetail" class="muted small-copy"></div>
+          <div id="safeToSpendDetail" class="muted small-copy" data-simple-hide="true"></div>
         </section>
 
-        <section class="panel" id="forecastPanel">
+        <section class="panel" id="forecastPanel" data-simple-hide="true">
           <div class="section-heading">
             <div>
               <p class="eyebrow">THIS MONTH'S FORECAST</p>
@@ -265,7 +268,7 @@
           <div id="debtCommitmentList" class="stack-list empty-state">No debt repayments recorded yet.</div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-simple-hide="true">
           <div class="section-heading">
             <div>
               <p class="eyebrow">FEES &amp; INTEREST</p>
@@ -280,7 +283,7 @@
           <div id="feeMonitorList" class="stack-list empty-state">No transactions look like fees or interest so far this year.</div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-simple-hide="true">
           <div class="section-heading">
             <div>
               <p class="eyebrow">SWITCHING OR CLOSING AN ACCOUNT</p>
@@ -334,7 +337,7 @@
           <div id="thirtyDayReviewPendingList" class="stack-list empty-state">No Unsure items are currently being watched.</div>
         </section>
 
-        <section class="panel">
+        <section class="panel" data-simple-hide="true">
           <div class="section-heading">
             <div>
               <p class="eyebrow">WHERE IT WENT</p>
@@ -568,5 +571,6 @@
   <script src="/safe-to-spend-bridge.js" defer></script>
   <script src="/forecast-bridge.js" defer></script>
   <script src="/household-continuity-bridge.js" defer></script>
+  <script src="/accessibility-bridge.js" defer></script>
 </body>
 </html>

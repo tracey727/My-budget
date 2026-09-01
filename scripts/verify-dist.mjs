@@ -14,6 +14,7 @@ const required = [
   "safe-to-spend-bridge.js",
   "forecast-bridge.js",
   "household-continuity-bridge.js",
+  "accessibility-bridge.js",
   "styles.css",
   "service-worker.js",
   "manifest.webmanifest",
@@ -50,6 +51,7 @@ const debtCommitmentsRuntime = index.indexOf("/debt-commitments-bridge.js");
 const safeToSpendRuntime = index.indexOf("/safe-to-spend-bridge.js");
 const forecastRuntime = index.indexOf("/forecast-bridge.js");
 const householdContinuityRuntime = index.indexOf("/household-continuity-bridge.js");
+const accessibilityRuntime = index.indexOf("/accessibility-bridge.js");
 if (dataRuntime < 0) throw new Error("built index.html no longer references /phase2-data-runtime.js");
 if (subscriptionsSavingsRuntime < 0) throw new Error("built index.html no longer references /phase2-subscriptions-savings-runtime.js");
 if (appRuntime < 0) throw new Error("built index.html no longer references the supported /app.js subscriber entry");
@@ -60,8 +62,9 @@ if (debtCommitmentsRuntime < 0) throw new Error("built index.html no longer refe
 if (safeToSpendRuntime < 0) throw new Error("built index.html no longer references /safe-to-spend-bridge.js");
 if (forecastRuntime < 0) throw new Error("built index.html no longer references /forecast-bridge.js");
 if (householdContinuityRuntime < 0) throw new Error("built index.html no longer references /household-continuity-bridge.js");
-if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime && appRuntime < healthBridgeRuntime && healthBridgeRuntime < reviewFollowupRuntime && reviewFollowupRuntime < incomePlanRuntime && incomePlanRuntime < debtCommitmentsRuntime && debtCommitmentsRuntime < safeToSpendRuntime && safeToSpendRuntime < forecastRuntime && forecastRuntime < householdContinuityRuntime)) {
-  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js -> dashboard-health-bridge.js -> review-followup-bridge.js -> income-plan-bridge.js -> debt-commitments-bridge.js -> safe-to-spend-bridge.js -> forecast-bridge.js -> household-continuity-bridge.js");
+if (accessibilityRuntime < 0) throw new Error("built index.html no longer references /accessibility-bridge.js");
+if (!(dataRuntime < subscriptionsSavingsRuntime && subscriptionsSavingsRuntime < appRuntime && appRuntime < healthBridgeRuntime && healthBridgeRuntime < reviewFollowupRuntime && reviewFollowupRuntime < incomePlanRuntime && incomePlanRuntime < debtCommitmentsRuntime && debtCommitmentsRuntime < safeToSpendRuntime && safeToSpendRuntime < forecastRuntime && forecastRuntime < householdContinuityRuntime && householdContinuityRuntime < accessibilityRuntime)) {
+  throw new Error("Phase 2 runtime order must be data runtime -> subscriptions/savings runtime -> app.js -> dashboard-health-bridge.js -> review-followup-bridge.js -> income-plan-bridge.js -> debt-commitments-bridge.js -> safe-to-spend-bridge.js -> forecast-bridge.js -> household-continuity-bridge.js -> accessibility-bridge.js");
 }
 
 for (const fragment of ["transactionUserResponse", "transactionRecurringStatus", "transactionProfessionalProjectLink", "billDialog", "bnpl"]) {

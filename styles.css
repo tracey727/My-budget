@@ -219,3 +219,14 @@ textarea { min-height: 88px; resize: vertical; }
   .bar-row { grid-template-columns: 1fr auto; }
   .bar-track { grid-column: 1 / -1; grid-row: 2; }
 }
+
+#simpleModeToggle.active { background: var(--green); color: white; }
+
+body.simple-mode { font-size: 1.15em; }
+body.simple-mode [data-simple-hide] { display: none !important; }
+body.simple-mode .nav-button { font-size: 1.05rem; padding: 16px 6px; }
+body.simple-mode .quick-action { min-height: 88px; }
+body.simple-mode .quick-action b { font-size: 1.15rem; }
+body.simple-mode .primary-button, body.simple-mode .secondary-button { padding: 14px 18px; font-size: 1.05rem; }
+body.simple-mode .stat-card strong { font-size: clamp(1.4rem, 4vw, 1.9rem); }
+body.simple-mode .small-copy { font-size: 1rem; }
