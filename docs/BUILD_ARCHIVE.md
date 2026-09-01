@@ -517,4 +517,22 @@ Added `forecast-bridge.js` and a new "This month's forecast" dashboard panel, di
 
 **Next up:** Phase 16 — deeper debt planning (interest scenarios, repayment planning; commitment tracking itself already shipped).
 
+## Addendum — 1 September 2026 (8)
+
+**Change recorded: debt payoff planning — interest rates and amortization projections (Phase 16).**
+
+Extended `debt-commitments-bridge.js` rather than adding a new bridge file: `interestRate` is just a new field on the `debtCommitments` array this bridge already owns and protects, not a new top-level storage key, so no new chained `setItem` patch was needed.
+
+- Each debt commitment can now record an annual interest rate (optional, defaults to 0%).
+- The list shows a month-by-month amortization projection per commitment: months to payoff, projected payoff month, and total interest at the current payment. Uses the linked liability account's actual balance, computed by replicating `app.js`'s own `computedBalance()` logic locally (`accountBalance()`) — this bridge is a separate script with no access to `app.js`'s internal state.
+- Detects and warns when a payment doesn't cover the interest accruing (the loop runs to a 600-month cap without the balance clearing), rather than showing a nonsensical payoff date.
+- Shows a "pay $50/month more" scenario alongside the current projection, matching the roadmap's "interest scenarios" and "repayment planning" bullets. Every line uses "projected"/"would"/explicitly says "a possibility, not money already saved" — the roadmap's fourth bullet for this phase warns against misrepresenting future savings as realised, so the wording was checked deliberately, not left to whatever fell out of the calculation.
+- Manually verified all four states in a local dist preview against a hand-computed Node cross-check of the same amortization loop: normal payoff (24 months, $395.65 interest at 18% APR on a $2,000 balance with $100/month payments, matching exactly), the "pay more" scenario (9 months sooner, $147.51 saved, also exact), a payment too low to ever clear the balance ($20/month against 30% APR on $2,000), and zero balance owed.
+- Extended `debt-commitments-bridge.test.mjs` with coverage for the interest field, the amortization function, the replicated account-balance logic, and the "pay more" scenario wording.
+- Verified: `npm test` (174/174 pass), `npm run check:source`, `npm run build`, `node scripts/verify-dist.mjs`, `node scripts/verify-phase7-dist.mjs` — all green. `app.js` hash pin untouched.
+
+While reviewing app.js's own liability handling for the account-balance replication above, found that `app.js`'s `LIABILITY_TYPES` set (line 13) only includes `credit` and `loan`, omitting `bnpl` — unlike `debt-commitments-bridge.js` and `transaction-model.mjs`, which both correctly treat BNPL as a liability. This means a BNPL account's balance is currently counted as an asset, not a debt, in the Accounts view's own Assets/Debts/Net position summary. Flagged as a separate follow-up rather than fixed here, since correcting it requires touching the hash-pinned `app.js` (four locations must be updated together: the two test/verify hash checks plus two GitHub Actions workflow files).
+
+**Personal-side depth remaining:** household continuity (Phase 18), accessibility modes (Phase 19).
+
 **Both Safe-to-Spend inputs are now in place. Next up: the Safe-to-Spend engine itself** (Income minus essential bills minus bill provisions/targets minus debt commitments minus protected emergency amount minus savings commitments, expressed per pay cycle / week / day, per docs/PRODUCT_CONTRACT.md).
