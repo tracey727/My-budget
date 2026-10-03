@@ -41,9 +41,9 @@ See `docs/PRODUCT_CONTRACT.md` and the build archive for the detailed production
 Two open PRs were inspected during repository consolidation:
 
 - **PR #50 — Professional entities and project accounting.** This is real new functionality and must not be discarded as cleanup.
-- **PR #33 — Phase 6 authentication runtime.** Its own PR description says it is a test vehicle / incomplete and must not be merged until the missing authentication integration is completed and re-audited.
+- **PR #33 — Phase 6 authentication runtime.** Closed during consolidation without merge because it was explicitly a draft test vehicle and the completed/sealed Phase 6 implementation is already on current `main`. Its branch remains preserved for history.
 
-Cleanup work must not merge, delete or rewrite those branches merely to reduce branch count.
+Cleanup work must not delete or rewrite preserved feature/history branches merely to reduce branch count.
 
 ## Data and safety
 
