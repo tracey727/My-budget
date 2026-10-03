@@ -1,0 +1,55 @@
+name: Read Cloudflare Build Log Helper
+
+on:
+  push:
+    branches:
+      - cleanup/generate-budget-types-helper
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: "96b9de0080a58068aa4a0b57cd8a53d9"
+      BUILD_UUID: "6a8c5aad-b7d6-4a2e-8439-a81e8a24b2cc"
+    steps:
+      - name: Read sanitized build outcome and log tail
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          META="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/builds/builds/${BUILD_UUID}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          LOGS="$(curl -fsS "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/builds/builds/${BUILD_UUID}/logs" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}")"
+          python - <<'PY' "$META" "$LOGS"
+          import json,re,sys
+          meta=json.loads(sys.argv[1])
+          logs=json.loads(sys.argv[2])
+          result=meta.get("result") or {}
+          trig=result.get("build_trigger_metadata") or {}
+          safe_meta={
+            "success": meta.get("success"),
+            "outcome": result.get("build_outcome"),
+            "branch": trig.get("branch"),
+            "commit_hash": trig.get("commit_hash"),
+            "build_command": trig.get("build_command"),
+            "deploy_command": trig.get("deploy_command"),
+            "source": trig.get("build_trigger_source"),
+          }
+          print("SAFE_BUILD_META="+json.dumps(safe_meta,sort_keys=True))
+          raw=logs.get("result",{}).get("lines") or []
+          messages=[]
+          for line in raw:
+            if isinstance(line,list):
+              msg=" ".join(str(x) for x in line[1:])
+            else:
+              msg=str(line)
+            msg=re.sub(r'postgres(?:ql)?://\S+','postgresql://***',msg,flags=re.I)
+            msg=re.sub(r'(?i)(token|secret|password|api[_-]?key)\s*[=:]\s*\S+',r'\1=***',msg)
+            messages.append(msg)
+          print("SAFE_LOG_TAIL_START")
+          print("\n".join(messages[-120:]))
+          print("SAFE_LOG_TAIL_END")
+          PY
