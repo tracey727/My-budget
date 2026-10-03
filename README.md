@@ -1,55 +1,52 @@
 # Genevieve App — Money Tracker
 
-A beginner-friendly personal money tracker built as a static web app. It can be deployed directly from GitHub to Vercel with no build step.
+**Active independent local-first personal money product in the GENEVIEVE budget family.**
 
-## What it does
+This repository is not a duplicate of `budget-calculator-personal` and is not Revenue Rescue. It preserves its own local-first money-management architecture and feature line.
 
-- Track money spent, received and moved between your own accounts.
-- Track bank accounts, savings, cash, credit cards and loans.
-- Mark spending as Essential, Worth it, Unsure or Waste.
-- Show monthly income, spending, cash flow and potential waste.
-- Track recurring bills and subscriptions.
-- Subscription Rescue for payments you do not recognise.
-- Annualise subscription costs so monthly costs are easier to judge.
-- Show items that need attention.
-- Export transactions to CSV.
-- Download and restore a JSON backup.
-- Works as an installable/offline-friendly web app after first load.
+## Family role
 
-## Important privacy/data note
+- **My-budget** — active local-first personal money tracker with progressive personal-finance and continuity features.
+- **budget-calculator-personal** — separate modern personal-only Budget Calculator product.
+- **Revenue Rescue** — separate protected commercial product; not part of this repository.
+- **Budget Traveller / Wayfarer** — separate travel-budget products.
 
-Version 1 stores data in `localStorage` in the browser on the device you use. It does not send your financial information to a server and it does not connect to your bank. Clearing browser/site data can erase local records, so use **Review → Download backup** regularly.
+## Active platform
 
-## Files
+- Source control: GitHub
+- Edge/application hosting: Cloudflare
+- Persistent production data where enabled: Neon Postgres
+- Local-first/device operation remains part of the product design
+- Vercel is legacy and is not an active deployment target; the obsolete `vercel.json` has been removed.
 
-- `index.html` — app structure
-- `styles.css` — responsive phone/desktop design
-- `app.js` — all money tracker logic
-- `manifest.webmanifest` — installable web-app metadata
-- `service-worker.js` — offline caching
-- `vercel.json` — Vercel headers/configuration
+See `docs/PRODUCT_CONTRACT.md` and the build archive for the detailed production and phase boundaries.
 
-## Put it on GitHub
+## Core money functions
 
-1. Create a new GitHub repository, for example `every-cent-money-tracker`.
-2. Upload every file in this folder to the root of the repository.
-3. Commit the files.
+- Track money spent, received and moved between accounts
+- Accounts, savings, cash, credit cards and loans
+- Essential / Worth it / Unsure / Waste review
+- Recurring bills and subscriptions
+- Subscription Rescue and annual cost visibility
+- Safe-to-spend and payday planning
+- Savings goals
+- Forecasting and early-warning views
+- Debt and commitment tracking
+- Household continuity tools
+- Export / backup / recovery support
+- Offline-friendly operation
 
-## Deploy it with Vercel
+## Open development work — preserve
 
-1. Sign in to Vercel.
-2. Choose **Add New → Project**.
-3. Import the GitHub repository you just created.
-4. Vercel should detect it as a static site. No framework or build command is required.
-5. Click **Deploy**.
+Two open PRs were inspected during repository consolidation:
 
-If Vercel asks for settings, use:
+- **PR #50 — Professional entities and project accounting.** This is real new functionality and must not be discarded as cleanup.
+- **PR #33 — Phase 6 authentication runtime.** Closed during consolidation without merge because it was explicitly a draft test vehicle and the completed/sealed Phase 6 implementation is already on current `main`. Its branch remains preserved for history.
 
-- Framework Preset: **Other**
-- Build Command: leave blank
-- Output Directory: leave blank
-- Install Command: leave blank
+Cleanup work must not delete or rewrite preserved feature/history branches merely to reduce branch count.
 
-## Next production upgrade
+## Data and safety
 
-The safest next major upgrade is optional secure multi-device sync using authenticated accounts and a database. Do not add direct bank credentials to this static version.
+The product has evolved beyond the original browser-only prototype. Follow the current product contract, database migrations and Cloudflare/Neon deployment documents rather than old Vercel-era assumptions.
+
+Do not add direct bank credentials to client-side code. Preserve fail-closed identity/data controls as the later phases are completed.
