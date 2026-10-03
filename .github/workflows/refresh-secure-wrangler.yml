@@ -1,0 +1,37 @@
+name: Refresh secure Wrangler lockfile
+
+on:
+  push:
+    branches:
+      - cleanup/budget-platform-housekeeping
+    paths:
+      - '.github/workflows/refresh-secure-wrangler.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/budget-platform-housekeeping
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Upgrade Wrangler and regenerate lockfile
+        run: npm install --save-dev --package-lock-only --ignore-scripts wrangler@4.146.0
+      - name: Security audit
+        run: npm audit --audit-level=high
+      - name: Commit secure dependency lock and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/refresh-secure-wrangler.yml
+          git add package.json package-lock.json
+          git commit -m "fix: update Wrangler dependencies after security audit"
+          git push origin HEAD:cleanup/budget-platform-housekeeping
