@@ -1,0 +1,37 @@
+name: Test Wrangler Candidates Helper
+
+on:
+  push:
+    branches:
+      - cleanup/generate-budget-types-helper
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        wrangler: ["4.126.0", "4.130.0", "4.134.0"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/generate-budget-types-helper
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Generate candidate lockfile
+        run: npm install --save-dev --package-lock-only --ignore-scripts --no-audit --no-fund wrangler@${{ matrix.wrangler }}
+      - name: Security audit
+        run: npm audit --audit-level=high
+      - name: Install candidate
+        run: npm ci
+      - name: Verify Phase 2
+        run: npm run verify:phase2
+      - name: Generate candidate Cloudflare types
+        run: npm run cf:types
+      - name: Cloudflare dry run
+        run: npm run cf:dry-run
